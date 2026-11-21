@@ -1,5 +1,15 @@
 import { z } from "zod";
-import { SERVICE_TYPES, type ServiceStatus, type ServiceType } from "./domain";
+import {
+  CLINICAL_ROLES,
+  SERVICE_TYPES,
+  type ClinicalRole,
+  type ServiceStatus,
+  type ServiceType,
+  type StepStatus,
+} from "./domain";
+
+/** Short visit folio written on the paper form: "<prefix>-<seq>-<check>", e.g. "B3-017-K" (SPEC 6.3.1). */
+export const FOLIO_PATTERN = /^[A-Z][0-9]-\d{3,4}-[A-Z]$/;
 
 // API contract for block 1 (docs/SPEC.md 6.2, 6.3, 8). Server and web app both build against it.
 
@@ -146,15 +156,69 @@ export const syncOpSchema = z.discriminatedUnion("kind", [
     services: z
       .array(z.object({ serviceId: z.string().uuid(), type: z.enum(SERVICE_TYPES) }))
       .min(1),
+    /** Specialists the patient will see today (SPEC 6.3.1). Each creates a PENDING VisitStep. */
+    plannedSteps: z.array(z.enum(CLINICAL_ROLES)).default([]),
+  }),
+  // Specialist ops reference the visit by campaign + short folio, because the visit may not
+  // have reached this tablet yet (SPEC 6.3.1, "El folio une a las estaciones").
+  z.object({
+    ...opBase,
+    kind: z.literal("UPDATE_SERVICE_FIELDS"),
+    campaignId: z.string().min(1),
+    folio: z.string().regex(FOLIO_PATTERN),
+    /** Name the patient confirmed at this station; a mismatch opens a review instead of merging. */
+    confirmedName: z.string().trim().min(2),
+    serviceType: z.enum(SERVICE_TYPES),
+    /** Template field keys -> values. Only fields whose `filledBy` is the sender's role. */
+    fields: z.record(z.string(), z.string()),
+  }),
+  z.object({
+    ...opBase,
+    kind: z.literal("COMPLETE_STEP"),
+    campaignId: z.string().min(1),
+    folio: z.string().regex(FOLIO_PATTERN),
+    confirmedName: z.string().trim().min(2),
+    role: z.enum(CLINICAL_ROLES),
+    status: z.enum(["DONE", "SKIPPED"]),
+    /** Required when SKIPPED (e.g. "La paciente se retiró"). */
+    reason: z.string().trim().optional(),
   }),
 ]);
 export type SyncOp = z.infer<typeof syncOpSchema>;
+
+// ---------- Block 2b: specialists, steps, folio ----------
+
+/** POST /api/devices/register (any staff, online): assigns this tablet a unique folio prefix once. */
+export interface DeviceRegistration {
+  deviceId: string;
+  /** Letter + digit, e.g. "B3". Stable for this deviceId. */
+  folioPrefix: string;
+}
+
+export interface VisitStepView {
+  role: ClinicalRole;
+  status: StepStatus;
+  completedBy: string | null;
+  completedAt: string | null;
+}
+
+/** GET /api/queue (specialists): today's visits in the campaign with this role's step PENDING. */
+export interface QueueItem {
+  visitId: string;
+  folio: string;
+  patientId: string;
+  fullName: string;
+  birthDate: string;
+  registeredAt: string;
+  steps: VisitStepView[];
+}
 
 /** POST /api/sync/push body. */
 export const syncPushSchema = z.object({ ops: z.array(syncOpSchema).min(1).max(200) });
 export type SyncPushInput = z.infer<typeof syncPushSchema>;
 
-export type OpResultStatus = "APPLIED" | "DUPLICATE" | "CONFLICT" | "REJECTED";
+/** WAITING: the referenced visit (folio) has not reached the server yet; the device keeps and retries the op. */
+export type OpResultStatus = "APPLIED" | "DUPLICATE" | "CONFLICT" | "REJECTED" | "WAITING";
 
 export interface OpResult {
   opId: string;

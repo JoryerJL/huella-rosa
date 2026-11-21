@@ -58,7 +58,7 @@ Además, las etiquetas `Día`, `Mes` y `Año` se repiten en el mismo formato (1.
 
 Consecuencia: con la foto sola nunca se puede buscar. La persona tiene que escribir la fecha a mano en la pantalla de confirmación cada vez.
 
-**Arreglo propuesto (no se cambió código de producción en esta tarea):** en `mapTextractBlocks`, armar la fecha a partir de las tres partes que están en el mismo renglón que el texto "Fecha de nacimiento".
+**Arreglo propuesto** (aplicado después; ver "Cambios aplicados"): en `mapTextractBlocks`, armar la fecha a partir de las tres partes que están en el mismo renglón que el texto "Fecha de nacimiento".
 
 1. En `plantillas/mamaria.json`, declarar las partes del campo:
 
@@ -88,6 +88,22 @@ La confianza que guarda el mapeo es la menor entre la de la llave y la del valor
 ### 5. Año tachado (img-08): no se pudo evaluar
 
 Como la fecha nunca se lee, no sabemos qué haría Textract con un año tachado y corregido. La detección de img-08 salió bien solo porque en la simulación se tecleó la fecha correcta.
+
+## Cambios aplicados después de la primera pasada (pendiente de medir)
+
+En `apps/server/src/scans/textractMapping.ts`, todavía sin desplegar ni medir con Textract:
+
+1. **Fechas en casillas Día / Mes / Año.** Para cada campo `fecha` de la plantilla (nacimiento, atención, FUM, última mastografía), si ninguna casilla trae la fecha completa, se arma con las llaves `Día`, `Mes` y `Año` que están en el mismo renglón que su etiqueta, en ese orden y de izquierda a derecha. En la tabla de "1. Fecha de atención" los valores van debajo de cada encabezado y se toman del valor de cada llave. Si Textract no formó pares, se leen las palabras del renglón ("Día 05 Mes 01 Año 1990") y se detiene en la siguiente etiqueta ("6. Edad en años"). Resultado en `AAAA-MM-DD`.
+2. **Años de dos dígitos** con pivote en el año actual: en 2026, `90` → 1990 y `05` → 2005.
+3. **Fechas imposibles** (mes 13, 30 de febrero, antes de 1900 o en el futuro): no se corrigen; se propone lo leído como `dd/mm/aaaa` con confianza 0.50 para que la persona lo arregle.
+4. **Correcciones visibles**: si una casilla de la fecha trae dos números (año tachado y reescrito), se propone el último con confianza 0.50.
+5. **Confianza por palabra**: la confianza es la menor de las palabras del valor, ya no la del par llave-valor. Si alguna palabra es letra a mano (`TextType: HANDWRITING`), se reescala para que **0.90 de Textract en letra a mano** quede justo en la línea de amarillo de la app (0.80, "Revisa este dato"). La letra de molde conserva su cifra.
+6. **Valor fuera de la línea**: si la llave de un campo de texto viene sin valor, se buscan palabras a mano sueltas a la derecha de la llave, un poco arriba o abajo de su renglón, hasta la siguiente llave o etiqueta impresa ("Celular" limita a "Teléfono fijo"). Ese valor se propone con confianza máxima de 0.60, así que siempre sale en amarillo.
+7. **Guion o punto sobrante** al final de un valor de texto (`55-0000-0040 -`): se quita.
+
+Umbral elegido: **0.90 para letra a mano**. Es provisional. La primera pasada solo dejó ver la confianza del par llave-valor (0.80 a 0.95 en valores correctos) y ningún valor no vacío salió mal, así que estos datos no permiten fijar el umbral por palabra. Se confirma o ajusta con la siguiente pasada.
+
+Pruebas: `apps/server/src/scans/textractMapping.test.ts`, sobre una página de Textract **sintética** (`apps/server/test/fixtures/textractForm.ts`) con las posiciones medidas en estas fotos y datos ficticios. No es una respuesta real guardada: la API de la app solo devuelve los campos ya mapeados y los resultados de la primera pasada no traen los bloques crudos de Textract. La forma exacta en que Textract agrupa estas casillas se confirma en la siguiente pasada.
 
 ## Recomendaciones
 

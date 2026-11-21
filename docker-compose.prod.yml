@@ -43,6 +43,8 @@ services:
       HR_API_URL: http://app:3001
       HR_AUTH_URL: ${PUBLIC_URL:-https://huella-rosa.jjjl.dev}
       MCP_PORT: "3002"
+      # FastMCP binds to localhost by default; cloudflared reaches it over the compose network.
+      FASTMCP_HOST: 0.0.0.0
       MCP_PUBLIC_URL: ${PUBLIC_URL:-https://huella-rosa.jjjl.dev}/mcp
     # The image healthcheck probes the app's /api/health; it does not apply here.
     healthcheck:

@@ -62,6 +62,7 @@ Si aparece un término que no está aquí, agrégalo a esta tabla antes de usarl
 
 ## Convenciones
 
+- **Todo lo visual se diseña y se consulta en Figma** (MCP de Figma): https://www.figma.com/design/4wgHGSiieY7oiIIFnGAjru. Antes de construir o cambiar una pantalla, revisa su marco en Figma; si la pantalla no existe ahí, diséñala primero en Figma. Colores de EIRA (de `eiraac.org/css/main.css`) como variables; sus componentes no se copian.
 - Interfaz y mensajes en español de México, lenguaje sencillo.
 - Pantallas de captura en campo: texto de 18 px o más, un paso por pantalla, botones grandes, indicador de señal y de operaciones pendientes siempre visible.
 - Fechas clínicas como `AAAA-MM-DD` en texto para evitar problemas de zona horaria.

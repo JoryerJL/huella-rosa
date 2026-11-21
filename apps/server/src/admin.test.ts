@@ -95,7 +95,8 @@ describe("dashboard", () => {
     const doctorSteps = d.steps.find((s) => s.role === "doctor")!;
     expect(doctorSteps.pending).toBe(0);
     expect(doctorSteps.done).toBeGreaterThan(0);
-    expect(d.conflictsOpen).toBeGreaterThanOrEqual(0);
+    // Seeded steps closed before the visit row existed: no negative averages.
+    expect(doctorSteps.avgMinutes === null || doctorSteps.avgMinutes >= 0).toBe(true);
   });
 });
 

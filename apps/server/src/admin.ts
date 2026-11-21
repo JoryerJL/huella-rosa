@@ -456,7 +456,10 @@ export async function campaignDashboard(campaignId: string): Promise<DashboardRe
   for (const role of CLINICAL_ROLES) {
     const own = visits.flatMap((v) => v.steps.filter((s) => s.role === role).map((s) => ({ s, v })));
     const done = own.filter(({ s }) => s.status === "DONE" && s.completedAt);
-    const minutes = done.map(({ s, v }) => (s.completedAt!.getTime() - v.createdAt.getTime()) / 60_000);
+    // Steps closed before the visit reached the server (offline or seeded) carry no usable duration.
+    const minutes = done
+      .map(({ s, v }) => (s.completedAt!.getTime() - v.createdAt.getTime()) / 60_000)
+      .filter((m) => m >= 0);
     steps.push({
       role,
       pending: own.filter(({ s }) => s.status === "PENDING").length,

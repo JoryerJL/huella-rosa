@@ -189,7 +189,7 @@ Las tres entradas crean un **lote de importación** y nada más:
 - Cada fila queda como `NEW` (sin coincidencias), `POSSIBLE_MATCH` (con candidatas y motivos) o `INVALID` (con el motivo en lenguaje sencillo).
 - Captura revisa el lote: confirma altas, elige "Es ella" para agregar la visita al expediente existente, o descarta la fila. **Nada se guarda sin esa confirmación**; las filas confirmadas entran por el mismo camino de escritura que el resto (operaciones de sincronización).
 
-Herramientas MCP (endpoint `/mcp`, transporte HTTP):
+Herramientas MCP: servidor aparte en `apps/mcp` construido con **FastMCP** (TypeScript, paquete `fastmcp`), transporte HTTP en streaming en `/mcp`. Autentica cada llamada con el token de agente y llama a la API del servidor de Huella Rosa con ese token; no toca la base de datos directamente.
 
 | Herramienta | Qué hace |
 |---|---|
@@ -262,7 +262,7 @@ GET  /api/imports/[id]               captura     lote y sus filas
 POST /api/imports/[id]/mapping       captura     confirmar mapeo de columnas
 POST /api/imports/[id]/rows/[row]    captura     confirmar alta, "Es ella" o descartar
 POST /api/agent-tokens               admin       emitir o revocar token de agente
-POST /mcp                            agente      servidor MCP (token de agente)
+POST /mcp (apps/mcp, FastMCP)        agente      servidor MCP (token de agente); llama a /api/imports con ese token
 ```
 
 Toda ruta valida rol en el servidor y escribe en bitácora.
@@ -284,7 +284,7 @@ packages/shared tipos, esquemas de validación (zod), reglas de coincidencia y d
 - **Servidor:** Hono sobre Node; Prisma + SQLite en desarrollo (PostgreSQL en piloto). El cliente tipado de Hono comparte los tipos de la API con la app.
 - **Reglas compartidas:** la búsqueda de coincidencias y la detección de conflictos viven en `packages/shared` y corren igual en el dispositivo (sin red) y en el servidor (al sincronizar).
 - **Valkey (patrocinador):** sesiones, ids de operación ya aplicados (sincronización idempotente), candado por paciente al aplicar cambios, límite de intentos en login y búsqueda, cola de lectura de formatos y pub/sub para avisar a los dispositivos conectados.
-- **AWS:** Textract para leer formatos; S3 con cifrado en reposo para las imágenes; despliegue en EC2 con Docker Compose (app + Valkey) detrás de HTTPS.
+- **AWS:** Textract para leer formatos; S3 con cifrado en reposo para las imágenes; despliegue en EC2 con Docker Compose (app + Valkey) detrás de HTTPS. Toda operación sobre AWS (crear recursos, desplegar, probar Textract) se hace con el **AWS Agent Toolkit** (MCP `aws-mcp` y skills de AWS), con autorización explícita para cada operación remota.
 - **Modos locales:** `OCR_MODE=mock` y `STORAGE_MODE=local` permiten correr todo sin cuenta de AWS.
 
 ### 9.1 Limitaciones de la PWA y cómo se mitigan

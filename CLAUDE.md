@@ -23,6 +23,8 @@ Proyecto de hackathon (Nerdearla Vibeathon México 2026, reto 1 de EIRA: expedie
 - La app llama al servidor con el cliente tipado de Hono (`hc`). En desarrollo Vite redirige `/api` al servidor.
 - Requisito de hasta 3 días sin internet: ver `docs/SPEC.md` sección 6.8 y limitaciones de la PWA en 9.1.
 - Importación de Excel y servidor MCP para agentes de IA: `docs/SPEC.md` sección 6.7. El MCP solo propone lotes; nunca confirma, vincula ni toca datos clínicos.
+- AWS: todo lo que toque AWS se hace con el **AWS Agent Toolkit** (MCP `aws-mcp` y las skills de AWS instaladas), nunca con scripts o SDK sueltos fuera de la app. Ninguna llamada a una cuenta real sin autorización explícita para esa operación.
+- Servidor MCP para agentes de IA: `apps/mcp` con **FastMCP** (TypeScript, `fastmcp`), transporte HTTP en streaming; llama a la API del servidor con el token de agente.
 - Valkey (patrocinador): sesiones, ids de operación aplicados (sincronización idempotente), candado por paciente, límite de intentos, cola de lectura de formatos y pub/sub de cambios. Cliente `iovalkey`.
 - Lectura de formatos por `OCR_MODE`: `mock` (lee `datos-ficticios/formatos/*.json`) o `textract` (AWS Textract). Construye primero `mock`.
 - Almacenamiento de imágenes por `STORAGE_MODE`: `local` o `s3`.

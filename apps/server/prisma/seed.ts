@@ -5,7 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { DEFAULT_STEPS_BY_SERVICE, formatFolio, type ClinicalRole, type ServiceType } from "@er/shared";
 import { hashPin } from "../src/pin";
 
-const db = new PrismaClient();
+const db = new PrismaClient(process.env.DATABASE_URL ? { datasourceUrl: process.env.DATABASE_URL } : undefined);
 
 const DEMO_PIN = "1234";
 const DEVICE = "seed";

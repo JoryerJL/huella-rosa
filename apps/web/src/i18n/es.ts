@@ -14,14 +14,64 @@ export const es = {
   offline: "Sin señal",
   logout: "Salir",
   login: {
-    title: "¿Quién va a trabajar?",
-    subtitle: "Elige tu usuario y escribe tu PIN.",
-    pinLabel: "PIN",
+    title: "Entrar",
+    subtitle: "Escribe tu usuario y tu PIN.",
+    usernameLabel: "Usuario",
+    pinLabel: "Tu PIN",
+    pinDigits: "Escribe tu PIN de 4 a 6 números",
+    clear: "Borrar",
     submit: "Entrar",
     loading: "Entrando…",
-    demoHint: "Usuarios de demostración. PIN: 1234",
-    offlineHint: "Para entrar por primera vez necesitas señal.",
+    pinNeverStored: "Tu PIN nunca se guarda en la tableta. Con señal, el servidor revisa tu usuario y tu PIN.",
+    onlineHint: "Con señal: al entrar, esta tableta queda lista para 4 días sin internet.",
+    offlineHint: "Sin señal: solo puede entrar quien ya entró antes en esta tableta.",
     genericError: "No pudimos entrar. Revisa tu señal e intenta de nuevo.",
+    invalidInput: "Revisa tu usuario y tu PIN: el PIN tiene de 4 a 6 números.",
+    offlineUnknown:
+      "Sin señal solo puede entrar quien ya entró antes en esta tableta. Busca señal para entrar por primera vez.",
+    offlineExpired: "Pasaron más de 4 días desde que entraste con señal. Busca señal y vuelve a entrar.",
+    wrongPin: (left: number) =>
+      left === 1
+        ? "PIN incorrecto. Te queda 1 intento; después este usuario se bloquea 15 minutos en esta tableta."
+        : `PIN incorrecto. Te quedan ${left} intentos; después este usuario se bloquea 15 minutos en esta tableta.`,
+    locked: (minutes: number) =>
+      `Este usuario está bloqueado en esta tableta. Espera ${minutes} ${minutes === 1 ? "minuto" : "minutos"} e intenta de nuevo.`,
+  },
+  sync: {
+    pending: (n: number) => (n === 1 ? "1 cambio por sincronizar" : `${n} cambios por sincronizar`),
+    since: (time: string) => `desde ${time}`,
+    allSynced: "Sin cambios por sincronizar",
+    lastSync: (time: string) => `última vez ${time}`,
+    never: "todavía no sincroniza",
+    syncNow: "Sincronizar ahora",
+    syncing: "Sincronizando…",
+    failed: (n: number) => (n === 1 ? "1 cambio con aviso" : `${n} cambios con aviso`),
+    needsLogin: "Tu sesión con el servidor terminó. Sal y vuelve a entrar con señal para enviar los cambios.",
+    logoutWarning: (n: number) =>
+      `Hay ${n === 1 ? "1 cambio" : `${n} cambios`} sin sincronizar en esta tableta. Se guardan y se enviarán cuando alguien entre con señal. ¿Quieres salir de todos modos?`,
+  },
+  package: {
+    title: "Paquete de jornada",
+    subtitle: "Descárgalo con señal antes de salir. Con él puedes buscar pacientes sin internet.",
+    navLink: "Paquete de jornada",
+    patients: "Pacientes en la tableta",
+    downloaded: "Descargado",
+    expires: "Vence",
+    expiresIn: (date: string, days: number) =>
+      days <= 0 ? `${date} · venció` : `${date} · en ${days} ${days === 1 ? "día" : "días"}`,
+    download: "Descargar paquete",
+    downloadAgain: "Descargar paquete otra vez",
+    downloading: "Descargando…",
+    downloadedOk: "Listo. El paquete quedó guardado en esta tableta.",
+    none: "Esta tableta todavía no tiene paquete de jornada.",
+    needsSignal: "Necesitas señal para descargar el paquete.",
+    expiredWarning: "Si el paquete vence, la búsqueda se detiene. Descárgalo otra vez cuando tengas señal.",
+    privacy: "El paquete no trae datos clínicos ni teléfonos completos: solo lo necesario para reconocer a la paciente.",
+    expiredSearch: "El paquete de jornada venció. Descárgalo otra vez con señal para poder buscar.",
+    missingSearch: "Descarga el paquete de jornada con señal para poder buscar sin internet.",
+    noCampaign: "No hay jornadas disponibles. Pide a administración que cree una.",
+    failedTitle: "Cambios con aviso",
+    failedBody: "El servidor no aplicó estos cambios. No se perdió nada; administración los revisa.",
   },
   common: {
     back: "Regresar",
@@ -63,8 +113,8 @@ export const es = {
   intake: {
     title: "Identifica a la paciente",
     subtitle: "Primero buscamos si ya vino antes. Escribe su nombre, su fecha de nacimiento y un dato más.",
-    offlineTitle: "Funciona mejor con señal",
-    offlineBody: "Por ahora la búsqueda necesita señal. Pronto buscará en la lista guardada en esta tableta.",
+    offlineTitle: "Funciona sin señal",
+    offlineBody: "La búsqueda usa el paquete de jornada guardado en esta tableta. Lo que registres se envía solo cuando vuelva la señal.",
     onlyAfterSearch: "El registro nuevo aparece solo después de buscar.",
   },
   matches: {
@@ -136,6 +186,7 @@ export const es = {
     birads: (value: string) => `BIRADS ${value}`,
     nextStep: (label: string) => `Conducta a seguir: ${label}`,
     loadError: "No pudimos abrir el expediente.",
+    notOnDevice: "Este expediente no está en la tableta. Ábrelo cuando tengas señal.",
   },
   visit: {
     title: (name: string) => `Visita de hoy · ${name}`,

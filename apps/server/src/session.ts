@@ -13,10 +13,17 @@ const COOKIE_NAME = "er_session";
 export const SESSION_TTL_SECONDS = 4 * 24 * 60 * 60;
 
 const sessionKey = (token: string) => `session:${token}`;
+/** Set of a user's session tokens, so deactivating someone signs them out everywhere (SPEC 6.0). */
+const userSessionsKey = (userId: string) => `user-sessions:${userId}`;
 
 export async function createSession(c: Context, profile: StaffProfile) {
   const token = randomBytes(32).toString("base64url");
-  await valkey.set(sessionKey(token), JSON.stringify(profile), "EX", SESSION_TTL_SECONDS);
+  await valkey
+    .multi()
+    .set(sessionKey(token), JSON.stringify(profile), "EX", SESSION_TTL_SECONDS)
+    .sadd(userSessionsKey(profile.id), token)
+    .expire(userSessionsKey(profile.id), SESSION_TTL_SECONDS)
+    .exec();
   setCookie(c, COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: "Lax",
@@ -39,10 +46,21 @@ export async function readSession(c: Context): Promise<StaffProfile | null> {
   }
 }
 
-export async function destroySession(c: Context) {
+export async function destroySession(c: Context, userId?: string) {
   const token = getCookie(c, COOKIE_NAME);
-  if (token) await valkey.del(sessionKey(token));
+  if (token) {
+    await valkey.del(sessionKey(token));
+    if (userId) await valkey.srem(userSessionsKey(userId), token);
+  }
   deleteCookie(c, COOKIE_NAME, { path: "/" });
+}
+
+/** Deletes every open session of a user (deactivation). Returns how many were still alive. */
+export async function destroyUserSessions(userId: string): Promise<number> {
+  const tokens = await valkey.smembers(userSessionsKey(userId));
+  const removed = tokens.length > 0 ? await valkey.del(...tokens.map(sessionKey)) : 0;
+  await valkey.del(userSessionsKey(userId));
+  return removed;
 }
 
 export type SessionEnv = { Variables: { staff: StaffProfile } };

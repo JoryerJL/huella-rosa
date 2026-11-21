@@ -9,6 +9,15 @@ import { patientRoutes } from "./routes/patients";
 import { syncRoutes } from "./routes/sync";
 import { deviceRoutes } from "./routes/devices";
 import { queueRoutes } from "./routes/queue";
+// Block 3a: form photo
+import { scanRoutes } from "./routes/scans";
+// Block 3b: Excel import
+import { importRoutes } from "./routes/imports";
+// Block 4a: administration.
+import { conflictRoutes, dashboardRoutes, matchRoutes } from "./routes/admin";
+// Staff and campaign administration (SPEC 6.0).
+import { staffRoutes } from "./routes/staff";
+import { localityRoutes } from "./routes/localities";
 
 export const app = new Hono()
   .use(logger())
@@ -25,7 +34,17 @@ export const app = new Hono()
   .route("/api/campaigns", campaignRoutes)
   .route("/api/sync", syncRoutes)
   .route("/api/devices", deviceRoutes)
-  .route("/api/queue", queueRoutes);
+  .route("/api/queue", queueRoutes)
+  // Block 3a: form photo
+  .route("/api/scans", scanRoutes)
+  // Block 3b: Excel import
+  .route("/api/imports", importRoutes)
+  // Block 4a: administration.
+  .route("/api/matches", matchRoutes)
+  .route("/api/conflicts", conflictRoutes)
+  .route("/api/dashboard", dashboardRoutes)
+  .route("/api/staff", staffRoutes)
+  .route("/api/localities", localityRoutes);
 
 /** Type used by the web app's typed client (hono/client). */
 export type AppType = typeof app;

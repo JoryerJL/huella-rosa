@@ -1,5 +1,9 @@
 # Huella Rosa
 
+<img src="apps/web/public/brand/eira-logo.jpeg" alt="EIRA Movimiento Rosa A.C." width="96" />
+
+Hecho para EIRA Movimiento Rosa A.C.
+
 **Una paciente, un expediente**, aunque se registre en jornadas distintas y **aunque no haya señal**.
 
 Prototipo de código abierto para [EIRA Movimiento Rosa A.C.](https://www.eiraac.org), construido en el Nerdearla Vibeathon México 2026 (reto 1: expediente digital único y registro de pacientes, aun con conectividad intermitente).

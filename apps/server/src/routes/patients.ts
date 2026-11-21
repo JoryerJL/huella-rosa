@@ -29,7 +29,7 @@ const visitInclude = {
   steps: { select: stepSelect, orderBy: { role: "asc" } },
 } satisfies Prisma.VisitInclude;
 
-const summaryInclude = {
+export const summaryInclude = {
   locality: { select: { name: true } },
   visits: { select: { date: true, campaign: { select: { name: true } } } },
   linkedFrom: {
@@ -44,7 +44,7 @@ function phoneLast4(row: { phone: string | null; mobile: string | null }): strin
   return digits ? digits.slice(-4) : null;
 }
 
-function toSummary(row: SummaryRow): PatientSummary {
+export function toSummary(row: SummaryRow): PatientSummary {
   // A main record's history includes the visits of the records linked to it.
   const visits = [...row.visits, ...row.linkedFrom.flatMap((l) => l.visits)].sort((a, b) =>
     b.date.localeCompare(a.date),
@@ -73,7 +73,7 @@ async function withinSearchLimit(userId: string): Promise<boolean> {
 }
 
 export const patientRoutes = new Hono<SessionEnv>()
-  .get("/search", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
+  .get("/search", requireRole("intake", ...CLINICAL_ROLES, "admin"), async (c) => {
     const staff = c.get("staff");
     const parsed = searchQuerySchema.safeParse(c.req.query());
     if (!parsed.success) {
@@ -115,7 +115,10 @@ export const patientRoutes = new Hono<SessionEnv>()
   })
   .get("/:id", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
     const staff = c.get("staff");
-    const id = c.req.param("id");
+    const requested = c.req.param("id");
+    // A linked record opens its main record, which shows the merged history.
+    const link = await db.patient.findUnique({ where: { id: requested }, select: { linkedToId: true } });
+    const id = link?.linkedToId ?? requested;
     const patient = await db.patient.findUnique({
       where: { id },
       include: {

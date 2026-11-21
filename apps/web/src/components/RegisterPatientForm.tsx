@@ -69,7 +69,8 @@ export function RegisterPatientForm({
     try {
       // Saved on this device and queued; the sync engine sends it when there is signal.
       await createPatient(op);
-      navigate(`/patients/${patientId}/visit`);
+      // "new=1": she was just registered here, so the visit shows her data as a summary, not field by field.
+      navigate(`/patients/${patientId}/visit?new=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
     } finally {
@@ -79,8 +80,7 @@ export function RegisterPatientForm({
 
   return (
     <Card>
-      <h2 className="text-2xl font-bold">{es.register.title}</h2>
-      <p className="mt-1 text-muted">{es.register.subtitle}</p>
+      <p className="text-lg text-muted">{es.register.subtitle}</p>
       <form onSubmit={onSubmit} className="mt-6 space-y-5" noValidate>
         <TextField label={es.fields.fullName} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
         <div className="grid grid-cols-[1fr_1fr_1.8fr] gap-4">

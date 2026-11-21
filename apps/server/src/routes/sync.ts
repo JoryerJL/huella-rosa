@@ -9,6 +9,7 @@ import {
   type SyncPushResponse,
 } from "@er/shared";
 import { applySyncOp } from "../sync";
+import { db } from "../db";
 import { requireRole, type SessionEnv } from "../session";
 import { buildChangesSince, currentCursor, loadCampaignScope, parseCursor } from "../campaignPackage";
 import { openChangeSubscription, publishChange } from "../changes";
@@ -17,6 +18,11 @@ const HEARTBEAT_MS = 25_000;
 
 export const syncRoutes = new Hono<SessionEnv>()
   .post("/push", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
+    // A deactivated person's changes are refused (SPEC 6.0), even from a session that outlived it.
+    const active = await db.user.findUnique({ where: { id: c.get("staff").id }, select: { active: true } });
+    if (!active?.active) {
+      return c.json({ error: "Tu usuario ya no está activo. Pide ayuda a administración." }, 403);
+    }
     const parsed = syncPushSchema.safeParse(await c.req.json().catch(() => null));
     if (!parsed.success) {
       return c.json({ error: "Los datos enviados no tienen el formato esperado." }, 400);

@@ -5,12 +5,17 @@ import type { Role, ServiceType } from "@er/shared";
 // Form templates (plantillas/*.json), read once. Each clinical field declares `filledBy`:
 // the only specialist role allowed to write it (SPEC 6.3.1, item 3). Enforced on the server.
 
-interface TemplateField {
+export interface TemplateField {
   clave: string;
+  etiqueta?: string;
+  tipo?: string;
+  opciones?: Record<string, string>;
   filledBy?: string;
+  identificacion?: boolean;
+  no_transcribir?: boolean;
 }
 
-interface Template {
+export interface Template {
   id: string;
   servicio?: string;
   campos: TemplateField[];
@@ -51,4 +56,22 @@ export function fieldsFor(templateId: string, role: Role): string[] {
   const template = loadTemplates().get(templateId);
   if (!template) return [];
   return template.campos.filter((f) => f.filledBy === role).map((f) => f.clave);
+}
+
+/** Template by id (block 3a: form photo reading). */
+export function getTemplate(templateId: string): Template | null {
+  return loadTemplates().get(templateId) ?? null;
+}
+
+/** Spanish label of a template field ("Peso" for "weight"); falls back to the key when unknown. */
+export function templateFieldLabel(key: string, templateId?: string): string {
+  const templates = loadTemplates();
+  const ordered = templateId && templates.has(templateId)
+    ? [templates.get(templateId)!, ...templates.values()]
+    : [...templates.values()];
+  for (const template of ordered) {
+    const field = template.campos.find((f) => f.clave === key);
+    if (field?.etiqueta) return field.etiqueta;
+  }
+  return key;
 }

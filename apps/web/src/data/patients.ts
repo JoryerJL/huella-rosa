@@ -52,7 +52,8 @@ function summarize(patient: LocalPatient, visits: PackageVisit[]): PatientSummar
 async function searchLocal(query: SearchQuery): Promise<SearchResponse> {
   const queryPhoneHash = await hashPhone(query.phone);
   const patients = await db.patients.toArray();
-  const scored: { patient: LocalPatient; score: ReturnType<typeof scoreCandidate> }[] = [];
+  const byId = new Map(patients.map((p) => [p.id, p]));
+  const best = new Map<string, { patient: LocalPatient; score: ReturnType<typeof scoreCandidate> }>();
   for (const patient of patients) {
     // The device only holds phone hashes: when the hash matches, compare the typed number with itself
     // so scoreCandidate applies its usual SAME_PHONE rule (including the 7-digit minimum).
@@ -65,14 +66,20 @@ async function searchLocal(query: SearchQuery): Promise<SearchResponse> {
       birthState: patient.birthState,
       phone: samePhone ? query.phone : null,
     });
-    if (score.score > 0) scored.push({ patient, score });
+    if (score.score <= 0) continue;
+    // A linked record counts for its main record when the main record is on this device.
+    const main = (patient.linkedToId && byId.get(patient.linkedToId)) || patient;
+    const current = best.get(main.id);
+    if (!current || score.score > current.score.score) best.set(main.id, { patient: main, score });
   }
+  const scored = [...best.values()];
   scored.sort((a, b) => b.score.score - a.score.score);
   const top = scored.slice(0, MAX_CANDIDATES);
 
   const candidates: MatchCandidate[] = [];
   for (const { patient, score } of top) {
-    const visits = await db.visits.where("patientId").equals(patient.id).toArray();
+    const linkedIds = patients.filter((p) => p.linkedToId === patient.id).map((p) => p.id);
+    const visits = await db.visits.where("patientId").anyOf([patient.id, ...linkedIds]).toArray();
     candidates.push({ patient: summarize(patient, visits), ...score });
   }
   return { candidates };
@@ -86,15 +93,47 @@ async function searchServer(query: SearchQuery): Promise<SearchResponse> {
   return request<SearchResponse>(`/api/patients/search?${params.toString()}`);
 }
 
+/** Search results plus the offline hint (SPEC 6.9). */
+export interface SearchResult extends SearchResponse {
+  /** Offline with no strong local match: she may be registered in another campaign. */
+  maybeElsewhere?: boolean;
+}
+
+/**
+ * Online search merge (SPEC 6.9): local and server candidates joined by patient id. The server wins
+ * for the summary (it knows every campaign and the linked history) and the higher score is kept.
+ */
+export function mergeSearchResults(local: MatchCandidate[], server: MatchCandidate[]): MatchCandidate[] {
+  const byId = new Map<string, MatchCandidate>();
+  for (const c of local) byId.set(c.patient.id, c);
+  for (const c of server) {
+    const mine = byId.get(c.patient.id);
+    byId.set(c.patient.id, mine && mine.score > c.score ? { ...mine, patient: c.patient } : c);
+  }
+  return [...byId.values()].sort((a, b) => b.score - a.score).slice(0, MAX_CANDIDATES);
+}
+
 /**
  * With a campaign package on this device, search runs locally (with or without signal) and an expired
- * package is refused. Without a package the server is used when there is signal.
+ * package is refused; with signal the server is also asked and both are merged. Without a package the
+ * server is used when there is signal.
  */
-export async function searchPatients(query: SearchQuery): Promise<SearchResponse> {
+export async function searchPatients(query: SearchQuery): Promise<SearchResult> {
   const meta = await getPackageMeta();
   if (meta) {
     if (isPackageExpired(meta)) throw new ApiError(es.package.expiredSearch, 0);
-    return searchLocal(query);
+    const local = await searchLocal(query);
+    if (navigator.onLine) {
+      try {
+        const server = await searchServer(query);
+        return { candidates: mergeSearchResults(local.candidates, server.candidates) };
+      } catch (err) {
+        // Signal dropped mid-search or the server is busy: the local result still stands.
+        if (!(err instanceof ApiError)) throw err;
+      }
+    }
+    const strong = local.candidates.some((c) => c.strength === "STRONG");
+    return { ...local, maybeElsewhere: !strong };
   }
   if (!navigator.onLine) throw new ApiError(es.package.missingSearch, 0);
   return searchServer(query);

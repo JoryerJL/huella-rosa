@@ -1,8 +1,15 @@
 import { z } from "zod";
 import {
   CLINICAL_ROLES,
+  PIN_PATTERN,
+  ROLES,
   SERVICE_TYPES,
+  USERNAME_PATTERN,
+  type CampaignStatus,
   type ClinicalRole,
+  type Role,
+  type ConflictStatus,
+  type MatchReviewStatus,
   type ServiceStatus,
   type ServiceType,
   type StepStatus,
@@ -302,4 +309,309 @@ export interface CampaignView {
   date: string;
   /** Last day, YYYY-MM-DD (same as date for a one-day campaign). Additive: multi-day campaigns. */
   endDate: string;
+}
+
+// ---------- Block 3a: form photo (SPEC 6.4) ----------
+
+/** Below this confidence a read value is highlighted in amber with "Revisa este dato". */
+export const LOW_CONFIDENCE = 0.8;
+
+/** One value proposed by the form reading. Never saved until a person confirms it. */
+export interface ScanFieldValue {
+  value: string;
+  /** 0-1. */
+  confidence: number;
+}
+
+/** A form photo and the values read from it, filtered by the caller's role. */
+export interface ScanView {
+  id: string;
+  templateId: string;
+  /** QUEUED | READ | CONFIRMED | FAILED */
+  status: string;
+  visitId: string | null;
+  campaignId: string | null;
+  folio: string | null;
+  createdAt: string;
+  /** Needs a staff session; never public. */
+  imageUrl: string;
+  /** Intake: identification fields only. Specialists: their own fields plus identification. */
+  fields: Record<string, ScanFieldValue>;
+  confirmedRoles: string[];
+}
+
+/** POST /api/scans/:id/confirm body: the keys the caller checked against the photo. */
+export const scanConfirmSchema = z.object({ fields: z.array(z.string()).default([]) });
+export type ScanConfirmInput = z.infer<typeof scanConfirmSchema>;
+
+// ---------- Block 3b: Excel/CSV import (SPEC 6.7) ----------
+
+/** Identification fields an import row can carry, in template column order. Never clinical. */
+export const IMPORT_FIELDS = [
+  "fullName",
+  "birthDate",
+  "birthState",
+  "formId",
+  "phone",
+  "mobile",
+  "residence",
+  "affiliation",
+] as const;
+export type ImportField = (typeof IMPORT_FIELDS)[number];
+
+export type ImportSource = "TEMPLATE" | "EXCEL" | "MCP";
+export type ImportBatchStatus = "OPEN" | "DONE";
+export type ImportRowStatus = "NEW" | "POSSIBLE_MATCH" | "INVALID" | "CONFIRMED" | "DISCARDED";
+export type ImportRowDecision = "REGISTERED" | "IS_HER" | "DISCARDED";
+
+/** One row's identification values. birthDate is YYYY-MM-DD when valid, else the text as typed. */
+export type ImportRowData = Partial<Record<ImportField, string>>;
+
+/** One column of the uploaded file and the field it feeds (null = not imported). */
+export interface ImportColumn {
+  index: number;
+  header: string;
+  field: ImportField | null;
+  /** Field proposed automatically from the header text; the person confirms or changes it. */
+  suggested: ImportField | null;
+  /** First non-empty value of the column, shown only while the mapping is pending. */
+  example?: string;
+}
+
+export interface ImportColumnMapping {
+  confirmed: boolean;
+  columns: ImportColumn[];
+}
+
+/** An earlier row of the same file that looks like the same person. */
+export interface ImportSameAsRow {
+  rowNumber: number;
+  reasons: MatchReason[];
+}
+
+export interface ImportRowView {
+  id: string;
+  rowNumber: number;
+  status: ImportRowStatus;
+  data: ImportRowData;
+  /** Plain Spanish reason when INVALID. */
+  reason: string | null;
+  /** Existing patients that may be her (same rules as search, SPEC 6.2). */
+  candidates: MatchCandidate[];
+  sameAsRows: ImportSameAsRow[];
+  decision: ImportRowDecision | null;
+  patientId: string | null;
+  decidedAt: string | null;
+}
+
+export interface ImportBatchCounts {
+  total: number;
+  new: number;
+  possibleMatch: number;
+  invalid: number;
+  confirmed: number;
+  discarded: number;
+}
+
+export interface ImportBatchSummary {
+  id: string;
+  source: ImportSource;
+  fileName: string | null;
+  status: ImportBatchStatus;
+  createdAt: string;
+  /** True while the column mapping waits for a person (rows are not evaluated yet). */
+  needsMapping: boolean;
+  counts: ImportBatchCounts;
+}
+
+/** GET /api/imports/:id */
+export interface ImportBatchView extends ImportBatchSummary {
+  mapping: ImportColumnMapping;
+  rows: ImportRowView[];
+}
+
+/** GET /api/imports */
+export interface ImportBatchList {
+  batches: ImportBatchSummary[];
+}
+
+/** POST /api/imports/:id/mapping body: field per column index (null = do not import). */
+export const importMappingSchema = z.object({
+  columns: z
+    .array(z.object({ index: z.number().int().min(0), field: z.enum(IMPORT_FIELDS).nullable() }))
+    .min(1)
+    .max(100),
+});
+export type ImportMappingInput = z.infer<typeof importMappingSchema>;
+
+/** POST /api/imports/:id/rows/:rowId body. */
+export const importRowDecisionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("register") }),
+  z.object({ action: z.literal("isHer"), patientId: z.string().min(1) }),
+  z.object({ action: z.literal("discard") }),
+]);
+export type ImportRowDecisionInput = z.infer<typeof importRowDecisionSchema>;
+
+/** POST /api/imports/:id/register-new response. */
+export interface ImportRegisterNewResponse {
+  registered: number;
+  failed: number;
+  batch: ImportBatchView;
+}
+
+// ---------- Block 4a: administration (SPEC 6.5, 6.6) ----------
+
+/** One side of "¿Es la misma persona?": identification data only, never clinical. */
+export interface AdminMatchPatient {
+  id: string;
+  fullName: string;
+  birthDate: string;
+  birthState: string | null;
+  formId: string | null;
+  phone: string | null;
+  mobile: string | null;
+  residence: string | null;
+  localityName: string | null;
+  affiliation: string | null;
+  visitCount: number;
+  registeredByName: string | null;
+  registeredAt: string;
+  linkedToId: string | null;
+}
+
+/** GET /api/matches?status=OPEN (admin). */
+export interface AdminMatch {
+  id: string;
+  status: MatchReviewStatus;
+  score: number;
+  reasons: MatchReason[];
+  createdAt: string;
+  a: AdminMatchPatient;
+  b: AdminMatchPatient;
+  /** Identification field keys whose values differ between both records. */
+  differing: string[];
+}
+
+export interface ConflictSide {
+  value: string | null;
+  byName: string | null;
+  at: string | null;
+}
+
+/** GET /api/conflicts?status=OPEN (admin: identification; each specialist: own clinical fields). */
+export interface AdminConflict {
+  id: string;
+  entity: string;
+  entityId: string;
+  field: string;
+  /** Spanish label from the templates or the identification field map. */
+  fieldLabel: string;
+  clinical: boolean;
+  patientName: string | null;
+  folio: string | null;
+  /** "Lo que ya estaba guardado". */
+  saved: ConflictSide;
+  /** "Lo que capturó … sin señal". */
+  incoming: ConflictSide;
+  status: ConflictStatus;
+}
+
+export const resolveConflictSchema = z.object({ choice: z.enum(["server", "device"]) });
+export const linkMatchSchema = z.object({ mainId: z.string().min(1) });
+
+/** GET /api/audit?patientId= (admin): one timeline entry, actor names and field labels, never values. */
+export interface PatientAuditEntry {
+  id: number;
+  at: string;
+  actorName: string | null;
+  action: string;
+  entity: string | null;
+  folio: string | null;
+  role: string | null;
+  fields: string[];
+  choice: "server" | "device" | null;
+  deviceShort: string | null;
+}
+
+/** GET /api/dashboard?campaignId= (admin and CLINICAL_ROLES). */
+export interface DashboardResponse {
+  campaignId: string;
+  campaignName: string;
+  patients: number;
+  visits: number;
+  recurringRecognized: number;
+  matchesOpen: number;
+  matchesLinked: number;
+  conflictsOpen: number;
+  steps: { role: ClinicalRole; pending: number; done: number; skipped: number; avgMinutes: number | null }[];
+  pendingByLocality: { locality: string; count: number }[];
+}
+
+// ---------- Staff and campaign administration (SPEC 6.0, admin only) ----------
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** POST /api/staff. The server answers each invalid field with its own plain Spanish message. */
+export const createStaffSchema = z.object({
+  name: z.string().trim().min(3).max(120),
+  username: z.string().trim().toLowerCase().regex(USERNAME_PATTERN),
+  role: z.enum(ROLES),
+  pin: z.string().regex(PIN_PATTERN),
+});
+export type CreateStaffInput = z.infer<typeof createStaffSchema>;
+
+/** GET /api/staff item. Never carries the PIN or its hash. */
+export interface StaffView {
+  id: string;
+  name: string;
+  username: string;
+  role: Role;
+  active: boolean;
+  createdAt: string;
+}
+
+const newLocalitySchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  hasSignal: z.boolean(),
+});
+
+/** POST /api/campaigns. `name` defaults to defaultCampaignName(municipality, date). */
+export const createCampaignSchema = z.object({
+  name: z.string().trim().max(120).optional(),
+  municipality: z.string().trim().min(2).max(120),
+  state: z.string().trim().min(2).max(120),
+  localityIds: z.array(z.string().min(1)).default([]),
+  newLocalities: z.array(newLocalitySchema).default([]),
+  date: isoDate,
+  endDate: isoDate,
+});
+export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
+
+/** PATCH /api/campaigns/:id while the campaign has not finished. Only the fields sent change. */
+export const updateCampaignSchema = z.object({
+  name: z.string().trim().min(3).max(120).optional(),
+  municipality: z.string().trim().min(2).max(120).optional(),
+  state: z.string().trim().min(2).max(120).optional(),
+  localityIds: z.array(z.string().min(1)).optional(),
+  newLocalities: z.array(newLocalitySchema).optional(),
+  date: isoDate.optional(),
+  endDate: isoDate.optional(),
+});
+export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
+
+/** GET /api/localities item. */
+export interface LocalityView {
+  id: string;
+  name: string;
+  municipality: string;
+  hasSignal: boolean;
+}
+
+/** GET /api/campaigns item: CampaignView plus the place, localities and status computed from the dates. */
+export interface CampaignListItem extends CampaignView {
+  municipality: string;
+  state: string;
+  localityIds: string[];
+  localities: LocalityView[];
+  status: CampaignStatus;
 }

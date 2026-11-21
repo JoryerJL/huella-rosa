@@ -15,6 +15,10 @@ export const es = {
   online: "Con señal",
   offline: "Sin señal",
   logout: "Salir",
+  brand: {
+    eiraAlt: "EIRA Movimiento Rosa A.C.",
+    madeFor: "Hecho para EIRA Movimiento Rosa A.C.",
+  },
   login: {
     title: "Entrar",
     subtitle: "Escribe tu usuario y tu PIN.",
@@ -175,6 +179,7 @@ export const es = {
   },
   affiliationOptions: ["INSABI", "IMSS", "ISSSTE", "SEDENA", "SEMAR", "Ninguno", "Otro"],
   record: {
+    sectionTitle: { nutritionist: "Somatometría", doctor: "Consulta", pathologist: "Patología" } as Record<string, string>,
     idLine: (formId: string) => `ID EIRA ${formId}`,
     noFormId: "Sin ID EIRA",
     newVisit: "Registrar visita de hoy",
@@ -198,6 +203,8 @@ export const es = {
     title: (name: string) => `Visita de hoy · ${name}`,
     subtitle: "Sus datos ya están llenos. Solo confirma o corrige lo que cambió.",
     yourData: "Sus datos",
+    newSubtitle: "Sus datos quedaron registrados. Elige los servicios de hoy.",
+    fixData: "Corregir datos",
     confirm: "Confirmar",
     confirmed: "Confirmado",
     correct: "Corregir",
@@ -310,6 +317,10 @@ export const es = {
     leftConfirm: "Guardar que se retiró",
     cancel: "Cancelar",
     errorReason: "Escribe por qué se retiró.",
+    errorDate: (label: string) => `Revisa la fecha de "${label}": escribe día, mes y año.`,
+    day: "Día",
+    month: "Mes",
+    year: "Año",
     noCampaign: "Descarga el paquete de jornada para registrar tu paso sin señal.",
     invalidFolio: "Este folio no es válido. Regresa y revisa la última letra.",
     historyTitle: "Historial",
@@ -334,4 +345,327 @@ export const es = {
     detail: "Detalle",
     loadError: "No pudimos cargar la bitácora. Revisa tu señal.",
   },
+  // Block 3a: form photo (SPEC 6.4)
+  scan: {
+    identifyButton: "Identificar con foto",
+    identifyHint: "Toma foto del formato y revisa sus datos antes de buscar.",
+    title: "Identificar con foto",
+    subtitle: "Toma la foto del formato completo, derecho y con buena luz.",
+    takePhoto: "Tomar foto del formato",
+    reading: "Leyendo el formato…",
+    retake: "Tomar otra foto",
+    photoAlt: "Foto del formato",
+    confirmTitle: "Confirma los datos de identificación",
+    confirmSubtitle: "Compáralos con la foto. Nada se guarda sin tu confirmación.",
+    lowCount: (n: number) =>
+      n === 1 ? "1 dato con letra poco clara. Revísalo con la foto." : `${n} datos con letra poco clara. Revísalos con la foto.`,
+    checkThis: "Revisa este dato",
+    nothingRead: "No pudimos leer datos en esta foto. Toma otra o escribe los datos.",
+    clinicalNote: "Los datos clínicos los confirma cada especialista en su paso, viendo esta foto.",
+    confirmAndSearch: "Confirmar y buscar",
+    needsSignal: "Para identificar con foto se necesita señal. Escribe sus datos para buscarla.",
+    uploadError: "No pudimos leer la foto. Revisa tu señal e intenta de nuevo.",
+    fields: {
+      fullName: "Nombre completo",
+      birthDate: "Fecha de nacimiento (DD/MM/AAAA)",
+      formId: "ID del formato",
+      birthState: "Entidad de nacimiento",
+      mobile: "Celular",
+      phone: "Teléfono fijo",
+      residence: "Residencia habitual",
+    } as Record<string, string>,
+    attach: "Adjuntar foto del formato",
+    attachHint: "Se guarda en la tableta y se envía sola cuando haya señal. Cada especialista confirma sus datos viendo la foto.",
+    attached: "Guardado ✓",
+    attachedOffline: "Guardado ✓ · se leerá cuando vuelva la señal",
+    attachError: "No pudimos guardar la foto. Intenta de nuevo.",
+    stepPhotoTitle: "Foto del formato",
+    stepSuggested: "Llenamos tus datos con lo que se leyó en la foto. Revísalos antes de guardar.",
+    stepConfirm: "Revisé los datos sugeridos con la foto",
+    stepConfirmError: "Revisa los datos sugeridos con la foto y marca la casilla.",
+    photosPending: (n: number) => (n === 1 ? "1 foto por enviar" : `${n} fotos por enviar`),
+  },
+  // ---------- Block 3b: Excel import (SPEC 6.7) ----------
+  imports: {
+    navLink: "Importar desde Excel",
+    title: "Importar desde Excel",
+    subtitle: "Sube la lista de pacientes de una brigada. Nada se guarda solo: revisas cada renglón antes de registrarla.",
+    offline: "Para importar un Excel necesitas señal. Lo que captures en la tableta sigue funcionando sin señal.",
+    templateTitle: "1. Descarga la plantilla",
+    templateBody:
+      "Una paciente por renglón. Solo datos para identificarla: nombre, fecha de nacimiento (día/mes/año), entidad, ID del formato, teléfonos, residencia y afiliación.",
+    templateButton: "Descargar plantilla",
+    uploadTitle: "2. Sube el archivo lleno",
+    uploadHint: "Excel (.xlsx) o CSV · máximo 2 MB y 1,000 pacientes",
+    uploadButton: "Elegir archivo",
+    uploading: "Subiendo…",
+    tooBig: "El archivo pesa más de 2 MB. Divídelo en varios archivos.",
+    batchesTitle: "Archivos subidos",
+    noBatches: "Todavía no has subido archivos.",
+    batchLine: (when: string, summary: string) => `${when} · ${summary}`,
+    rowsCount: (n: number) => (n === 1 ? "1 renglón" : `${n} renglones`),
+    summary: (c: { new: number; possibleMatch: number; invalid: number; confirmed: number; discarded: number }) =>
+      [
+        c.new > 0 ? `${c.new} ${c.new === 1 ? "nueva" : "nuevas"}` : null,
+        c.possibleMatch > 0 ? `${c.possibleMatch} por revisar` : null,
+        c.invalid > 0 ? `${c.invalid} por corregir` : null,
+        c.confirmed > 0 ? `${c.confirmed} ${c.confirmed === 1 ? "guardada" : "guardadas"}` : null,
+        c.discarded > 0 ? `${c.discarded} ${c.discarded === 1 ? "descartada" : "descartadas"}` : null,
+      ]
+        .filter(Boolean)
+        .join(" · "),
+    statusPending: "Falta revisar",
+    statusMapping: "Falta confirmar columnas",
+    statusDone: "Revisado ✓",
+    review: "Revisar",
+    reviewColumns: "Revisar columnas",
+    view: "Ver",
+    loadError: "No pudimos cargar los archivos. Revisa tu señal.",
+    // Columns (13b)
+    columnsTitle: "Revisa las columnas",
+    columnsSubtitle: (file: string) =>
+      `${file} no usa la plantilla. Te sugerimos a qué dato va cada columna: confírmalo o cámbialo.`,
+    suggested: "Sugerido",
+    suggestedLegend: "= lo propusimos por el título de la columna. Nombre completo y fecha de nacimiento son obligatorios.",
+    columnHeader: "Columna del archivo",
+    exampleHeader: "Ejemplo",
+    fieldHeader: "Va al dato",
+    skipColumn: "No importar",
+    confirmColumns: "Confirmar columnas y revisar",
+    cancel: "Cancelar",
+    // Review (13)
+    reviewTitle: (file: string) => `Revisa el archivo ${file}`,
+    reviewSubtitle: (rows: number) => `${rows === 1 ? "1 renglón" : `${rows} renglones`} · Nada se guarda hasta que tú lo confirmes.`,
+    newTitle: (n: number) => `Nuevas (${n})`,
+    newBody: "No se parecen a ninguna paciente registrada ni a otro renglón.",
+    matchTitle: (n: number) => `¿Es alguna de ellas? (${n})`,
+    matchBody: "Estos renglones se parecen a una paciente que ya tiene expediente o a otro renglón del archivo.",
+    invalidTitle: (n: number) => `Con datos por corregir (${n})`,
+    invalidBody: "No se pueden registrar así. Corrígelos en tu archivo y vuelve a subirlo, o descártalos.",
+    doneTitle: (n: number) => `Ya revisados (${n})`,
+    registerAll: (n: number) => `Registrar todas las nuevas (${n})`,
+    register: "Registrar",
+    discard: "Descartar",
+    isHer: "Es ella",
+    otherPerson: "Es otra persona — registrar",
+    noneOfThem: "¿No es ninguna? Regístrala como paciente nueva.",
+    isHerNote: "Es ella: a su expediente solo se agregan los datos que le faltan. Lo que ya estaba guardado no cambia.",
+    sameAsRow: (row: number) => `Se parece al renglón ${row} de este mismo archivo.`,
+    rowLine: (row: number) => `Renglón ${row}`,
+    registered: "Registrada ✓",
+    addedToRecord: "Agregada a su expediente ✓",
+    discarded: "Descartada",
+    openRecord: "Ver expediente",
+    allDone: "Revisaste todo el archivo ✓",
+    confirmAllTitle: (n: number) => (n === 1 ? "¿Registrar la paciente nueva?" : `¿Registrar las ${n} pacientes nuevas?`),
+    confirmAllBody:
+      "Se crea un expediente para cada una. Los renglones que se parecen a otra paciente no se registran: esos los revisas uno por uno.",
+    confirmAllYes: (n: number) => (n === 1 ? "Sí, registrarla" : `Sí, registrar las ${n}`),
+    registeredAll: (n: number, failed: number) =>
+      failed > 0 ? `Guardado ✓ ${n} registradas. ${failed} necesitan revisión.` : `Guardado ✓ ${n} registradas.`,
+    fieldLabel: {
+      fullName: "Nombre completo",
+      birthDate: "Fecha de nacimiento",
+      birthState: "Entidad de nacimiento",
+      formId: "ID del formato",
+      phone: "Teléfono fijo",
+      mobile: "Celular",
+      residence: "Residencia habitual",
+      affiliation: "Afiliación",
+    },
+  },
+  // Block 4a: administration screens (SPEC 6.5, 6.6, 6.9).
+  admin: {
+    needsSignal: "Necesitas señal para esta pantalla",
+    needsSignalBody: "Lo que se registra en campo sigue guardándose en las tabletas. Vuelve cuando tengas señal.",
+    loadError: "No pudimos cargar esta pantalla. Revisa tu señal e intenta de nuevo.",
+    nav: {
+      home: "Tablero",
+      matches: "¿Es la misma persona?",
+      conflicts: "Dos personas cambiaron el mismo dato",
+      audit: "Bitácora",
+      staff: "Personal",
+      campaigns: "Jornadas",
+    },
+    staff: {
+      title: "Personal",
+      subtitle: "Quién puede entrar a la app y con qué rol.",
+      listTitle: "Personal dado de alta",
+      username: (u: string) => `Usuario: ${u}`,
+      active: "Activa",
+      inactive: "Desactivada",
+      deactivate: "Desactivar",
+      reactivate: "Reactivar",
+      confirmDeactivate: (name: string) => `¿Desactivar a ${name}? Ya no podrá entrar ni enviar cambios. Nada se borra.`,
+      you: "Tú",
+      formTitle: "Dar de alta",
+      name: "Nombre completo",
+      usernameLabel: "Usuario",
+      usernameHint: "Minúsculas, números o puntos. Con esto entra a la app.",
+      role: "Rol",
+      pin: "PIN inicial",
+      pinHint: "Comunícaselo en persona.",
+      submit: "Dar de alta",
+      saving: "Guardando…",
+      created: (name: string) => `Listo: ${name} ya puede entrar.`,
+      createdPin: (pin: string) => `PIN inicial: ${pin}`,
+      pinOnce: "Comunícaselo en persona; no se vuelve a mostrar.",
+      empty: "Todavía no hay personal dado de alta.",
+    },
+    campaigns: {
+      title: "Jornadas",
+      subtitle: "Dónde y cuándo se atiende. Las tabletas descargan su paquete de aquí.",
+      listTitle: "Jornadas",
+      empty: "Todavía no hay jornadas.",
+      status: { UPCOMING: "Próxima", ACTIVE: "En curso", FINISHED: "Terminada" },
+      localities: (names: string) => `Localidades: ${names}`,
+      withSignal: "con señal",
+      withoutSignal: "sin señal",
+      edit: "Editar",
+      cancelEdit: "Cancelar",
+      newTitle: "Nueva jornada",
+      editTitle: "Editar jornada",
+      municipality: "Municipio",
+      state: "Estado",
+      localitiesLabel: "Localidades",
+      newLocality: "Localidad nueva",
+      newLocalityPlaceholder: "Nombre de la localidad",
+      hasSignal: "¿Tiene señal?",
+      yes: "Sí",
+      no: "No",
+      addLocality: "Agregar otra localidad",
+      removeLocality: "Quitar",
+      date: "Fecha de inicio",
+      endDate: "Fecha de fin",
+      name: "Nombre de la jornada",
+      nameHint: "Lo proponemos con el lugar y el mes. Puedes cambiarlo.",
+      create: "Crear jornada",
+      save: "Guardar cambios",
+      saving: "Guardando…",
+      created: "Listo: la jornada ya está creada. Las tabletas pueden descargar su paquete.",
+      updated: "Guardado ✓",
+    },
+    home: {
+      title: "Tablero de la jornada",
+      subtitle: "Cómo va la jornada y qué necesita tu atención.",
+      campaign: "Jornada",
+      patients: "Pacientes atendidas",
+      visits: "Visitas registradas",
+      recurring: "Ya habían venido antes",
+      matchesOpen: "¿Es la misma persona? por revisar",
+      matchesLinked: "Registros unidos",
+      conflictsOpen: "Datos cambiados por dos personas",
+      stations: "Por estación",
+      station: "Estación",
+      pending: "Esperando",
+      done: "Atendidas",
+      skipped: "Omitidas",
+      avgMinutes: "Minutos promedio desde el registro",
+      noAvg: "—",
+      byLocality: "Pacientes esperando por localidad",
+      noneWaiting: "Nadie está esperando.",
+      review: "Revisar",
+    },
+    matches: {
+      title: "¿Es la misma persona?",
+      subtitle: "Dos registros se parecen. Revisa sus datos y decide. Nada se borra: unir conserva los dos registros.",
+      empty: "No hay registros por revisar. ✓",
+      registeredBy: (name: string, when: string) => `Registrada por ${name} · ${when}`,
+      visits: (n: number) => (n === 1 ? "1 visita" : `${n} visitas`),
+      why: "Por qué se parecen",
+      differLegend: "Los datos resaltados son distintos entre los dos registros.",
+      safeNote: "Vincular no borra ningún registro. Tu decisión queda en la bitácora.",
+      link: "Es la misma: vincular",
+      notSame: "No es la misma persona",
+      linked: "Listo: quedaron unidos. Su historial ya se ve junto.",
+      dismissed: "Listo: quedan como personas distintas.",
+      confirmLink: "¿Unir estos dos registros? Los dos se conservan y su historial se verá junto.",
+      empty_value: "—",
+    },
+    conflicts: {
+      title: "Dos personas cambiaron el mismo dato",
+      subtitle: "Mientras no había señal, dos personas escribieron un valor distinto en el mismo dato. Elige cuál se queda.",
+      clinicalSubtitle: "Datos de tu especialidad que dos personas llenaron distinto. Elige cuál se queda.",
+      empty: "No hay datos por revisar. ✓",
+      patient: (name: string) => `Paciente: ${name}`,
+      folio: (folio: string) => `Visita ${folio}`,
+      saved: "Lo que ya estaba guardado",
+      incoming: (name: string) => `Lo que capturó ${name} sin señal`,
+      incomingNoName: "Lo que se capturó sin señal",
+      byWhen: (name: string | null, when: string | null) => [name, when].filter(Boolean).join(" · "),
+      keepSaved: "Dejar lo guardado",
+      keepIncoming: "Usar lo nuevo",
+      emptyValue: "(vacío)",
+      done: "Guardado ✓",
+      fromQueue: (n: number) => (n === 1 ? "1 dato de tu especialidad necesita revisión" : `${n} datos de tu especialidad necesitan revisión`),
+    },
+    audit: {
+      title: "Bitácora",
+      subtitle: "Busca a la paciente para ver todo lo que pasó con su expediente.",
+      timelineTitle: (name: string) => `Bitácora de ${name}`,
+      empty: "Todavía no hay movimientos para esta paciente.",
+      back: "Buscar otra paciente",
+      someone: "Alguien",
+      device: (short: string) => `tableta ${short}`,
+    },
+  },
+  // Block 4a: online search (SPEC 6.9) and the toast when signal returns.
+  searchHints: {
+    maybeElsewhere: "Puede que esté registrada en otra jornada: confírmalo cuando haya señal",
+  },
+  syncToast: {
+    sent: (n: number) => (n === 1 ? "Se envió 1 cambio" : `Se enviaron ${n} cambios`),
+    review: (n: number) => (n === 1 ? "1 cambio necesita revisión" : `${n} cambios necesitan revisión`),
+  },
 };
+
+/** One plain-Spanish line of the per-patient log: "Laura Pérez registró la visita A3-001-B". */
+export function auditSentence(e: {
+  actorName: string | null;
+  action: string;
+  folio: string | null;
+  role: string | null;
+  fields: string[];
+  choice: "server" | "device" | null;
+}): string {
+  const who = e.actorName ?? es.admin.audit.someone;
+  const visit = e.folio ? `la visita ${e.folio}` : "una visita";
+  const fields = e.fields.length ? e.fields.join(", ") : "un dato";
+  const station = e.role && e.role in roleLabel ? roleLabel[e.role as Role] : "una estación";
+  switch (e.action) {
+    case "PATIENT_CREATE":
+      return `${who} registró a la paciente`;
+    case "PATIENT_UPDATE":
+      return `${who} corrigió ${fields}`;
+    case "VISIT_CREATE":
+      return `${who} registró ${visit}`;
+    case "VISIT_OUTSIDE_CAMPAIGN_DATES":
+      return `${who} registró ${visit} con fecha fuera de la jornada`;
+    case "MATCH_CONFIRMED":
+      return `${who} reconoció que ya había venido antes`;
+    case "MATCH_REJECTED":
+      return `${who} indicó que no era ninguna de las personas parecidas`;
+    case "MATCH_REVIEW_OPENED":
+      return "Apareció un registro parecido: quedó para que administración lo revise";
+    case "MATCH_LINKED":
+      return `${who} unió dos registros de la misma persona`;
+    case "MATCH_DISMISSED":
+      return `${who} indicó que dos registros parecidos son personas distintas`;
+    case "SYNC_CONFLICT":
+      return `Dos personas cambiaron ${fields}: quedó para revisión`;
+    case "CONFLICT_RESOLVED":
+      return `${who} eligió ${e.choice === "device" ? "lo nuevo" : "lo que ya estaba guardado"} en ${fields}`;
+    case "SERVICE_FIELDS_UPDATED":
+      return `${who} llenó ${fields} en ${visit}`;
+    case "STEP_COMPLETED":
+      return `${who} terminó ${station} en ${visit}`;
+    case "STEP_SKIPPED":
+      return `${who} omitió ${station} en ${visit}`;
+    case "SEED":
+      return "Se cargaron los datos de demostración";
+    default:
+      if (e.action.includes("SCAN")) return `${who} trabajó con la foto del formato de ${visit}`;
+      if (e.action.includes("IMPORT")) return `${who} trabajó con un archivo de Excel`;
+      return `${who} hizo un cambio en el expediente`;
+  }
+}

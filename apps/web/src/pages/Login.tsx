@@ -6,6 +6,7 @@ import { useSession } from "../lib/session";
 import { useOnline } from "../lib/useOnline";
 import { es } from "../i18n/es";
 import { TopBar } from "../components/TopBar";
+import { EiraCoBrand } from "../components/EiraCoBrand";
 import { Alert, Button, Card, TextField } from "../components/ui";
 
 const PIN_MAX = 6;
@@ -65,60 +66,63 @@ export function Login() {
             {error ? <Alert>{error}</Alert> : <Alert tone="ok">{es.login.pinNeverStored}</Alert>}
           </div>
 
-          <Card className="h-fit space-y-5 text-center">
-            <label className="block">
-              <span className="text-xl font-bold">{es.login.pinLabel}</span>
-              <input
-                type="password"
-                inputMode="numeric"
-                autoComplete="current-password"
-                aria-describedby="pin-help"
-                maxLength={PIN_MAX}
-                value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, PIN_MAX))}
-                className="mt-3 block min-h-14 w-full rounded-xl border-2 border-field bg-white px-4 text-center text-2xl tracking-[0.5em] focus:border-brand focus:outline-none"
-              />
-              <span id="pin-help" className="mt-2 block text-base text-muted">
-                {es.login.pinDigits}
-              </span>
-            </label>
+          <div className="h-fit space-y-4">
+            <Card className="space-y-5 text-center">
+              <label className="block">
+                <span className="text-xl font-bold">{es.login.pinLabel}</span>
+                <input
+                  type="password"
+                  inputMode="numeric"
+                  autoComplete="current-password"
+                  aria-describedby="pin-help"
+                  maxLength={PIN_MAX}
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, PIN_MAX))}
+                  className="mt-3 block min-h-14 w-full rounded-xl border-2 border-field bg-white px-4 text-center text-2xl tracking-[0.5em] focus:border-brand focus:outline-none"
+                />
+                <span id="pin-help" className="mt-2 block text-base text-muted">
+                  {es.login.pinDigits}
+                </span>
+              </label>
 
-            <div className="mx-auto grid max-w-xs grid-cols-3 gap-3" aria-hidden="true">
-              {KEYS.map((k) => (
+              <div className="mx-auto grid max-w-xs grid-cols-3 gap-3" aria-hidden="true">
+                {KEYS.map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    tabIndex={-1}
+                    onClick={() => press(k)}
+                    className="min-h-16 rounded-xl border-2 border-field bg-white text-2xl font-bold hover:bg-surface"
+                  >
+                    {k}
+                  </button>
+                ))}
+                <span />
                 <button
-                  key={k}
                   type="button"
                   tabIndex={-1}
-                  onClick={() => press(k)}
+                  onClick={() => press("0")}
                   className="min-h-16 rounded-xl border-2 border-field bg-white text-2xl font-bold hover:bg-surface"
                 >
-                  {k}
+                  0
                 </button>
-              ))}
-              <span />
-              <button
-                type="button"
-                tabIndex={-1}
-                onClick={() => press("0")}
-                className="min-h-16 rounded-xl border-2 border-field bg-white text-2xl font-bold hover:bg-surface"
-              >
-                0
-              </button>
-              <button
-                type="button"
-                tabIndex={-1}
-                onClick={() => setPin((p) => p.slice(0, -1))}
-                className="min-h-16 rounded-xl border-2 border-field bg-white text-base font-bold hover:bg-surface"
-              >
-                {es.login.clear}
-              </button>
-            </div>
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  onClick={() => setPin((p) => p.slice(0, -1))}
+                  className="min-h-16 rounded-xl border-2 border-field bg-white text-base font-bold hover:bg-surface"
+                >
+                  {es.login.clear}
+                </button>
+              </div>
 
-            <Button type="submit" disabled={username.trim().length < 3 || pin.length < 4 || loading} className="w-full text-xl">
-              {loading ? es.login.loading : es.login.submit}
-            </Button>
-            <Alert tone={online ? "ok" : "warn"}>{online ? es.login.onlineHint : es.login.offlineHint}</Alert>
-          </Card>
+              <Button type="submit" disabled={username.trim().length < 3 || pin.length < 4 || loading} className="w-full text-xl">
+                {loading ? es.login.loading : es.login.submit}
+              </Button>
+              <Alert tone={online ? "ok" : "warn"}>{online ? es.login.onlineHint : es.login.offlineHint}</Alert>
+            </Card>
+            <EiraCoBrand className="justify-center" />
+          </div>
         </form>
       </main>
     </div>

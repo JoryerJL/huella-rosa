@@ -12,7 +12,18 @@ import { AdminAudit } from "./pages/AdminAudit";
 import { CampaignsPage } from "./pages/CampaignsPage";
 import { QueuePage } from "./pages/QueuePage";
 import { StepPage } from "./pages/StepPage";
+// Block 4a: administration.
+import { AdminHome } from "./pages/AdminHome";
+import { AdminMatches } from "./pages/AdminMatches";
+import { AdminConflicts } from "./pages/AdminConflicts";
+import { AdminStaff } from "./pages/AdminStaff";
+import { AdminCampaigns } from "./pages/AdminCampaigns";
 import { startSyncEngine } from "./data/sync";
+// Block 3a: form photo
+import { ScanIdentifyPage } from "./pages/ScanIdentifyPage";
+// Block 3b: Excel import
+import { ImportPage } from "./pages/ImportPage";
+import { ImportBatchPage } from "./pages/ImportBatchPage";
 
 const CLINICAL: Role[] = [...CLINICAL_ROLES];
 
@@ -98,6 +109,73 @@ export function App() {
             element={
               <RequireRole roles={["admin"]}>
                 <AdminAudit />
+              </RequireRole>
+            }
+          />
+          {/* Block 3a: form photo */}
+          <Route
+            path="/intake/scan"
+            element={
+              <RequireRole roles={["intake"]}>
+                <ScanIdentifyPage />
+              </RequireRole>
+            }
+          />
+          {/* Block 3b: Excel import */}
+          <Route
+            path="/intake/import"
+            element={
+              <RequireRole roles={["intake"]}>
+                <ImportPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/intake/import/:id"
+            element={
+              <RequireRole roles={["intake"]}>
+                <ImportBatchPage />
+              </RequireRole>
+            }
+          />
+          {/* Block 4a: administration (online-only screens, SPEC 6.9). */}
+          <Route
+            path="/admin"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminHome />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/matches"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminMatches />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/conflicts"
+            element={
+              <RequireRole roles={["admin", ...CLINICAL]}>
+                <AdminConflicts />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/staff"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminStaff />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/campaigns"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminCampaigns />
               </RequireRole>
             }
           />

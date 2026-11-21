@@ -33,7 +33,8 @@ export const authRoutes = new Hono()
 
     const user = await db.user.findUnique({ where: { username } });
     const pinOk = verifyPin(pin, user?.pinHash ?? DUMMY_PIN_HASH);
-    if (!user || !isRole(user.role) || !pinOk) {
+    // A deactivated user gets the same message as a wrong PIN (SPEC 6.0): nothing is revealed.
+    if (!user || !user.active || !isRole(user.role) || !pinOk) {
       // Attempted usernames that do not exist are not stored: they may be personal data.
       await writeAudit({ actorId: user?.id ?? "unknown", action: "LOGIN_FAILED", deviceId });
       return c.json({ error: LOGIN_FAILED_MESSAGE }, 401);
@@ -47,7 +48,7 @@ export const authRoutes = new Hono()
   })
   .post("/logout", async (c) => {
     const staff = await readSession(c);
-    await destroySession(c);
+    await destroySession(c, staff?.id);
     if (staff) {
       await writeAudit({
         actorId: staff.id,

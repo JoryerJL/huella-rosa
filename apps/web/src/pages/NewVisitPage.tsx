@@ -20,6 +20,8 @@ import { usePatientRecord } from "../data/usePatientRecord";
 import { ageFrom, formatBirthDate, isIsoDate, todayIso } from "../lib/format";
 import { es } from "../i18n/es";
 import { BackButton } from "./PatientRecordPage";
+// Block 3a: form photo
+import { AttachScanButton } from "../components/AttachScanButton";
 
 /** Identification fields intake can confirm or correct on a visit (SPEC 6.2 step 4, 6.3 step 2). */
 const REVIEW_FIELDS = ["fullName", "birthDate", "formId", "birthState", "mobile", "phone", "residence", "affiliation"] as const;
@@ -70,6 +72,10 @@ function VisitForm({ record }: { record: PatientRecord }) {
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const confirmedMatch = params.get("match") === "1";
+  // Registered in this same flow: intake just typed her data, so it is a summary with one "Corregir datos".
+  const justRegistered = params.get("new") === "1";
+  const [fixing, setFixing] = useState(false);
+  const summaryOnly = justRegistered && !fixing;
 
   const [values, setValues] = useState<Record<ReviewField, string>>(
     () => Object.fromEntries(REVIEW_FIELDS.map((k) => [k, originalValue(record, k)])) as Record<ReviewField, string>,
@@ -184,6 +190,7 @@ function VisitForm({ record }: { record: PatientRecord }) {
           </p>
           <p className="text-lg">{es.visit.savedFolio(folio)}</p>
           <p className="text-5xl font-bold tracking-wider text-brand-strong">{folio}</p>
+          <AttachScanButton link={{ visitId: ids.visitId, campaignId, folio }} />
           <Button onClick={() => navigate(`/patients/${record.id}`)} className="w-full text-xl">
             {es.visit.goToRecord}
           </Button>
@@ -193,10 +200,38 @@ function VisitForm({ record }: { record: PatientRecord }) {
   }
 
   return (
-    <Page title={es.visit.title(record.fullName)} subtitle={es.visit.subtitle} leading={<BackButton />}>
+    <Page
+      title={es.visit.title(record.fullName)}
+      subtitle={justRegistered ? es.visit.newSubtitle : es.visit.subtitle}
+      leading={<BackButton />}
+    >
       <form onSubmit={onSubmit} noValidate className="grid gap-6 lg:grid-cols-2">
         <Card className="h-fit">
           <h2 className="text-xl font-bold">{es.visit.yourData}</h2>
+          {summaryOnly ? (
+            <>
+              <dl className="mt-4 space-y-3">
+                {REVIEW_FIELDS.map((key) => (
+                  <div key={key}>
+                    <dt className="text-base text-muted">{es.fields[key]}</dt>
+                    <dd className="text-lg font-bold">
+                      {(key === "birthDate" ? formatBirthDate(values.birthDate) : values[key]) || es.common.none}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+              <button
+                type="button"
+                onClick={() => {
+                  setFixing(true);
+                  setStates(Object.fromEntries(REVIEW_FIELDS.map((k) => [k, "confirmed"])) as Record<ReviewField, FieldState>);
+                }}
+                className="mt-4 text-lg font-semibold text-brand-strong underline underline-offset-4"
+              >
+                {es.visit.fixData}
+              </button>
+            </>
+          ) : (
           <ul className="mt-4 space-y-3">
             {REVIEW_FIELDS.map((key) => (
               <FieldRow
@@ -218,6 +253,7 @@ function VisitForm({ record }: { record: PatientRecord }) {
               />
             ))}
           </ul>
+          )}
         </Card>
 
         <div className="space-y-6">

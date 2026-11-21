@@ -11,6 +11,7 @@ import { es } from "../i18n/es";
 /** Record search for intake and the clinical roles: results only open the record (no "Es ella" / register here). */
 export function Patients() {
   const [candidates, setCandidates] = useState<MatchCandidate[] | null>(null);
+  const [maybeElsewhere, setMaybeElsewhere] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -18,7 +19,9 @@ export function Patients() {
     setBusy(true);
     setError(null);
     try {
-      setCandidates((await searchPatients(q)).candidates);
+      const res = await searchPatients(q);
+      setCandidates(res.candidates);
+      setMaybeElsewhere(res.maybeElsewhere === true);
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
     } finally {
@@ -31,6 +34,7 @@ export function Patients() {
       <div className="max-w-3xl space-y-6">
         <PatientSearchForm initial={emptyDraft} busy={busy} onSearch={onSearch} />
         {error && <Alert>{error}</Alert>}
+        {maybeElsewhere && <Alert tone="warn">{es.searchHints.maybeElsewhere}</Alert>}
         {candidates && candidates.length === 0 && <Alert tone="warn">{es.matches.emptyClinician}</Alert>}
       </div>
       {candidates && candidates.length > 0 && (

@@ -9,6 +9,8 @@ import { patientRoutes } from "./routes/patients";
 import { syncRoutes } from "./routes/sync";
 import { deviceRoutes } from "./routes/devices";
 import { queueRoutes } from "./routes/queue";
+// Block 3b: Excel import
+import { importRoutes } from "./routes/imports";
 
 export const app = new Hono()
   .use(logger())
@@ -25,7 +27,9 @@ export const app = new Hono()
   .route("/api/campaigns", campaignRoutes)
   .route("/api/sync", syncRoutes)
   .route("/api/devices", deviceRoutes)
-  .route("/api/queue", queueRoutes);
+  .route("/api/queue", queueRoutes)
+  // Block 3b: Excel import
+  .route("/api/imports", importRoutes);
 
 /** Type used by the web app's typed client (hono/client). */
 export type AppType = typeof app;

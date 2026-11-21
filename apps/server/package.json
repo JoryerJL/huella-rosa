@@ -9,12 +9,15 @@
     "db:migrate": "prisma migrate dev",
     "seed": "tsx prisma/seed.ts",
     "typecheck": "tsc -p tsconfig.json",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test": "vitest run",
+    "demo:excel": "tsx scripts/make-demo-excel.ts"
   },
   "dependencies": {
     "@er/shared": "*",
     "@hono/node-server": "^1.19.6",
     "@prisma/client": "^6.19.0",
+    "exceljs": "^4.4.0",
     "hono": "^4.10.6",
     "iovalkey": "^0.4.0",
     "zod": "^4.1.12"
@@ -22,6 +25,7 @@
   "devDependencies": {
     "@types/node": "^24.10.1",
     "prisma": "^6.19.0",
-    "tsx": "^4.20.6"
+    "tsx": "^4.20.6",
+    "vitest": "^3.2.7"
   }
 }

@@ -1,72 +1,144 @@
 {
-  "note": "Story of the release video. Times in seconds. Each shot cuts tablet-<tablet>.webm from `from` to `to` (seconds into the recording, see demo-videos/raw/timeline.json). `focus` is the box the camera centers on and `rings` the boxes it outlines, both as [x, y, w, h] in the 1280x800 tablet frame. `zoom` is the camera scale at rest on the focus.",
+  "note": "Story of the release video (v2). Times in seconds; boxes in the 1280x800 tablet frame. A shot cuts tablet-<tablet>.webm from `from` to `to` (seconds into the recording, see demo-videos/raw/timeline.json), plays it at `speed` and then holds the last frame for `hold`. `cut` is how it enters: flash (new place) or seamless (same take continues). `keys` are camera stops [at, [x, y, w]]: at `at` seconds into the shot the screen shows the tablet window that starts at x,y and is w wide (height w/1.6); choose windows whose edges fall on empty space so no word is cut. `spots` [from, to, [x, y, w, h]] outline the element in focus and dim the rest. A duo shot shows the top 400 px of both tablets, one over the other. `steps` [at, text] are the captions, `at` measured from the start of the beat's footage.",
   "fps": 30,
-  "xfade": 0.4,
-  "hook": { "dur": 4.6 },
+  "xfade": 0.45,
+  "hook": { "dur": 4.5 },
+  "card": { "dur": 1.8 },
   "end": { "dur": 7.0 },
   "beats": [
     {
-      "id": "match",
-      "title": "La reconoce aunque escriban sin acentos",
-      "sub": "Buscaron “Lucia Ramirez” y apareció Lucía Ramírez, con sus motivos a la vista.",
-      "dur": 6.2,
+      "id": "antes",
+      "question": "¿Y antes de salir a la comunidad?",
+      "title": "Con señal, cada tableta se lleva la jornada",
+      "steps": [
+        [0, "Elige la jornada"],
+        [1.0, "Descarga el paquete"],
+        [1.6, "Listo: quedó guardado en la tableta"],
+        [3.2, "Lleva a las pacientes de esas comunidades y sus visitas, sin resultados clínicos"],
+        [4.5, "Sirve 7 días sin señal"]
+      ],
       "shots": [
-        { "tablet": "a", "from": 84.9, "to": 86.8, "focus": [40, 296, 790, 150], "zoom": 1.65,
-          "rings": [[594, 304, 220, 42], [48, 396, 672, 46]] }
+        { "tablet": "a", "from": 59.2, "to": 62.6, "speed": 1.3, "cut": "flash",
+          "keys": [[0, [0, 0, 1280]]],
+          "spots": [[0.45, 0.95, [24, 322, 500, 322]], [0.95, 1.45, [24, 738, 268, 62]], [1.6, 2.6, [24, 704, 1014, 96]]] },
+        { "tablet": "a", "from": 62.6, "to": 64.2, "speed": 0.8, "hold": 1.2, "cut": "seamless",
+          "keys": [[0, [0, 0, 1280]], [0.6, [0, 138, 1060]], [1.7, [0, 0, 1280]]],
+          "spots": [[0.6, 1.5, [24, 704, 1014, 96]], [1.8, 3.2, [150, 6, 450, 46]]] }
       ]
     },
     {
-      "id": "offline",
-      "title": "Funciona sin señal",
-      "sub": "Se captura igual. Lo pendiente se cuenta y se envía después.",
-      "dur": 4.8,
+      "id": "busca",
+      "question": "Así se busca a una paciente",
+      "title": "Escribe como venga, sin acentos",
+      "steps": [
+        [0, "Su nombre, sin acentos"],
+        [2.0, "Fecha de nacimiento y un dato más"],
+        [4.6, "Buscar"],
+        [5.8, "Coincidencia fuerte, con sus motivos"],
+        [7.8, "Es ella"]
+      ],
       "shots": [
-        { "tablet": "a", "from": 121.8, "to": 125.2, "focus": [20, 62, 345, 58], "zoom": 2.4,
-          "rings": [[16, 60, 346, 62]] }
+        { "tablet": "a", "from": 76.0, "to": 84.9, "speed": 1.6, "cut": "flash",
+          "keys": [[0, [0, 0, 1280]], [0.7, [0, 140, 800]], [2.0, [0, 250, 800]], [4.8, [0, 290, 816]]],
+          "spots": [[0.6, 1.8, [52, 342, 688, 66]], [2.0, 3.2, [52, 462, 688, 72]], [3.3, 4.6, [52, 706, 688, 70]], [4.9, 5.56, [52, 732, 688, 70]]] },
+        { "tablet": "a", "from": 84.9, "to": 87.2, "speed": 0.8, "cut": "seamless",
+          "keys": [[0, [0, 130, 850]], [1.1, [20, 280, 800]], [2.2, [0, 0, 1280]]],
+          "spots": [[0.3, 1.0, [592, 300, 226, 48]], [1.1, 2.1, [46, 392, 680, 52]], [2.2, 2.9, [1038, 354, 198, 74]]] }
       ]
     },
     {
-      "id": "folio",
-      "title": "El folio une las estaciones",
-      "sub": "Captura da el folio; Nutrición lo teclea aunque la visita no haya llegado.",
-      "dur": 7.0,
+      "id": "senal",
+      "question": "¿Y si no hay señal?",
+      "title": "Se sigue trabajando igual",
+      "steps": [
+        [0, "Se va la señal"],
+        [2.0, "Registra la visita igual"],
+        [3.5, "Guardado ✓ con su folio"],
+        [5.1, "1 cambio por enviar"]
+      ],
       "shots": [
-        { "tablet": "a", "from": 89.4, "to": 90.8, "focus": [40, 290, 330, 190], "zoom": 2.0,
-          "rings": [[44, 392, 290, 74]] },
-        { "tablet": "b", "from": 115.2, "to": 116.9, "focus": [28, 160, 798, 180], "zoom": 1.5,
-          "rings": [[26, 280, 802, 54]] }
+        { "tablet": "a", "from": 74.0, "to": 76.0, "speed": 1.0, "cut": "flash",
+          "keys": [[0, [0, 0, 800]]],
+          "spots": [[1.15, 2.0, [204, 62, 160, 56]]] },
+        { "tablet": "a", "from": 87.0, "to": 89.4, "speed": 1.6, "cut": "flash",
+          "keys": [[0, [0, 0, 1280]]],
+          "spots": [[0.4, 1.5, [650, 278, 608, 190]]] },
+        { "tablet": "a", "from": 89.4, "to": 90.9, "speed": 0.6, "cut": "seamless",
+          "keys": [[0, [0, 0, 1280]], [0.6, [0, 0, 820]]],
+          "spots": [[0.7, 1.6, [44, 392, 290, 74]], [1.6, 2.5, [16, 62, 192, 58]]] }
       ]
     },
     {
-      "id": "online",
-      "title": "Vuelve la señal: todo llega una sola vez",
-      "sub": "Cada tableta envía lo suyo y nada se repite.",
-      "dur": 6.4,
+      "id": "estaciones",
+      "question": "¿Y las otras estaciones?",
+      "title": "Nutrición la encuentra por su folio",
+      "steps": [
+        [0, "Teclea el folio del papel"],
+        [1.4, "La visita aún no llega: igual registra su paso"],
+        [3.5, "Llena solo sus campos"],
+        [6.7, "Guarda, aun sin señal"]
+      ],
       "shots": [
-        { "tablet": "a", "from": 125.7, "to": 129.0, "focus": [20, 62, 360, 58], "zoom": 2.4,
-          "rings": [[16, 60, 216, 62]] },
-        { "tablet": "b", "from": 125.2, "to": 127.9, "focus": [20, 62, 360, 58], "zoom": 2.4,
-          "rings": [[16, 60, 216, 62]] }
+        { "tablet": "b", "from": 113.6, "to": 115.3, "speed": 1.2, "cut": "flash",
+          "keys": [[0, [0, 0, 1280]]],
+          "spots": [[0.2, 1.42, [878, 464, 350, 68]]] },
+        { "tablet": "b", "from": 115.3, "to": 116.4, "speed": 0.55, "cut": "seamless",
+          "keys": [[0, [0, 0, 1280]], [0.5, [0, 140, 880]]],
+          "spots": [[0.6, 2.0, [24, 278, 806, 58]]] },
+        { "tablet": "b", "from": 116.4, "to": 121.6, "speed": 1.6, "cut": "seamless",
+          "keys": [[0, [0, 140, 880]], [0.9, [0, 60, 880]]],
+          "spots": [[0.9, 3.25, [24, 116, 806, 450]]] },
+        { "tablet": "b", "from": 121.6, "to": 123.0, "speed": 0.9, "cut": "seamless",
+          "keys": [[0, [0, 0, 1280]]],
+          "spots": [[0.0, 0.6, [26, 698, 396, 68]], [0.8, 1.55, [16, 62, 202, 58]]] }
       ]
     },
     {
-      "id": "step",
-      "title": "Cada especialista, solo lo suyo",
-      "sub": "Nutrición llena talla y peso. Lo demás lo llenan las otras estaciones.",
-      "dur": 5.2,
+      "id": "vuelve",
+      "question": "¿Y cuando vuelve la señal?",
+      "title": "Cada tableta envía lo suyo",
+      "steps": [
+        [0, "Vuelve la señal"],
+        [1.8, "Se envía solo lo pendiente"],
+        [3.4, "Un solo expediente, sin repetir"]
+      ],
+      "stamp": [3.4, "Un solo expediente, sin repetir"],
       "shots": [
-        { "tablet": "b", "from": 118.4, "to": 120.8, "focus": [28, 130, 796, 320], "zoom": 1.5,
-          "rings": [[40, 140, 770, 300]] }
+        { "duo": [{ "tablet": "a", "from": 124.6, "to": 129.0 }, { "tablet": "b", "from": 123.6, "to": 127.8 }],
+          "speed": 1.2, "hold": 1.8, "cut": "flash",
+          "spots": [[2.0, 5.5, 0, [16, 62, 218, 62]], [2.0, 5.5, 1, [16, 62, 218, 62]]] }
       ]
     },
     {
-      "id": "never-alone",
-      "title": "Nunca fusiona sola",
-      "sub": "Una persona confirma que es ella, y queda escrito quién, cuándo y en qué tableta.",
-      "dur": 5.8,
+      "id": "proxima",
+      "question": "¿Y la próxima vez?",
+      "title": "Su expediente completo, en cualquier jornada",
+      "steps": [
+        [0, "Con señal, busca su expediente"],
+        [2.6, "Ahí está: 2 visitas"],
+        [4.2, "Su nombre e ID EIRA"],
+        [6.5, "Su identificación"],
+        [8.1, "Cada visita: jornada, folio y estaciones"],
+        [10.1, "Resultados por estación, para el personal clínico"],
+        [11.8, "Y su visita de mayo"],
+        [13.8, "Quién hizo qué y cuándo"]
+      ],
       "shots": [
-        { "tablet": "a", "from": 172.0, "to": 174.6, "focus": [44, 330, 840, 180], "zoom": 1.5,
-          "rings": [[44, 402, 840, 42]] }
+        { "tablet": "b", "from": 141.0, "to": 149.9, "speed": 3.5, "cut": "flash",
+          "keys": [[0, [0, 0, 1280]], [0.4, [0, 140, 900]], [1.4, [0, 250, 900]], [2.2, [0, 230, 912]]],
+          "spots": [] },
+        { "tablet": "b", "from": 149.9, "to": 150.7, "speed": 0.5, "cut": "seamless",
+          "keys": [[0, [0, 0, 1280]]],
+          "spots": [[0.1, 1.1, [22, 544, 1236, 222]], [1.1, 1.6, [1026, 618, 208, 68]]] },
+        { "tablet": "b", "from": 150.62, "to": 150.82, "speed": 0.15, "hold": 0.27, "cut": "flash",
+          "keys": [[0, [0, 0, 1280]]],
+          "spots": [[0.1, 1.6, [206, 158, 622, 92]]] },
+        { "tablet": "b", "from": 151.4, "to": 152.4, "speed": 1.0, "hold": 7.0, "cut": "flash",
+          "keys": [[0, [0, 0, 1280]], [0.7, [0, 0, 460]], [2.3, [440, 0, 840]], [5.8, [440, 275, 840]], [7.4, [0, 0, 1280]]],
+          "spots": [[0.8, 2.2, [24, 80, 232, 56]], [2.4, 3.4, [470, 78, 790, 60]], [3.4, 4.4, [490, 196, 352, 36]], [4.4, 5.6, [490, 240, 766, 284]], [6.0, 7.4, [460, 544, 800, 180]]] },
+        { "tablet": "a", "from": 172.0, "to": 174.6, "speed": 1.0, "hold": 0.2, "cut": "flash",
+          "keys": [[0, [0, 40, 1216]]],
+          "spots": [[0.5, 2.8, [44, 340, 850, 104]]] }
       ]
     }
   ]

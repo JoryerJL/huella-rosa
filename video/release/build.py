@@ -6,8 +6,8 @@
 
 Both cuts share the same story (src/beats.json), markup (src/index.tpl) and motion (src/motion.js); only the
 layout differs. Footage: each shot is cut from demo-videos/raw/tablet-<a|b>.webm (repo root, git-ignored; override
-with FOOTAGE_DIR) into assets/footage/<beat>-<n>.mp4: trimmed, slowed down a little when the slot is longer than the
-source, frozen on its last frame, 30 fps H.264 with short GOP so the renderer can seek. Do not edit index.html by hand.
+with FOOTAGE_DIR) into assets/footage/<shot>.mp4: trimmed, played at the shot's speed, then frozen on its last frame
+for the rest of its window; 30 fps H.264 with a short GOP so the renderer can seek. Do not edit index.html by hand.
 """
 import hashlib
 import html
@@ -24,7 +24,6 @@ RAW = Path(os.environ.get('FOOTAGE_DIR', REPO / 'demo-videos' / 'raw'))
 OUT = ROOT / 'assets' / 'footage'
 B = json.loads((ROOT / 'src' / 'beats.json').read_text())
 TABLET_W, TABLET_H = 1280, 800
-MAX_SLOW = 1.6  # never play footage slower than this; the rest of the slot holds the last frame
 TABLETS = {'a': 'Tableta de captura', 'b': 'Tableta de estaciones'}
 
 FORMATS = {
@@ -46,43 +45,63 @@ TAGLINE = 'Una mujer, una huella, un solo expediente, con o sin señal.'
 
 # ---------- timing ----------
 
+def slot(shot):
+    """Seconds a shot plays on screen: the slice at its speed plus the hold on its last frame."""
+    parts = shot['duo'] if 'duo' in shot else [shot]
+    return max((p['to'] - p['from']) / shot['speed'] for p in parts) + shot.get('hold', 0)
+
+
 def plan():
-    """Absolute times for every scene, beat and shot."""
-    x = B['xfade']
+    """Absolute times for the hook, every question card, beat, shot, caption and the end card."""
+    x, card = B['xfade'], B['card']['dur']
     t = B['hook']['dur']
     beats = []
     for i, b in enumerate(B['beats']):
-        n = len(b['shots'])
-        each = b['dur'] / n
-        shots = []
+        c0 = t
+        f0 = c0 + card
+        shots, k = [], f0
         for j, s in enumerate(b['shots']):
-            start = t + j * each
-            end = t + (j + 1) * each + (x if j == n - 1 else 0.3)
-            shots.append(dict(s, id=f'{b["id"]}-{j + 1}', start=round(start, 3), end=round(end, 3)))
-        beats.append(dict(b, n=i + 1, start=round(t, 3), end=round(t + b['dur'] + x, 3), shots=shots))
-        t += b['dur']
-    total = round(t + B['end']['dur'], 3)
-    return {'fps': B['fps'], 'xfade': x, 'hook': [0, round(B['hook']['dur'] + x, 3)],
-            'stage': [beats[0]['start'], round(t + x, 3)], 'end': [round(t, 3), total], 'total': total, 'beats': beats}
+            d = slot(s)
+            sid = f'{b["id"]}-{j + 1}'
+            shots.append(dict(s, id=sid, start=round(k, 3), play=round(d, 3),
+                              keys=[[round(k + a, 3), v] for a, v in s.get('keys', [[0, [0, 0, TABLET_W]]])],
+                              spots=[[round(k + sp[0], 3), round(k + sp[1], 3)] + sp[2:] for sp in s.get('spots', [])]))
+            k += d
+        f1 = k
+        beats.append(dict(b, n=i + 1, card=[round(c0, 3), round(f0 + x, 3)], foot=[round(f0, 3), round(f1, 3)],
+                          steps=[[round(f0 + a, 3), txt] for a, txt in b['steps']],
+                          stamp=[round(f0 + b['stamp'][0], 3), b['stamp'][1]] if b.get('stamp') else None,
+                          shots=shots))
+        t = f1
+    end0 = t
+    total = round(end0 + B['end']['dur'], 3)
+    # Every shot stays until the next one has faded in over it; the last shot of a beat stays until the
+    # next question card (or the end card) fully covers the tablet.
+    for i, b in enumerate(beats):
+        cover = (beats[i + 1]['card'][0] if i + 1 < len(beats) else end0) + 0.8
+        for j, s in enumerate(b['shots']):
+            s['end'] = round(b['shots'][j + 1]['start'] + 0.3 if j + 1 < len(b['shots']) else cover, 3)
+        b['copy'] = [round(b['foot'][0] - 0.2, 3), round(cover, 3)]
+    return {'fps': B['fps'], 'xfade': x, 'hook': [0, round(B['hook']['dur'] + x, 3)], 'end': [round(end0, 3), total],
+            'total': total, 'beats': beats}
 
 
 # ---------- footage ----------
 
-def cut(src, dst, start, length, slot):
-    """Write `slot` seconds: the source slice (slowed down up to MAX_SLOW) then a freeze of its last frame."""
-    slow = max(1.0, min(MAX_SLOW, slot / length))
-    pad = max(0.0, slot - length * slow) + 0.5
-    vf = (f'setpts={slow:.4f}*(PTS-STARTPTS),fps={B["fps"]},scale={TABLET_W}:{TABLET_H}:flags=lanczos,'
+def cut(src, dst, start, length, speed, window):
+    """Write `window` seconds: the source slice at `speed`, then a freeze of its last frame."""
+    played = length / speed
+    pad = max(0.0, window - played) + 0.5
+    vf = (f'setpts=(PTS-STARTPTS)/{speed:.4f},fps={B["fps"]},scale={TABLET_W}:{TABLET_H}:flags=lanczos,'
           f'tpad=stop_mode=clone:stop_duration={pad:.3f}')
-    key = hashlib.sha1(f'{src.stat().st_mtime}-{start}-{length}-{slot}-{vf}'.encode()).hexdigest()[:12]
+    key = hashlib.sha1(f'{src.stat().st_mtime}-{start}-{length}-{window}-{vf}'.encode()).hexdigest()[:12]
     stamp = dst.with_suffix('.key')
     if dst.exists() and stamp.exists() and stamp.read_text() == key:
-        return slow
+        return
     subprocess.run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', f'{start:.3f}', '-t', f'{length:.3f}', '-i', str(src),
-                    '-vf', vf, '-t', f'{slot:.3f}', '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '16',
+                    '-vf', vf, '-t', f'{window:.3f}', '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '16',
                     '-g', '15', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', str(dst)], check=True)
     stamp.write_text(key)
-    return slow
 
 
 def build_footage(p):
@@ -91,14 +110,17 @@ def build_footage(p):
     OUT.mkdir(parents=True, exist_ok=True)
     for b in p['beats']:
         for s in b['shots']:
-            src = RAW / f'tablet-{s["tablet"]}.webm'
-            if not src.exists():
-                sys.exit(f'Missing footage {src}. Copy the demo recording to demo-videos/raw/ or set FOOTAGE_DIR.')
-            dst = OUT / f'{s["id"]}.mp4'
-            slow = cut(src, dst, s['from'], s['to'] - s['from'], s['end'] - s['start'])
-            s['src'] = f'assets/footage/{dst.name}'
-            print(f'Footage: {dst.name} {s["to"] - s["from"]:.1f}s of tablet {s["tablet"].upper()} '
-                  f'-> {s["end"] - s["start"]:.1f}s slot (x{1 / slow:.2f} speed)')
+            parts = s['duo'] if 'duo' in s else [s]
+            s['srcs'] = []
+            for n, part in enumerate(parts):
+                src = RAW / f'tablet-{part["tablet"]}.webm'
+                if not src.exists():
+                    sys.exit(f'Missing footage {src}. Copy the demo recording to demo-videos/raw/ or set FOOTAGE_DIR.')
+                name = f'{s["id"]}{"-" + "ab"[n] if "duo" in s else ""}.mp4'
+                cut(src, OUT / name, part['from'], part['to'] - part['from'], s['speed'], s['end'] - s['start'])
+                s['srcs'].append(f'assets/footage/{name}')
+            print(f'Footage: {s["id"]} {s["play"]:.1f}s on screen at x{s["speed"]} '
+                  f'({", ".join(f"{q["tablet"].upper()} {q["from"]}-{q["to"]}" for q in parts)})')
 
 
 # ---------- HTML pieces ----------
@@ -111,32 +133,62 @@ def box_style(b):
     return f'--x:{b[0]};--y:{b[1]};--w:{b[2]};--h:{b[3]}'
 
 
+def cards(p):
+    return '\n      '.join(
+        f'<section id="card-{b["id"]}" class="scene qcard clip" {win(*b["card"])} data-track-index="{3 + b["n"] % 2}">'
+        f'<div class="scene-content"><span class="count"><b>{b["n"]:02d}</b> / {len(p["beats"]):02d}</span>'
+        f'<h2>{html.escape(b["question"])}</h2></div></section>'
+        for b in p['beats'])
+
+
 def copies(p):
-    n = len(p['beats'])
     out = []
     for b in p['beats']:
+        steps = ''.join(f'<li class="step" id="step-{b["id"]}-{i}"><i></i><span>{html.escape(txt)}</span></li>'
+                        for i, (_, txt) in enumerate(b['steps']))
+        dots = ''.join(f'<i id="dot-{b["id"]}-{i}"></i>' for i in range(len(b['steps'])))
         out.append(
-            f'<div id="copy-{b["id"]}" class="copy clip" {win(b["start"], b["end"])} data-track-index="{10 + b["n"] % 2}" '
+            f'<div id="copy-{b["id"]}" class="copy clip" {win(*b["copy"])} data-track-index="{10 + b["n"] % 2}" '
             f'style="z-index:{10 + b["n"]}"><div class="copy-in">'
-            f'<span class="count"><b>{b["n"]:02d}</b> / {n:02d}</span>'
-            f'<h2>{html.escape(b["title"])}</h2><p>{html.escape(b["sub"])}</p></div></div>')
+            f'<span class="ask">{html.escape(b["question"])}</span>'
+            f'<h2>{html.escape(b["title"])}</h2><ul class="steps">{steps}</ul>'
+            f'<div class="dots">{dots}</div></div></div>')
     return '\n        '.join(out)
 
 
+def spots_html(spots, strip=None):
+    out = ''
+    for i, sp in enumerate(spots):
+        if strip is not None and sp[2] != strip:
+            continue
+        box = sp[-1]
+        out += f'<i class="spot" data-i="{i}" style="{box_style(box)}"></i>'
+    return out
+
+
 def shots(p):
-    out = []
-    k = 0
+    out, k = [], 0
     for b in p['beats']:
         for s in b['shots']:
             k += 1
-            rings = ''.join(f'<i class="ring" style="{box_style(r)}"></i>' for r in s['rings'])
+            if 'duo' in s:
+                strips = ''.join(
+                    f'<div class="strip"><div class="cam"><video id="v-{s["id"]}-{"ab"[n]}" class="clip" src="{src}" '
+                    f'{win(s["start"], s["end"])} data-media-start="0" data-track-index="{30 + n}" muted playsinline></video>'
+                    f'{spots_html(s["spots"], n)}</div><span class="who">{TABLETS[part["tablet"]]}</span></div>'
+                    for n, (part, src) in enumerate(zip(s['duo'], s['srcs'])))
+                out.append(f'<div id="shot-{s["id"]}" class="shot duo" style="z-index:{k}">{strips}</div>')
+                continue
             out.append(
-                f'<div id="shot-{s["id"]}" class="shot" style="z-index:{k}" data-focus="{",".join(map(str, s["focus"]))}" '
-                f'data-zoom="{s["zoom"]}">'
-                f'<div class="cam"><video id="v-{s["id"]}" class="clip" src="{s["src"]}" {win(s["start"], s["end"])} '
-                f'data-media-start="0" data-track-index="{20 + k % 2}" muted playsinline></video>{rings}</div>'
-                f'<span class="who">{TABLETS[s["tablet"]]}</span></div>')
+                f'<div id="shot-{s["id"]}" class="shot" style="z-index:{k}">'
+                f'<div class="cam"><video id="v-{s["id"]}" class="clip" src="{s["srcs"][0]}" {win(s["start"], s["end"])} '
+                f'data-media-start="0" data-track-index="{20 + k % 2}" muted playsinline></video>{spots_html(s["spots"])}</div></div>')
     return '\n          '.join(out)
+
+
+def stamps(p):
+    return ''.join(f'<div class="stamp" id="stamp-{b["id"]}">{html.escape(b["stamp"][1])}</div>'
+                   for b in p['beats'] if b['stamp'])
 
 
 def main():
@@ -147,10 +199,11 @@ def main():
     p = plan()
     build_footage(p)
     tagline = ' '.join(f'<span class="w">{w}</span>' for w in TAGLINE.split())
-    timing = {k: v for k, v in p.items()}
-    timing['screen'] = [f['screen'], round(f['screen'] * TABLET_H / TABLET_W, 3)]
-    timing['scale'] = f['screen'] / TABLET_W
-    timing['format'] = fmt
+    timing = json.loads(json.dumps(dict(p, screen=[f['screen'], round(f['screen'] * TABLET_H / TABLET_W, 3)],
+                                        scale=f['screen'] / TABLET_W, format=fmt)))
+    for b in timing['beats']:
+        for s in b['shots']:
+            s.pop('srcs', None)
     reps = {
         '@@W@@': str(f['w']),
         '@@H@@': str(f['h']),
@@ -163,13 +216,16 @@ def main():
         '@@W_end@@': win(*p['end']),
         '@@MARK@@': MARK,
         '@@TAGLINE@@': tagline,
+        '@@CARDS@@': cards(p),
         '@@COPIES@@': copies(p),
         '@@SHOTS@@': shots(p),
-        '@@MOTION@@': (ROOT / 'src' / 'motion.js').read_text().replace('__TIMING__', json.dumps(timing, ensure_ascii=False)),
+        '@@STAMPS@@': stamps(p),
     }
     out = (ROOT / 'src' / 'index.tpl').read_text()
     for k, v in reps.items():
         out = out.replace(k, v)
+    out = out.replace('@@MOTION@@', (ROOT / 'src' / 'motion.js').read_text().replace(
+        '__TIMING__', json.dumps(timing, ensure_ascii=False)))
     if '@@' in out:
         sys.exit('Unreplaced markers in index.tpl')
     (ROOT / 'index.html').write_text(out)

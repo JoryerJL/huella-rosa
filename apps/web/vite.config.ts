@@ -28,7 +28,10 @@ export default defineConfig({
         // The whole app shell is cached so it opens without internet.
         globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
         navigateFallback: "/index.html",
-        navigateFallbackDenylist: [/^\/api\//],
+        // Server-rendered pages and endpoints must reach the server: the OAuth sign-in page for AI
+        // agents (/oauth/authorize), OAuth/MCP discovery and the MCP endpoint. Without this the
+        // service worker answers /oauth/authorize with the app shell and the agent never gets a code.
+        navigateFallbackDenylist: [/^\/api\//, /^\/oauth\//, /^\/\.well-known\//, /^\/mcp(\/|$)/],
       },
       devOptions: { enabled: true, type: "module" },
     }),

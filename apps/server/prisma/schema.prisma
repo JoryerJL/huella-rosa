@@ -22,22 +22,26 @@ model Locality {
 }
 
 model Campaign {
-  id           String  @id
+  id           String   @id
   name         String
   municipality String
   state        String
   date         String // YYYY-MM-DD, first day of the campaign
   endDate      String // YYYY-MM-DD, last day (same as date for one-day campaigns)
   localityIds  String // JSON array of Locality ids
+  createdAt    DateTime @default(now())
+  createdBy    String? // admin user id (null for seeded or older campaigns)
   visits       Visit[]
 }
 
 model User {
-  id       String @id
-  username String @unique // login name, lowercase; staff are never listed on screen
-  name     String
-  role     String // intake | nutritionist | doctor | pathologist | admin
-  pinHash  String // scrypt hash, demo only
+  id        String   @id
+  username  String   @unique // login name, lowercase; staff are never listed on screen
+  name      String
+  role      String // intake | nutritionist | doctor | pathologist | admin
+  pinHash   String // scrypt hash, demo only
+  active    Boolean  @default(true) // deactivated staff cannot log in or sync; never deleted
+  createdAt DateTime @default(now())
 }
 
 model Patient {

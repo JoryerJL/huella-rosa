@@ -1,8 +1,13 @@
 import { z } from "zod";
 import {
   CLINICAL_ROLES,
+  PIN_PATTERN,
+  ROLES,
   SERVICE_TYPES,
+  USERNAME_PATTERN,
+  type CampaignStatus,
   type ClinicalRole,
+  type Role,
   type ConflictStatus,
   type MatchReviewStatus,
   type ServiceStatus,
@@ -392,4 +397,73 @@ export interface DashboardResponse {
   conflictsOpen: number;
   steps: { role: ClinicalRole; pending: number; done: number; skipped: number; avgMinutes: number | null }[];
   pendingByLocality: { locality: string; count: number }[];
+}
+
+// ---------- Staff and campaign administration (SPEC 6.0, admin only) ----------
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+/** POST /api/staff. The server answers each invalid field with its own plain Spanish message. */
+export const createStaffSchema = z.object({
+  name: z.string().trim().min(3).max(120),
+  username: z.string().trim().toLowerCase().regex(USERNAME_PATTERN),
+  role: z.enum(ROLES),
+  pin: z.string().regex(PIN_PATTERN),
+});
+export type CreateStaffInput = z.infer<typeof createStaffSchema>;
+
+/** GET /api/staff item. Never carries the PIN or its hash. */
+export interface StaffView {
+  id: string;
+  name: string;
+  username: string;
+  role: Role;
+  active: boolean;
+  createdAt: string;
+}
+
+const newLocalitySchema = z.object({
+  name: z.string().trim().min(2).max(120),
+  hasSignal: z.boolean(),
+});
+
+/** POST /api/campaigns. `name` defaults to defaultCampaignName(municipality, date). */
+export const createCampaignSchema = z.object({
+  name: z.string().trim().max(120).optional(),
+  municipality: z.string().trim().min(2).max(120),
+  state: z.string().trim().min(2).max(120),
+  localityIds: z.array(z.string().min(1)).default([]),
+  newLocalities: z.array(newLocalitySchema).default([]),
+  date: isoDate,
+  endDate: isoDate,
+});
+export type CreateCampaignInput = z.infer<typeof createCampaignSchema>;
+
+/** PATCH /api/campaigns/:id while the campaign has not finished. Only the fields sent change. */
+export const updateCampaignSchema = z.object({
+  name: z.string().trim().min(3).max(120).optional(),
+  municipality: z.string().trim().min(2).max(120).optional(),
+  state: z.string().trim().min(2).max(120).optional(),
+  localityIds: z.array(z.string().min(1)).optional(),
+  newLocalities: z.array(newLocalitySchema).optional(),
+  date: isoDate.optional(),
+  endDate: isoDate.optional(),
+});
+export type UpdateCampaignInput = z.infer<typeof updateCampaignSchema>;
+
+/** GET /api/localities item. */
+export interface LocalityView {
+  id: string;
+  name: string;
+  municipality: string;
+  hasSignal: boolean;
+}
+
+/** GET /api/campaigns item: CampaignView plus the place, localities and status computed from the dates. */
+export interface CampaignListItem extends CampaignView {
+  municipality: string;
+  state: string;
+  localityIds: string[];
+  localities: LocalityView[];
+  status: CampaignStatus;
 }

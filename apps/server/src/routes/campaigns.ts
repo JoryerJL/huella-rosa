@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { CLINICAL_ROLES, type CampaignPackage } from "@er/shared";
 import { writeAudit } from "../audit";
+import { createCampaign, updateCampaign } from "./campaignAdmin";
 import { requireRole, type SessionEnv } from "../session";
 import {
   buildPackageData,
@@ -14,6 +15,9 @@ export const campaignRoutes = new Hono<SessionEnv>()
   .get("/", requireRole("intake", ...CLINICAL_ROLES, "admin"), async (c) => {
     return c.json(await listCampaigns());
   })
+  // Campaign administration (SPEC 6.0): admin only, checked here on the server (rule 7).
+  .post("/", requireRole("admin"), createCampaign)
+  .patch("/:id", requireRole("admin"), updateCampaign)
   // Offline campaign package (SPEC 6.1, 6.8, 6.3.1): what intake and specialist devices need offline.
   .get("/:id/package", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
     const staff = c.get("staff");

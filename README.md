@@ -87,14 +87,17 @@ Servidor Hono sobre Node (rutas API con validación de rol y bitácora)
 
 | Función | Estado |
 |---|---|
-| Alta de paciente con identificador estable creado en el dispositivo | Por construir |
-| Búsqueda de coincidencias con puntaje, motivos y confirmación humana | Por construir |
-| Segunda visita con historial | Por construir |
-| Captura sin conexión (IndexedDB) y bandeja de salida | Por construir |
-| Sincronización idempotente con detección de conflictos (Valkey) | Por construir |
-| Bandeja de posibles duplicados: vincular o descartar | Por construir |
-| Bandeja de conflictos de sincronización | Por construir |
-| Roles validados en el servidor y bitácora | **Implementado** para entrada y salida del personal (bloque 0); falta en las demás acciones |
+| Alta de paciente con identificador estable creado en el dispositivo | **Implementado** |
+| Búsqueda de coincidencias con puntaje, motivos y confirmación humana ("Es ella / Es otra persona") | **Implementado** (en la tableta, sin red) |
+| Segunda visita con historial | **Implementado** |
+| Entrada con usuario y PIN, también sin señal (verificador PBKDF2 en el dispositivo) | **Implementado** |
+| Paquete de jornada, captura sin conexión (IndexedDB) y bandeja de cambios por enviar | **Implementado** |
+| Sincronización que no duplica, conflictos por campo y aviso en vivo (Valkey: ids de operación, candado por paciente, pub/sub) | **Implementado** |
+| Detección de posibles duplicados creados sin señal | **Implementado** (se abren para revisión; nunca se fusiona) |
+| Especialistas (nutriólogo, médico, patólogo), pasos de la visita y "Pacientes esperándome" | **Implementado** (cada quien llena solo sus campos; validado en servidor) |
+| Folio corto que une las estaciones sin internet | **Implementado** |
+| Pantallas de administración: ¿Es la misma persona? y Dos personas cambiaron el mismo dato | En construcción (bloque 4) |
+| Roles validados en el servidor y bitácora | **Implementado** en todas las acciones construidas |
 | Plantilla de Excel e importación de Excel/CSV con revisión humana | Por construir |
 | Servidor MCP para que agentes de IA (Devin, Claude) propongan lotes de altas | Por construir (si no da el tiempo, queda documentado) |
 | Tablero por jornada | Por construir |

@@ -1,0 +1,19 @@
+{
+  "nota": "Textos fijos de estado que muestra la app de campo. No llevan datos clínicos ni datos personales. {n} se reemplaza por un número.",
+  "estado": {
+    "online": "Con señal",
+    "offline": "Sin señal. Puedes seguir capturando; se guarda en este dispositivo.",
+    "pendingSync": "{n} cambios por enviar",
+    "syncing": "Enviando cambios...",
+    "syncDone": "Todo enviado. El expediente está al día.",
+    "syncFailed": "No se pudo enviar. Lo intentaremos de nuevo cuando haya señal.",
+    "scanQueued": "Foto guardada. Se leerá cuando haya señal.",
+    "remoteChanges": "Hay cambios nuevos. Actualizando..."
+  },
+  "avisos": {
+    "possibleDuplicate": "Encontramos un posible registro de esta paciente. Revisa los motivos y decide si es ella.",
+    "conflictDetected": "Otro dispositivo cambió este dato. Administración elegirá cuál se queda.",
+    "lowConfidence": "Revisa los campos en amarillo con el formato a la vista.",
+    "confirmRequired": "Confirma los datos antes de guardar."
+  }
+}

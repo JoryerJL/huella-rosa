@@ -1,0 +1,154 @@
+// Data model from docs/SPEC.md (section 5).
+// SQLite for development: catalog values (role, status, type) are stored as strings;
+// valid values live in packages/shared/src/domain.ts.
+// Clinical dates (birth, attendance) are stored as "YYYY-MM-DD" strings to avoid timezone issues.
+// The provider is fixed here on purpose: a pilot moves to PostgreSQL by changing it.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Locality {
+  id           String    @id
+  name         String
+  municipality String
+  hasSignal    Boolean
+  patients     Patient[]
+}
+
+model Campaign {
+  id           String  @id
+  name         String
+  municipality String
+  state        String
+  date         String // YYYY-MM-DD
+  localityIds  String // JSON array of Locality ids
+  visits       Visit[]
+}
+
+model User {
+  id      String @id
+  name    String
+  role    String // intake | clinician | admin
+  pinHash String // scrypt hash, demo only
+}
+
+model Patient {
+  id            String    @id // UUID created on the device
+  formId        String? // "4. ID" field of the form
+  fullName      String // visual check only; never a key
+  birthDate     String // YYYY-MM-DD
+  birthState    String?
+  phone         String?
+  mobile        String?
+  residence     String?
+  localityId    String?
+  locality      Locality? @relation(fields: [localityId], references: [id])
+  affiliation   String?
+  createdAt     DateTime  @default(now())
+  createdBy     String
+  deviceId      String
+  version       Int       @default(1)
+  fieldVersions String    @default("{}") // JSON: field -> version
+  // When linked, this record points to the main record. Nothing is deleted.
+  linkedToId    String?
+  linkedTo      Patient?  @relation("PatientLink", fields: [linkedToId], references: [id])
+  linkedFrom    Patient[] @relation("PatientLink")
+  visits        Visit[]
+
+  @@index([birthDate])
+  @@index([formId])
+}
+
+model Visit {
+  id         String    @id
+  patientId  String
+  patient    Patient   @relation(fields: [patientId], references: [id])
+  campaignId String
+  campaign   Campaign  @relation(fields: [campaignId], references: [id])
+  date       String // YYYY-MM-DD
+  folio      String? // "Folio Eira"
+  createdAt  DateTime  @default(now())
+  createdBy  String
+  deviceId   String
+  version    Int       @default(1)
+  services   Service[]
+}
+
+model Service {
+  id           String    @id
+  visitId      String
+  visit        Visit     @relation(fields: [visitId], references: [id])
+  type         String // BREAST_REVIEW | ULTRASOUND | PAP | MAMMOGRAPHY
+  templateId   String
+  data         String    @default("{}") // JSON with template fields
+  formImageRef String?
+  status       String    @default("DRAFT") // DRAFT | CONFIRMED
+  confirmedBy  String?
+  confirmedAt  DateTime?
+  version      Int       @default(1)
+}
+
+model MatchReview {
+  id         String    @id @default(uuid())
+  patientAId String
+  patientBId String
+  score      Int
+  reasons    String // JSON array of reason codes
+  status     String    @default("OPEN") // OPEN | LINKED | DISMISSED
+  decidedBy  String?
+  decidedAt  DateTime?
+  createdAt  DateTime  @default(now())
+}
+
+model SyncConflict {
+  id          String    @id @default(uuid())
+  entity      String
+  entityId    String
+  field       String
+  serverValue String?
+  deviceValue String?
+  deviceId    String
+  userId      String
+  clinical    Boolean   @default(false)
+  status      String    @default("OPEN") // OPEN | RESOLVED
+  resolvedBy  String?
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+}
+
+model FormScan {
+  id         String   @id @default(uuid())
+  imageRef   String
+  templateId String
+  status     String   @default("QUEUED") // QUEUED | READ | CONFIRMED | FAILED
+  extracted  String? // JSON: field -> { value, confidence }
+  visitId    String?
+  createdAt  DateTime @default(now())
+}
+
+// Durable idempotency: every sync op id is stored once (Valkey is only the fast path).
+model AppliedOp {
+  opId      String   @id
+  deviceId  String
+  userId    String
+  appliedAt DateTime @default(now())
+}
+
+model AuditLog {
+  id       Int      @id @default(autoincrement())
+  at       DateTime @default(now())
+  actorId  String
+  deviceId String?
+  action   String
+  entity   String?
+  entityId String?
+  detail   String? // short text, never clinical values
+
+  @@index([entityId])
+}

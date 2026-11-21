@@ -1,0 +1,14 @@
+node_modules/
+.next/
+dist/
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+uploads/
+.DS_Store
+# Nunca subir datos reales de pacientes
+datos-reales/
+dev-dist/
+*.tsbuildinfo

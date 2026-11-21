@@ -1,0 +1,8 @@
+# Servicios de apoyo para desarrollo local.
+# La app se agrega aquí cuando exista su Dockerfile (ver docs/PLAN.md, bloque de despliegue).
+services:
+  valkey:
+    image: valkey/valkey:8
+    ports:
+      - "6379:6379"
+    command: ["valkey-server", "--save", "", "--appendonly", "no"]

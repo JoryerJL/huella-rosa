@@ -1,0 +1,37 @@
+{
+  "id": "citologia-cervical-eira",
+  "nombre": "Solicitud y reporte de citología cervical (Papanicolaou)",
+  "estado": "secundaria",
+  "servicio": "PAP",
+  "nota": "Plantilla secundaria: muestra que agregar otro formato es agregar un archivo, no cambiar código. Todo valor leído requiere confirmación humana antes de guardarse. El texto manuscrito no se transcribe: se conserva la imagen original.",
+  "identidad": {
+    "paciente": ["formId", "birthDate", "fullName", "phone", "residence"],
+    "visita": ["formFolio", "sampleDate"]
+  },
+  "campos": [
+    { "clave": "formFolio", "etiqueta": "No. de folio", "tipo": "texto", "obligatorio": true },
+    { "clave": "formId", "etiqueta": "3. ID EIRA", "tipo": "texto", "longitud": 11, "obligatorio": true, "identificacion": true, "nota": "Se asume el mismo ID que el campo 4. ID del formato de revisión mamaria; por confirmar con EIRA." },
+    { "clave": "fullName", "etiqueta": "1. Nombre", "tipo": "texto", "obligatorio": true, "identificacion": true, "uso": "Ayuda a buscar coincidencias, pero nunca es identificador ni criterio único." },
+    { "clave": "birthDate", "etiqueta": "4. Fecha de nacimiento", "tipo": "fecha", "obligatorio": true, "identificacion": true },
+    { "clave": "phone", "etiqueta": "6. Teléfono", "tipo": "texto", "identificacion": true },
+    { "clave": "otherPhone", "etiqueta": "8. Otro teléfono", "tipo": "texto" },
+    { "clave": "email", "etiqueta": "9. Correo electrónico", "tipo": "texto" },
+    { "clave": "residence", "etiqueta": "6. Residencia habitual", "tipo": "texto", "identificacion": true },
+    { "clave": "hasEiraCard", "etiqueta": "21. Cuenta con Cartilla Eira", "tipo": "casilla", "opciones": { "1": "Sí", "2": "No" } },
+    { "clave": "sampleDate", "etiqueta": "19. Fecha de la toma de muestra", "tipo": "fecha", "obligatorio": true },
+    { "clave": "interpretationDate", "etiqueta": "23. Fecha de interpretación", "tipo": "fecha", "visible_para": ["clinician"] },
+    { "clave": "cytologyNumber", "etiqueta": "24. Número citológico", "tipo": "texto", "visible_para": ["clinician"] },
+    { "clave": "laboratory", "etiqueta": "25. Laboratorio", "tipo": "texto", "visible_para": ["clinician"] },
+    { "clave": "sampleQuality", "etiqueta": "26. Características de la muestra", "tipo": "casilla", "opciones": { "1": "Adecuada", "2": "Inadecuada" }, "visible_para": ["clinician"] },
+    { "clave": "diagnosisCode", "etiqueta": "27. Diagnóstico citológico", "tipo": "casilla", "rango": [1, 11], "visible_para": ["clinician"] },
+    { "clave": "otherFindingsCode", "etiqueta": "27.1 Otros hallazgos", "tipo": "casilla", "rango": [1, 14], "visible_para": ["clinician"] },
+    { "clave": "repeatStudy", "etiqueta": "28. Repetir estudio", "tipo": "casilla", "opciones": { "1": "Sí", "2": "No" }, "visible_para": ["clinician"] },
+    { "clave": "pathologistReviewed", "etiqueta": "30. Revisada por patólogo(a)", "tipo": "casilla", "opciones": { "1": "Sí", "2": "No" }, "visible_para": ["clinician"] }
+  ],
+  "reglas": [
+    { "id": "confirmacion-humana", "descripcion": "Todo valor propuesto por la lectura automática requiere confirmación humana, con la imagen original a la vista, antes de guardarse." },
+    { "id": "baja-confianza", "descripcion": "Los campos leídos con baja confianza se marcan en amarillo en la pantalla de confirmación." },
+    { "id": "nombre-no-identifica", "descripcion": "fullName nunca se usa solo para identificar ni para vincular a una paciente." },
+    { "id": "fechas-coherentes", "descripcion": "sampleDate <= interpretationDate <= hoy; si no, el campo se marca para revisión." }
+  ]
+}

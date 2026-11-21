@@ -1,0 +1,142 @@
+// Fictitious demo data only (see datos-ficticios/README.md). Resets the development database.
+import { writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { PrismaClient } from "@prisma/client";
+import { hashPin } from "../src/pin";
+
+const db = new PrismaClient();
+
+const DEMO_PIN = "1234";
+const DEVICE = "seed";
+const pid = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+
+const localities = [
+  { id: "loc-san-ejemplo", name: "San Ejemplo de la Sierra", municipality: "Municipio Ficticio", hasSignal: false },
+  { id: "loc-rancho-prueba", name: "Rancho Prueba del Monte", municipality: "Municipio Ficticio", hasSignal: false },
+  { id: "loc-villa-demo", name: "Villa Demo", municipality: "Municipio Ficticio", hasSignal: true },
+];
+
+const campaigns = [
+  { id: "camp-2026-05", name: "Jornada mayo 2026", date: "2026-05-16" },
+  { id: "camp-2026-11", name: "Jornada noviembre 2026", date: "2026-11-21" },
+].map((c) => ({
+  ...c,
+  municipality: "Municipio Ficticio",
+  state: "Jalisco",
+  localityIds: JSON.stringify(localities.map((l) => l.id)),
+}));
+
+const users = [
+  { id: "usr-intake", name: "Captura Demo", role: "intake" },
+  { id: "usr-clinician", name: "Clínica Demo", role: "clinician" },
+  { id: "usr-admin", name: "Administración Demo", role: "admin" },
+];
+
+const patients = [
+  { n: 1, fullName: "Paciente Demo Uno", birthDate: "1985-03-12", birthState: "Jalisco", mobile: "55-0000-0001", localityId: "loc-san-ejemplo", formId: "DEMO0000001", affiliation: "6" },
+  { n: 2, fullName: "María Demo Dos", birthDate: "1972-07-30", birthState: "Michoacán", mobile: "55-0000-0002", localityId: "loc-san-ejemplo", formId: "DEMO0000002", affiliation: "2" },
+  // Near-duplicate target: staff will search "Lucia Demo Tres" (no accent).
+  { n: 3, fullName: "Lucía Demo Tres", birthDate: "1990-01-05", birthState: "Jalisco", mobile: "55-0000-0003", localityId: "loc-rancho-prueba", formId: null, affiliation: "6" },
+  // Pair registered twice with swapped surnames: opens a MatchReview for admin.
+  { n: 4, fullName: "Ana Demo Prueba", birthDate: "1968-11-22", birthState: "Colima", mobile: "55-0000-0004", localityId: "loc-san-ejemplo", formId: null, affiliation: "1" },
+  { n: 5, fullName: "Ana Prueba Demo", birthDate: "1968-11-22", birthState: "Colima", mobile: null, localityId: "loc-villa-demo", formId: null, affiliation: "1" },
+  { n: 6, fullName: "Rosa Demo Seis", birthDate: "1979-04-18", birthState: "Jalisco", mobile: "55-0000-0006", localityId: "loc-villa-demo", formId: "DEMO0000006", affiliation: "3" },
+  // Similar name to Rosa Demo Seis but a different birth date: name alone is never enough.
+  { n: 7, fullName: "Rosa Demo Siete", birthDate: "1995-09-02", birthState: "Jalisco", mobile: "55-0000-0007", localityId: "loc-villa-demo", formId: null, affiliation: "6" },
+  { n: 8, fullName: "Elena Demo Ocho", birthDate: "1983-12-01", birthState: "Nayarit", mobile: "55-0000-0008", localityId: "loc-rancho-prueba", formId: null, affiliation: "7" },
+];
+
+// Previous-campaign visits to demonstrate "second visit with history".
+const priorVisits = [
+  { n: 1, services: [{ type: "BREAST_REVIEW", data: { birads: "1", nextStep: "1" } }] },
+  { n: 2, services: [{ type: "BREAST_REVIEW", data: { birads: "2", nextStep: "1" } }, { type: "ULTRASOUND", data: {} }] },
+  { n: 3, services: [{ type: "PAP", data: {} }] },
+  { n: 6, services: [{ type: "BREAST_REVIEW", data: { birads: "0", nextStep: "4" } }] },
+];
+
+async function main() {
+  // Children first.
+  await db.service.deleteMany();
+  await db.visit.deleteMany();
+  await db.matchReview.deleteMany();
+  await db.syncConflict.deleteMany();
+  await db.formScan.deleteMany();
+  await db.appliedOp.deleteMany();
+  await db.auditLog.deleteMany();
+  await db.patient.deleteMany();
+  await db.campaign.deleteMany();
+  await db.locality.deleteMany();
+  await db.user.deleteMany();
+
+  await db.locality.createMany({ data: localities });
+  await db.campaign.createMany({ data: campaigns });
+  await db.user.createMany({ data: users.map((u) => ({ ...u, pinHash: hashPin(DEMO_PIN) })) });
+
+  for (const p of patients) {
+    const { n, ...fields } = p;
+    await db.patient.create({
+      data: { id: pid(n), ...fields, createdBy: "usr-intake", deviceId: DEVICE },
+    });
+  }
+
+  for (const v of priorVisits) {
+    await db.visit.create({
+      data: {
+        id: `visit-prior-${v.n}`,
+        patientId: pid(v.n),
+        campaignId: "camp-2026-05",
+        date: "2026-05-16",
+        folio: `F-0526-${String(v.n).padStart(3, "0")}`,
+        createdBy: "usr-intake",
+        deviceId: DEVICE,
+        services: {
+          create: v.services.map((s, i) => ({
+            id: `svc-prior-${v.n}-${i}`,
+            type: s.type,
+            templateId: s.type === "PAP" ? "citologia-cervical-eira" : "revision-mamaria-eira",
+            data: JSON.stringify(s.data),
+            status: "CONFIRMED",
+            confirmedBy: "usr-clinician",
+            confirmedAt: new Date("2026-05-16T18:00:00Z"),
+          })),
+        },
+      },
+    });
+  }
+
+  await db.matchReview.create({
+    data: {
+      patientAId: pid(4),
+      patientBId: pid(5),
+      score: 80,
+      reasons: JSON.stringify(["SAME_BIRTH_DATE", "SIMILAR_NAME", "SAME_BIRTH_STATE"]),
+    },
+  });
+
+  await db.auditLog.create({ data: { actorId: "system", action: "SEED", detail: "Demo data loaded" } });
+
+  // Human-readable summary of the fictitious patients (no clinical data).
+  const summary = patients.map((p) => ({
+    id: pid(p.n),
+    fullName: p.fullName,
+    birthDate: p.birthDate,
+    birthState: p.birthState,
+    localityId: p.localityId,
+    formId: p.formId,
+    priorVisits: priorVisits.some((v) => v.n === p.n) ? 1 : 0,
+  }));
+  const out = fileURLToPath(new URL("../../../datos-ficticios/pacientes.json", import.meta.url));
+  writeFileSync(out, JSON.stringify(summary, null, 2) + "\n");
+
+  console.log(
+    `Seed OK: ${users.length} users (PIN ${DEMO_PIN}), ${localities.length} localities, ` +
+      `${campaigns.length} campaigns, ${patients.length} patients, ${priorVisits.length} prior visits, 1 match review.`,
+  );
+}
+
+main()
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  })
+  .finally(() => db.$disconnect());

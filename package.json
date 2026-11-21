@@ -14,6 +14,9 @@
     "seed": "npm run seed -w @er/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
+    "infra:diff": "npm --prefix infra ci --no-audit --no-fund && npm --prefix infra run diff",
+    "infra:deploy": "npm --prefix infra ci --no-audit --no-fund && npm --prefix infra run deploy",
+    "infra:destroy": "npm --prefix infra ci --no-audit --no-fund && npm --prefix infra run destroy",
     "video:render": "npm --prefix video/demo-2min run render",
     "video:qa": "npm --prefix video/demo-2min run qa"
   },

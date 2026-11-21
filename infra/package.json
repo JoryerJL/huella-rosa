@@ -1,0 +1,24 @@
+{
+  "name": "@er/infra",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AWS CDK app for the Huella Rosa demo deployment (see docs/DEPLOY.md).",
+  "scripts": {
+    "synth": "cdk synth --strict",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy HuellaRosaStack --require-approval never",
+    "destroy": "cdk destroy HuellaRosaStack --force",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "2.278.0",
+    "constructs": "10.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "aws-cdk": "2.1149.0",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3"
+  }
+}

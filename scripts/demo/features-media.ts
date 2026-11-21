@@ -9,7 +9,7 @@ import { chromium } from "playwright";
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const RAW = path.join(ROOT, "demo-videos", "features", "raw");
@@ -107,9 +107,11 @@ function makeClipMp4s(clip: Clip, videos: Record<string, string>, base: string) 
 }
 
 function posterHtml(f: Feature, group: string, stills: string[]) {
-  const font = pathToFileURL(FONT).href;
+  // Inline data URIs: a page set with setContent cannot load file:// resources.
+  const dataUri = (file: string, type: string) => `data:${type};base64,${readFileSync(file).toString("base64")}`;
+  const font = dataUri(FONT, "font/woff2");
   const mark = readFileSync(MARK, "utf8");
-  const shots = stills.map((s) => `<img src="${pathToFileURL(path.join(ROOT, s)).href}" alt="">`).join("");
+  const shots = stills.map((s) => `<img src="${dataUri(path.join(ROOT, s), "image/png")}" alt="">`).join("");
   return `<!doctype html><html lang="es"><head><meta charset="utf-8"><style>
     @font-face { font-family: "Atkinson"; src: url("${font}") format("woff2"); font-weight: 200 800; }
     * { box-sizing: border-box; margin: 0; }

@@ -4,6 +4,9 @@ import { db } from "./db";
 import { valkey } from "./valkey";
 import { authRoutes } from "./routes/auth";
 import { auditRoutes } from "./routes/audit";
+import { campaignRoutes } from "./routes/campaigns";
+import { patientRoutes } from "./routes/patients";
+import { syncRoutes } from "./routes/sync";
 
 export const app = new Hono()
   .use(logger())
@@ -15,7 +18,10 @@ export const app = new Hono()
     return c.json({ db: dbOk, valkey: valkeyOk }, dbOk && valkeyOk ? 200 : 503);
   })
   .route("/api/auth", authRoutes)
-  .route("/api/audit", auditRoutes);
+  .route("/api/audit", auditRoutes)
+  .route("/api/patients", patientRoutes)
+  .route("/api/campaigns", campaignRoutes)
+  .route("/api/sync", syncRoutes);
 
 /** Type used by the web app's typed client (hono/client). */
 export type AppType = typeof app;

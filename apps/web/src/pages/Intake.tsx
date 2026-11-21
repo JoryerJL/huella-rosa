@@ -126,6 +126,9 @@ export function Intake() {
           <p className="font-bold">{es.intake.offlineTitle}</p>
           <p className="mt-2 text-base">{es.intake.offlineBody}</p>
           <p className="mt-4 text-base font-bold text-brand-strong">{es.intake.onlyAfterSearch}</p>
+          <Link to="/campaigns" className={buttonClass("outline", "mt-4 w-full")}>
+            {es.package.navLink}
+          </Link>
         </aside>
       </div>
     </Page>

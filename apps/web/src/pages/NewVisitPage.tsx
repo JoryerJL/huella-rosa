@@ -1,17 +1,16 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Link, useNavigate, useParams, useSearchParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import {
   SERVICE_TYPES,
   type CampaignView,
-  type OpResult,
   type PatientFields,
   type PatientRecord,
   type ServiceType,
   type SyncOp,
 } from "@er/shared";
 import { Page } from "../components/Page";
-import { Alert, Button, Card, Check, Pencil, buttonClass, inputClass } from "../components/ui";
-import { listCampaigns, opMeta, pushOps } from "../data/patients";
+import { Alert, Button, Card, Check, Pencil, inputClass } from "../components/ui";
+import { listCampaigns, opMeta, saveVisit } from "../data/patients";
 import { usePatientRecord } from "../data/usePatientRecord";
 import { ageFrom, formatBirthDate, isIsoDate, todayIso } from "../lib/format";
 import { es } from "../i18n/es";
@@ -68,15 +67,13 @@ function VisitForm({ record }: { record: PatientRecord }) {
   const [services, setServices] = useState<ServiceType[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [results, setResults] = useState<{ kind: SyncOp["kind"]; result: OpResult }[] | null>(null);
-  // Stable ids: a retry after a lost response is idempotent on the server (same opId).
+  // Stable ids: saving twice stores the ops once, and the server is idempotent on the same opId.
   const [ids] = useState(() => ({
     visitId: crypto.randomUUID(),
     visitOp: opMeta(),
     updateOp: opMeta(),
     serviceIds: Object.fromEntries(SERVICE_TYPES.map((t) => [t, crypto.randomUUID()])) as Record<ServiceType, string>,
   }));
-  const [settled, setSettled] = useState<Set<SyncOp["kind"]>>(new Set());
 
   useEffect(() => {
     listCampaigns()
@@ -112,11 +109,11 @@ function VisitForm({ record }: { record: PatientRecord }) {
     if ("fullName" in changes && (changes.fullName ?? "").length < 2) return setError(es.visit.errorName);
     if ("birthDate" in changes && !isIsoDate(changes.birthDate ?? "")) return setError(es.visit.errorDate);
 
-    const ops: SyncOp[] = [];
-    if (Object.keys(changes).length > 0 && !settled.has("UPDATE_PATIENT")) {
+    const ops: Extract<SyncOp, { kind: "UPDATE_PATIENT" | "CREATE_VISIT" }>[] = [];
+    if (Object.keys(changes).length > 0) {
       ops.push({ ...ids.updateOp, kind: "UPDATE_PATIENT", patientId: record.id, baseVersion: record.version, changes });
     }
-    if (!settled.has("CREATE_VISIT")) {
+    {
       ops.push({
         ...ids.visitOp,
         kind: "CREATE_VISIT",
@@ -129,25 +126,14 @@ function VisitForm({ record }: { record: PatientRecord }) {
         services: services.map((type) => ({ serviceId: ids.serviceIds[type], type })),
       });
     }
-    if (ops.length === 0) return navigate(`/patients/${record.id}`);
 
     setBusy(true);
     setError(null);
     try {
-      const res = await pushOps(ops);
-      const rows = ops.map((op) => ({
-        kind: op.kind,
-        result: res.results.find((r) => r.opId === op.opId) ?? { opId: op.opId, status: "REJECTED" as const },
-      }));
-      // APPLIED, DUPLICATE and CONFLICT are final on the server: never resend them.
-      const done = new Set(settled);
-      for (const r of rows) if (r.result.status !== "REJECTED") done.add(r.kind);
-      setSettled(done);
-      if (rows.every((r) => r.result.status === "APPLIED" || r.result.status === "DUPLICATE")) {
-        navigate(`/patients/${record.id}`);
-        return;
-      }
-      setResults(rows);
+      // Saved on this device and queued; the top bar shows it until the sync engine sends it.
+      const campaignName = campaigns?.find((c) => c.id === campaignId)?.name ?? "";
+      await saveVisit(ops, campaignName);
+      navigate(`/patients/${record.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
     } finally {
@@ -235,25 +221,6 @@ function VisitForm({ record }: { record: PatientRecord }) {
           </fieldset>
 
           {error && <Alert>{error}</Alert>}
-
-          {results && (
-            <div className="space-y-2 rounded-2xl border-2 border-line bg-white p-4" role="status">
-              <p className="font-bold">{es.visit.resultsTitle}</p>
-              <ul className="space-y-2">
-                {results.map(({ kind, result }) => (
-                  <li key={result.opId} className="text-base">
-                    <strong>{es.visit.opLabel[kind]}:</strong> {es.visit.status[result.status]}
-                    {result.message && result.status !== "APPLIED" && <span className="block text-muted">{result.message}</span>}
-                  </li>
-                ))}
-              </ul>
-              {settled.has("CREATE_VISIT") && (
-                <Link to={`/patients/${record.id}`} className={buttonClass("outline", "mt-2")}>
-                  {es.visit.goToRecord}
-                </Link>
-              )}
-            </div>
-          )}
 
           <Button type="submit" disabled={busy || !campaigns} className="w-full text-xl">
             <Check />

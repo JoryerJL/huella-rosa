@@ -89,18 +89,14 @@ function MatchReview({ match, onDone }: { match: AdminMatch; onDone: (message: s
       </div>
       {match.differing.length > 0 && <p className="text-base text-muted">{t.differLegend}</p>}
       {error && <Alert>{error}</Alert>}
-      <div className="space-y-3">
-        <p className="font-semibold">{t.choose}</p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[match.a, match.b].map((p) => (
-            <Button key={p.id} disabled={busy} onClick={() => keep(p)}>
-              {t.keepThis}
-              <span className="sr-only"> {p.fullName}</span>
-            </Button>
-          ))}
-        </div>
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="flex-1 rounded-xl bg-green-50 px-4 py-3 font-semibold text-ok">{t.safeNote}</p>
         <Button variant="outline" disabled={busy} onClick={() => void run(() => dismissMatch(match.id), t.dismissed)}>
           {t.notSame}
+        </Button>
+        {/* The record that was already there (A) stays as the main record; both are kept. */}
+        <Button disabled={busy} onClick={() => keep(match.a)}>
+          {t.link}
         </Button>
       </div>
     </Card>

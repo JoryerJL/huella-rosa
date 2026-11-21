@@ -208,7 +208,7 @@ model AuditLog {
 
 // ---------- Block 3b: Excel/CSV import (SPEC 6.7) ----------
 
-// One uploaded file (or, later, one MCP propose_import call). Nothing here is a patient yet:
+// One uploaded file, or one apply_import of an AI agent (source MCP). Nothing here is a patient yet:
 // every row waits for an explicit person decision before it reaches the single write path.
 model ImportBatch {
   id            String      @id @default(uuid())

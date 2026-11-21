@@ -66,6 +66,13 @@ Si aparece un término que no está aquí, agrégalo a esta tabla antes de usarl
 
 - **Todo lo visual se diseña y se consulta en Figma** (MCP de Figma): https://www.figma.com/design/4wgHGSiieY7oiIIFnGAjru. Antes de construir o cambiar una pantalla, revisa su marco en Figma; si la pantalla no existe ahí, diséñala primero en Figma. Colores de EIRA (de `eiraac.org/css/main.css`) como variables; sus componentes no se copian.
 - Interfaz y mensajes en español de México, lenguaje sencillo.
+- **Sin lenguaje de sistema en pantalla.** Nunca mostrar: servidor, versión, sincronización/sincronizar, conflicto, operación, duplicado, ID interno, estados en inglés. Decir qué pasó y qué hacer, con personas y horas:
+  - "Conflicto de sincronización" → "Dos personas cambiaron el mismo dato".
+  - "Valor en el servidor (versión 4)" → "Lo que ya estaba guardado · Diego, 19 nov 17:29"; "Valor de la tableta" → "Lo que capturó Guadalupe sin señal · 20 nov 12:10".
+  - "Posible duplicado" → "¿Es la misma persona?"; "Registro A/B" → "Registrada por Guadalupe · 20 nov 11:05".
+  - "N cambios por sincronizar" → "N cambios por enviar"; "Todo sincronizado" → "Todo enviado · 13:05"; "Sincronizar ahora" → "Enviar ahora".
+  - Resultado al guardar: un solo "Guardado ✓"; solo se avisa cuando algo necesita atención ("Esperando a que llegue la visita", "Alguien más cambió este dato: lo revisará administración").
+  - Diferencias: resaltarlas una vez con una leyenda, no repetir "Distinto" en cada fila.
 - Pantallas de captura en campo: texto de 18 px o más, un paso por pantalla, botones grandes, indicador de señal y de operaciones pendientes siempre visible.
 - Fechas clínicas como `AAAA-MM-DD` en texto para evitar problemas de zona horaria.
 - Script `npm run seed` que crea usuarios demo, localidades, una jornada, pacientes con historial y casi-duplicados, y los formatos ficticios descritos en `datos-ficticios/README.md`.

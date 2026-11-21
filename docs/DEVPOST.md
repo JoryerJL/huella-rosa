@@ -125,7 +125,7 @@ https://www.figma.com/design/4wgHGSiieY7oiIIFnGAjru
 ```
 
 - Revisa que el archivo de Figma tenga acceso "cualquiera con el enlace puede ver" antes de pegarlo.
-- No hay URL desplegada (despliegue en construcción). Si se despliega antes de las 16:00, agrégala aquí.
+- App en línea: https://huella-rosa.jjjl.dev (AWS us-east-1 con CDK, detrás de Cloudflare). Usuarios y recorridos para el jurado: `docs/JURADO.md`.
 
 ### Presentación
 

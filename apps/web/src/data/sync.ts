@@ -40,7 +40,8 @@ export function settle(result: OpResult | undefined) {
   const now = new Date().toISOString();
   if (result.status === "WAITING") {
     // The visit (folio) has not reached the server yet: keep the op and retry on every sync.
-    return { status: "pending" as const, resultStatus: result.status, message: es.sync.waiting, updatedAt: now };
+    // Also "Otra tableta está guardando a esta paciente": the patient was busy on the server.
+    return { status: "pending" as const, resultStatus: result.status, message: result.message ?? es.sync.waiting, updatedAt: now };
   }
   if (result.status === "APPLIED" || result.status === "DUPLICATE") {
     return { status: "sent" as const, resultStatus: result.status, message: undefined, updatedAt: now };
@@ -123,30 +124,54 @@ async function pull(): Promise<void> {
 }
 
 let inFlight: Promise<void> | null = null;
+// A trigger (SSE "changed", online, timer, Guardar) that arrives mid-run asks for exactly one more run.
+let followUp = false;
 
-/** One sync pass; concurrent calls share the same run. Never throws. */
+/** Tabs of the same tablet share the IndexedDB outbox: one push at a time across tabs when supported. */
+async function withTabLock(run: () => Promise<void>): Promise<void> {
+  const locks = (navigator as Navigator & { locks?: LockManager }).locks;
+  if (locks) await locks.request("huella-rosa-sync", run);
+  else await run();
+}
+
+async function runOnce(): Promise<void> {
+  try {
+    const summary = await pushOutbox();
+    // Block 3a: queued form photos go after the ops, so their visit usually exists already.
+    await pushScanQueue();
+    const toast = toastFor(summary);
+    if (toast) setState({ toast });
+    await pull();
+    await setSyncMeta({ lastSyncAt: new Date().toISOString() });
+    setState({ error: null });
+  } catch (err) {
+    const message =
+      err instanceof ApiError && err.status === 401
+        ? es.sync.needsLogin
+        : err instanceof Error
+          ? err.message
+          : es.errors.generic;
+    setState({ error: message });
+  }
+}
+
+/**
+ * Single-flight sync: one run at a time per tablet. A call during a run schedules one follow-up run
+ * after it (never more), so ops saved mid-run are not left waiting for the timer. Never throws.
+ */
 export function syncNow(): Promise<void> {
-  if (inFlight) return inFlight;
+  if (inFlight) {
+    followUp = true;
+    return inFlight;
+  }
   if (!navigator.onLine) return Promise.resolve();
   inFlight = (async () => {
     setState({ running: true });
     try {
-      const summary = await pushOutbox();
-      // Block 3a: queued form photos go after the ops, so their visit usually exists already.
-      await pushScanQueue();
-      const toast = toastFor(summary);
-      if (toast) setState({ toast });
-      await pull();
-      await setSyncMeta({ lastSyncAt: new Date().toISOString() });
-      setState({ error: null });
-    } catch (err) {
-      const message =
-        err instanceof ApiError && err.status === 401
-          ? es.sync.needsLogin
-          : err instanceof Error
-            ? err.message
-            : es.errors.generic;
-      setState({ error: message });
+      do {
+        followUp = false;
+        await withTabLock(runOnce);
+      } while (followUp && navigator.onLine);
     } finally {
       setState({ running: false });
       inFlight = null;

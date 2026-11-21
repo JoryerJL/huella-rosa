@@ -3,7 +3,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import type { StaffProfile, SyncOp } from "@er/shared";
 import { db } from "./db";
 import { valkey } from "./valkey";
-import { applySyncOp } from "./sync";
+import { LOCK_BUSY_MESSAGE, applySyncOp } from "./sync";
 import { campaignDashboard, linkMatch, listConflicts, listMatches, resolveConflict } from "./admin";
 import { app } from "./app";
 
@@ -156,6 +156,37 @@ describe("nutritionist step", () => {
     expect(JSON.parse(service.data)).toMatchObject(fields);
     const audit = await db.auditLog.findFirst({ where: { action: "SERVICE_FIELDS_UPDATED", entityId: service.id, actorId: nutritionist.id } });
     expect(audit?.detail).toContain("height");
+  });
+});
+
+describe("patient lock", () => {
+  it("answers WAITING while another tablet holds the patient, records nothing, and a retry applies", async () => {
+    const nutritionist: StaffProfile = { id: "usr-nutritionist", name: "Jorge Torres Navarro", role: "nutritionist" };
+    const visit = await db.visit.findUniqueOrThrow({ where: { id: "visit-prior-2" }, include: { patient: true } });
+    const op = {
+      kind: "UPDATE_SERVICE_FIELDS",
+      opId: randomUUID(),
+      deviceId: "tablet-n2",
+      at: new Date().toISOString(),
+      campaignId: visit.campaignId,
+      folio: visit.folio!,
+      confirmedName: visit.patient.fullName,
+      serviceType: "BREAST_REVIEW",
+      fields: { weight: "58" },
+    } as SyncOp;
+    const lockKey = `lock:patient:${visit.patientId}`;
+    await valkey.set(lockKey, "other-tablet-op", "PX", 10_000);
+    try {
+      const busy = await applySyncOp(op, nutritionist);
+      expect(busy).toEqual({ opId: op.opId, status: "WAITING", message: LOCK_BUSY_MESSAGE });
+      expect(await db.appliedOp.findUnique({ where: { opId: op.opId } })).toBeNull();
+      expect(await valkey.exists(`op:${op.opId}`)).toBe(0);
+    } finally {
+      await valkey.del(lockKey);
+    }
+    const retry = await applySyncOp(op, nutritionist);
+    expect(retry.status).toBe("APPLIED");
+    expect(await db.appliedOp.findUnique({ where: { opId: op.opId } })).not.toBeNull();
   });
 });
 

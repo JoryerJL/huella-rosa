@@ -42,8 +42,8 @@ function isStationOp(op: SyncOp): op is StationOp {
   return op.kind === "UPDATE_SERVICE_FIELDS" || op.kind === "COMPLETE_STEP";
 }
 
-const WAITING_MESSAGE =
-  "Esta visita aún no llega al servidor. Tu registro se guarda en la tableta y se unirá al sincronizar.";
+// Shown on the tablet as-is: plain language, no system words (CLAUDE.md).
+const WAITING_MESSAGE = "Esperando a que llegue la visita";
 
 /** Spanish labels for conflict messages (shown to the person syncing). */
 export const FIELD_LABELS: Record<PatientField, string> = {
@@ -67,6 +67,8 @@ const RELEASE_LOCK_SCRIPT =
  * Per-patient lock in Valkey. If Valkey is unreachable we continue without it:
  * the transaction and the unique AppliedOp row still keep the write safe.
  */
+export const LOCK_BUSY_MESSAGE = "Otra tableta está guardando a esta paciente; se reintenta solo.";
+
 async function acquirePatientLock(patientId: string, opId: string) {
   const key = `lock:patient:${patientId}`;
   for (let attempt = 0; attempt < LOCK_RETRIES; attempt++) {
@@ -170,11 +172,9 @@ export async function applySyncOp(op: SyncOp, staff: StaffProfile): Promise<OpRe
     }
     lock = await acquirePatientLock(patientId, op.opId);
     if (!lock.acquired) {
-      return {
-        opId: op.opId,
-        status: "REJECTED",
-        message: "El expediente está ocupado en este momento. Vuelve a sincronizar en unos segundos.",
-      };
+      // Another tablet is writing this patient right now: retryable, like the folio WAITING path.
+      // Nothing is recorded and the Valkey op key is released in `finally`, so the device resends it.
+      return { opId: op.opId, status: "WAITING", message: LOCK_BUSY_MESSAGE };
     }
     const result = await db.$transaction(async (tx) => {
       if (await tx.appliedOp.findUnique({ where: { opId: op.opId } })) {

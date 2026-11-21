@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SyncOp, VisitStepView } from "@er/shared";
 import { db, type LocalVisit } from "./db";
 import { buildStepOps, completedStepKeys, filterQueue, loadQueue, saveStep } from "./steps";
-import { opMeta } from "./patients";
-import { pushOutbox } from "./sync";
+import { enqueue, opMeta } from "./patients";
+import { pushOutbox, syncNow } from "./sync";
 import { ensureFolioPrefix, reserveFolio } from "./folioPrefix";
 import { folioCheckLetter, formatFolio, isValidFolio } from "../lib/folio";
 import { stepFieldsFor } from "../lib/stepFields";
@@ -206,5 +206,47 @@ describe("nutritionist step save", () => {
     expect(fieldsOp.serviceType).toBe("BREAST_REVIEW");
     expect(fieldsOp.fields).toEqual(values);
     expect((outbox[1]!.op as Extract<SyncOp, { kind: "COMPLETE_STEP" }>).role).toBe("nutritionist");
+  });
+});
+
+describe("single-flight sync", () => {
+  it("runs one push at a time, schedules one follow-up for triggers mid-run, and drops no op", async () => {
+    vi.stubGlobal("navigator", { onLine: true });
+    const op = (folio: string) =>
+      ({ ...opMeta(), kind: "COMPLETE_STEP", campaignId: "c-1", folio, confirmedName: "Lucía", role: "doctor", status: "DONE" }) as SyncOp;
+    const first = op("B3-001-B");
+    const second = op("B3-002-C");
+    await enqueue(first);
+
+    let active = 0;
+    let maxActive = 0;
+    const pushed: string[][] = [];
+    let releaseFirst!: () => void;
+    const firstGate = new Promise<void>((r) => (releaseFirst = r));
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        const ids = (JSON.parse(String(init?.body)) as { ops: SyncOp[] }).ops.map((o) => o.opId);
+        active++;
+        maxActive = Math.max(maxActive, active);
+        pushed.push(ids);
+        if (pushed.length === 1) await firstGate;
+        active--;
+        return jsonResponse({ results: ids.map((opId) => ({ opId, status: "APPLIED" })) });
+      }),
+    );
+
+    const run = syncNow();
+    await vi.waitFor(() => expect(pushed.length).toBe(1));
+    // Mid-run: Guardar queues a new op and two more triggers arrive (SSE + timer).
+    await enqueue(second);
+    const t1 = syncNow();
+    const t2 = syncNow();
+    releaseFirst();
+    await Promise.all([run, t1, t2]);
+
+    expect(maxActive).toBe(1);
+    expect(pushed).toEqual([[first.opId], [second.opId]]);
+    expect((await db.outbox.toArray()).map((e) => e.status)).toEqual(["sent", "sent"]);
   });
 });

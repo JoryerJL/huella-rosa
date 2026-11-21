@@ -13,6 +13,7 @@ const NAV = [
   { to: "/admin/audit", label: es.admin.nav.audit, end: false },
   { to: "/admin/staff", label: es.admin.nav.staff, end: false },
   { to: "/admin/campaigns", label: es.admin.nav.campaigns, end: false },
+  { to: "/admin/agents", label: es.admin.nav.agents, end: false },
 ];
 
 /** Administration screens need signal (SPEC 6.9): offline they show one plain message instead. */

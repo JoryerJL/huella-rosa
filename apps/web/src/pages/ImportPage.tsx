@@ -122,6 +122,7 @@ export function ImportPage() {
             <li key={batch.id} className="flex flex-col gap-4 rounded-2xl border-2 border-line bg-white p-5 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">
                 <p className="truncate text-xl font-bold">{batch.fileName ?? es.imports.title}</p>
+                {batch.agentName && <p className="text-lg font-semibold text-brand-strong">{es.imports.proposedByAgent(batch.agentName)}</p>}
                 <p className="text-lg text-muted">
                   {es.imports.batchLine(
                     formatWhen(batch.createdAt),

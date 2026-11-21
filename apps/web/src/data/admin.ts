@@ -1,5 +1,7 @@
 import type {
   AdminConflict,
+  AgentTokenView,
+  CreatedAgentToken,
   AdminMatch,
   CampaignListItem,
   CreateCampaignInput,
@@ -83,4 +85,21 @@ export async function updateCampaign(id: string, input: UpdateCampaignInput): Pr
       body: JSON.stringify(input),
     })
   ).campaign;
+}
+
+// ---------- AI agent tokens (SPEC 6.7) ----------
+
+export async function fetchAgentTokens(): Promise<AgentTokenView[]> {
+  return (await request<{ agentTokens: AgentTokenView[] }>("/api/agent-tokens")).agentTokens;
+}
+
+/** The plain token comes back only here, once: show it and never store it. */
+export function createAgentToken(name: string): Promise<CreatedAgentToken> {
+  return request<CreatedAgentToken>("/api/agent-tokens", { method: "POST", body: JSON.stringify({ name }) });
+}
+
+export async function revokeAgentToken(id: string): Promise<AgentTokenView> {
+  return (
+    await request<{ agentToken: AgentTokenView }>(`/api/agent-tokens/${encodeURIComponent(id)}/revoke`, { method: "POST", body: "{}" })
+  ).agentToken;
 }

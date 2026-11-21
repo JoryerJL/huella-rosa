@@ -220,6 +220,7 @@ function ReviewStep({ batch, setBatch }: { batch: ImportBatchView; setBatch: (b:
       subtitle={es.imports.reviewSubtitle(batch.counts.total)}
       actions={<BackToImports />}
     >
+      {batch.agentName && <p className="text-lg font-semibold text-brand-strong">{es.imports.proposedByAgent(batch.agentName)}</p>}
       {error && <Alert>{error}</Alert>}
       {notice && <Alert tone="ok">{notice}</Alert>}
       {batch.status === "DONE" && <Alert tone="ok">{es.imports.allDone}</Alert>}

@@ -334,6 +334,8 @@ export interface ImportColumn {
   field: ImportField | null;
   /** Field proposed automatically from the header text; the person confirms or changes it. */
   suggested: ImportField | null;
+  /** First non-empty value of the column, shown only while the mapping is pending. */
+  example?: string;
 }
 
 export interface ImportColumnMapping {

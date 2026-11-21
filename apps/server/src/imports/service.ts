@@ -103,7 +103,7 @@ export async function createBatchFromTable(input: {
   const source: ImportSource = isTemplate ? "TEMPLATE" : "EXCEL";
   const mapping: ImportColumnMapping = isTemplate
     ? { confirmed: true, columns: templateMapping(headers) }
-    : { confirmed: false, columns: suggestMapping(headers) };
+    : { confirmed: false, columns: withExamples(suggestMapping(headers), rows) };
 
   const batch = await db.importBatch.create({
     data: {
@@ -128,6 +128,14 @@ export async function createBatchFromTable(input: {
   return getBatchView(batch.id);
 }
 
+/** Adds one sample value per column so the person recognizes it while choosing the field. */
+function withExamples(columns: ImportColumn[], rows: PendingRow[]): ImportColumn[] {
+  return columns.map((column) => {
+    const example = rows.map((r) => (r.cells[column.index] ?? "").trim()).find((v) => v !== "");
+    return example ? { ...column, example: example.slice(0, 60) } : column;
+  });
+}
+
 function rowsWithData(rows: PendingRow[], columns: ImportColumn[]) {
   return rows.map((row) => ({ rowNumber: row.rowNumber, data: rowValues(row.cells, columns) }));
 }
@@ -149,7 +157,11 @@ export async function confirmMapping(
   if (mapping.confirmed || !batch.pendingRows) throw new ImportError("Las columnas de este archivo ya se confirmaron.", 409);
 
   const fieldByIndex = new Map(chosen.map((c) => [c.index, c.field]));
-  const columns = mapping.columns.map((column) => ({ ...column, field: fieldByIndex.get(column.index) ?? null }));
+  // Examples are raw cell values: dropped once the mapping is confirmed.
+  const columns: ImportColumn[] = mapping.columns.map(({ example: _example, ...column }) => ({
+    ...column,
+    field: fieldByIndex.get(column.index) ?? null,
+  }));
   const problem = mappingProblem(columns);
   if (problem) throw new ImportError(problem);
 

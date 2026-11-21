@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+**/dev-dist
+**/*.db
+**/*.db-journal
+**/uploads
+**/*.tsbuildinfo
+.git
+.env
+.env.*
+.atl
+.codegraph
+.DS_Store
+datos-reales

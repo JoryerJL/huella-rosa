@@ -122,9 +122,10 @@ Servidor Hono sobre Node (rutas API con validación de rol y bitácora)
 | App instalable que abre sin señal (`npm run demo`) | **Implementado** |
 | Roles validados en el servidor y bitácora | **Implementado** en todas las acciones construidas |
 | Servidor MCP para que agentes de IA (Devin, Claude) propongan lotes de altas | En construcción |
-| Digitalización de formatos con AWS Textract real | En construcción (hoy en modo `mock`, declarado) |
+| Digitalización de formatos con AWS Textract real | **Implementado** en el despliegue (`OCR_MODE=textract`, fotos en S3); en local sigue `mock` |
+| Despliegue en AWS (EC2 + S3 + Textract) detrás de Cloudflare Tunnel, con AWS CDK | **Implementado**: https://huella-rosa.jjjl.dev (ver `docs/DEPLOY.md`) |
 | Usuarios del personal | **Simulado** (usuarios de demostración) |
-| Lectura de formatos | **Simulado** (`OCR_MODE=mock`) |
+| Lectura de formatos | **Simulado** en local (`OCR_MODE=mock`); real con Textract en el despliegue |
 | App para que la paciente revise sus propios datos | **Solo documentado** |
 | Cifrado de datos locales con PIN | **Solo documentado** |
 | Amazon Cognito con MFA | **Solo documentado** |

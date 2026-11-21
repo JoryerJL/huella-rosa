@@ -1,0 +1,55 @@
+# Production stack (see docs/DEPLOY.md). Runs on the EC2 instance in /opt/huella-rosa.
+#   docker compose -f docker-compose.prod.yml up -d --build
+# Local check without the tunnel:
+#   docker compose -f docker-compose.prod.yml up -d --build app valkey
+# Files on the instance, never committed: .env (app settings) and .env.tunnel (TUNNEL_TOKEN).
+services:
+  app:
+    build:
+      context: .
+      platforms: ["linux/arm64"]
+    image: huella-rosa:latest
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: production
+      SERVE_WEB: "1"
+      PORT: "3001"
+      DATABASE_URL: file:/data/huella-rosa.db
+      VALKEY_URL: redis://valkey:6379
+    volumes:
+      - db:/data
+    # Only reachable from the host itself; the public entry is the Cloudflare Tunnel.
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-3001}:3001"
+    depends_on:
+      valkey:
+        condition: service_healthy
+
+  valkey:
+    image: valkey/valkey:8
+    restart: unless-stopped
+    command: ["valkey-server", "--appendonly", "yes", "--save", "60", "1"]
+    volumes:
+      - valkey-data:/data
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  cloudflared:
+    image: cloudflare/cloudflared:2025.11.1
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    env_file:
+      - path: .env.tunnel
+        required: true
+    depends_on:
+      - app
+
+volumes:
+  db:
+  valkey-data:

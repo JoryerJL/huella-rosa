@@ -1,0 +1,23 @@
+{
+  "descripcion": "Ejemplo ficticio para el servidor MCP: 4 renglones desordenados de un Excel y cómo los normalizaría un agente antes de llamar a propose_import. Ningún dato corresponde a una persona real.",
+  "renglonesOriginales": [
+    { "PACIENTE": "  MARTINEZ GARCIA, JUANA ", "F. NAC": "30/07/72", "TEL": "(55) 0000 0002", "COMUNIDAD": "San Ejemplo", "SEGURO": "imss" },
+    { "PACIENTE": "valeria ortiz ramos", "F. NAC": "3 de mayo de 1988", "TEL": "cel 55 0000 0091", "COMUNIDAD": "Villa Demo", "SEGURO": "" },
+    { "PACIENTE": "Teresa Luna Pacheco", "F. NAC": "1993/13/02", "TEL": "", "COMUNIDAD": "Rancho Prueba", "SEGURO": "ninguno" },
+    { "PACIENTE": "Rivas Cano Paola", "F. NAC": "15-ago-1982", "TEL": "55.0000.0093", "COMUNIDAD": "san ejemplo", "SEGURO": "Seguro Popular / INSABI" }
+  ],
+  "notasDelAgente": [
+    "El renglón 1 trae '72' como año: con contexto de la hoja se lee 1972; el servidor buscará coincidencias y captura decide.",
+    "El renglón 3 tiene el mes 13: el agente no adivina, lo envía tal cual y el servidor lo marca como renglón por corregir.",
+    "El renglón 4 trae los apellidos primero: el agente los reordena solo cuando la hoja lo indica; si no, deja el nombre como viene."
+  ],
+  "propose_import": {
+    "note": "agente-ejemplo.json",
+    "rows": [
+      { "fullName": "Juana Martínez García", "birthDate": "1972-07-30", "mobile": "5500000002", "residence": "San Ejemplo", "affiliation": "IMSS" },
+      { "fullName": "Valeria Ortiz Ramos", "birthDate": "1988-05-03", "mobile": "5500000091", "residence": "Villa Demo" },
+      { "fullName": "Teresa Luna Pacheco", "birthDate": "1993/13/02", "residence": "Rancho Prueba", "affiliation": "Ninguno" },
+      { "fullName": "Paola Rivas Cano", "birthDate": "1982-08-15", "mobile": "5500000093", "residence": "San Ejemplo", "affiliation": "INSABI" }
+    ]
+  }
+}

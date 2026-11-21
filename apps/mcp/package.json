@@ -1,0 +1,24 @@
+{
+  "name": "@er/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "e2e": "tsx scripts/e2e.ts"
+  },
+  "dependencies": {
+    "@er/shared": "*",
+    "fastmcp": "^4.28.4",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "@types/node": "^24.10.1",
+    "tsx": "^4.20.6",
+    "vitest": "^3.2.7"
+  }
+}

@@ -25,6 +25,6 @@ Todo lo que hay en esta carpeta es inventado. **Está prohibido usar datos reale
 - Nombres realistas pero comunes y combinados al azar (por ejemplo "María Guadalupe Hernández López"), para que el demo se sienta real sin describir a nadie. Lo que delata que son ficticios son los demás datos: teléfonos, ID y localidades.
 - Teléfonos 55-0000-00XX.
 - Localidades inventadas ("San Ejemplo de la Sierra").
-- ID del formato (campo 4, 11 casillas) con prefijo de prueba, por ejemplo `DEMO0000001`.
+- ID de EIRA (campo 4) calculado con la regla de `docs/SPEC.md` 6.1.1 a partir del nombre y la fecha ficticios (por ejemplo `RATL900105`).
 
 Los formatos en blanco de EIRA no se incluyen en este repo público; su publicación le corresponde a EIRA.

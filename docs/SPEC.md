@@ -103,6 +103,14 @@ AuditLog       id, at, actorId, deviceId, action, entity, entityId, detail
 1. Administración crea la jornada (municipio, fecha de inicio y de fin, localidades). Una jornada puede durar varios días.
 2. Cada dispositivo de captura descarga el **paquete de jornada**: índice mínimo de las pacientes de esas localidades (nombre, fecha de nacimiento, entidad de nacimiento, huella SHA-256 del teléfono normalizado, ID del formato) y su lista de visitas previas sin datos clínicos. Es lo que permite buscar coincidencias sin red. El teléfono viaja como huella: sirve para comparar si es el mismo número sin guardar el número en el dispositivo.
 
+### 6.1.1 ID de EIRA (campo "4. ID" del formato)
+
+- Se forma con las **primeras letras**: 2 del apellido paterno, 1 del apellido materno y 1 del (primer) nombre, seguidas de la fecha de nacimiento como año, mes y día de 2 dígitos cada uno. Ejemplo: Lucía Ramírez Torres, 5 de enero de 1990 → `RATL900105`.
+- Letras en mayúsculas, sin acentos (Ñ → X); se ignoran partículas ("de", "del", "la", "las", "los", "y"); sin apellido materno se usa `X`.
+- La app lo **propone al registrar** a partir de nombre(s), apellido paterno y apellido materno (campos separados) y la fecha; captura puede corregirlo si el formato en papel trae otro.
+- **No es la llave interna**: dos mujeres pueden compartirlo y cambia si se corrige el nombre. La llave sigue siendo el UUID interno, que nunca se muestra. El ID de EIRA se muestra en pantalla, sirve para buscar (igual = coincidencia fuerte) y forma la URL legible del expediente: `/patients/<ID EIRA>-<4 caracteres del UUID>` (por ejemplo `/patients/RATL900105-3f2a`).
+- Por validar con EIRA: el formato en papel tiene 11 casillas y la regla da 10 caracteres; falta saber qué va en la casilla 11.
+
 ### 6.2 Identificar primero, registrar después (con o sin señal)
 
 Regla de la pantalla de captura: **no existe un botón de "alta nueva" antes de buscar.** Al llegar la paciente, lo primero es identificarla; el registro nuevo solo aparece cuando la búsqueda no encontró a nadie o la persona confirmó que es otra.

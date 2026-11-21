@@ -24,6 +24,90 @@ En cada jornada el personal llena formatos en papel, como el formato de revisió
 
 La especificación completa está en [`docs/SPEC.md`](docs/SPEC.md).
 
+## Qué puede hacer Huella Rosa
+
+Cada animación es una grabación real de la app (versión de producción, base de datos nueva, datos ficticios), hecha con `npm run demo:features`. Las tabletas miden 1280x800; donde se ven dos, la de la izquierda es la de captura.
+
+### Administración
+
+**1. Entrar con usuario y PIN.** Cada persona entra con su usuario y un PIN corto; sin señal solo entra quien ya entró antes en esa tableta.
+
+![Entrar con usuario y PIN](docs/media/gifs/01-entrar-con-pin.gif)
+
+**2. Dar de alta al personal.** Administración da de alta a quien sale a campo, con su rol y un PIN inicial.
+
+![Dar de alta al personal](docs/media/gifs/02-personal.gif)
+
+**3. Crear una jornada.** Se elige el municipio, las localidades y las fechas, y la app propone el nombre de la jornada.
+
+![Crear una jornada](docs/media/gifs/03-crear-jornada.gif)
+
+### Antes de la jornada
+
+**4. Descargar el paquete de jornada.** Antes de salir, cada tableta elige su jornada y guarda las pacientes y formatos para trabajar sin internet.
+
+![Descargar el paquete de jornada](docs/media/gifs/04-paquete-de-jornada.gif)
+
+### Durante la jornada
+
+**5. Identificar primero.** Antes de registrar, se busca a la paciente; si ya vino, la app muestra por qué se parece y una persona confirma "Es ella".
+
+![Identificar primero](docs/media/gifs/05-identificar-primero.gif)
+
+**6. Registrar a una paciente nueva.** Si no está, se registra con su nombre por partes y el ID EIRA se calcula solo con sus iniciales y fecha.
+
+![Registrar a una paciente nueva](docs/media/gifs/06-registrar-paciente-nueva.gif)
+
+**7. Nueva visita con folio.** Se marcan los servicios del día, la app dice con quién pasará y entrega el folio que se escribe en el formato.
+
+![Nueva visita con folio](docs/media/gifs/07-nueva-visita.gif)
+
+### Especialistas
+
+**8. Pacientes esperándome y mi paso.** Cada especialista ve quién le toca y llena solo los campos de su paso.
+
+![Pacientes esperándome y mi paso](docs/media/gifs/08-pacientes-esperandome.gif)
+
+**11. Expediente con historial.** El expediente junta todas las visitas y los resultados de cada estación; captura no ve los resultados clínicos (izquierda: captura, derecha: médico).
+
+![Expediente con historial](docs/media/gifs/11-expediente.gif)
+
+### Sin señal
+
+**9. Sin señal, todo se guarda.** Sin internet la visita se guarda en la tableta y la barra de arriba cuenta los cambios por enviar.
+
+![Sin señal, todo se guarda](docs/media/gifs/09-cambios-por-enviar.gif)
+
+**10. Estación por folio y unión al volver la señal.** Una estación sin señal abre la visita con el folio; cuando vuelve la señal, su paso se une solo a la visita (izquierda: captura, derecha: estación).
+
+![Estación por folio y unión al volver la señal](docs/media/gifs/10-estacion-por-folio.gif)
+
+### Digitalización
+
+**12. Identificar con foto del formato.** Con una foto del formato en papel se llenan los datos para buscarla; lo que se lee con duda se marca para revisar.
+
+![Identificar con foto del formato](docs/media/gifs/12-foto-del-formato.gif)
+
+**13. Importar una lista de Excel.** La lista de una brigada se revisa renglón por renglón: nuevas, posibles coincidencias y datos por corregir.
+
+![Importar una lista de Excel](docs/media/gifs/13-importar-excel.gif)
+
+### Revisión y bitácora
+
+**14. ¿Es la misma persona?** Si dos registros se parecen, administración los compara y decide; unirlos conserva los dos.
+
+![¿Es la misma persona?](docs/media/gifs/14-misma-persona.gif)
+
+**15. Dos personas cambiaron el mismo dato.** Si dos tabletas sin señal cambian el mismo dato, nada se pisa: administración elige cuál se queda.
+
+![Dos personas cambiaron el mismo dato](docs/media/gifs/15-mismo-dato.gif)
+
+**16. Tablero y bitácora.** El tablero muestra cómo va la jornada y la bitácora cuenta en frases sencillas quién hizo qué y cuándo.
+
+![Tablero y bitácora](docs/media/gifs/16-bitacora-y-tablero.gif)
+
+Hay una imagen fija de 1280x720 por función en [`docs/media/posters/`](docs/media/posters/) y un video corto de presentación por función que se genera con [`video/features/`](video/features/) (no se guarda en el repo).
+
 ## Cómo levantar el proyecto
 
 Requisitos: Node.js 20 o superior y Docker.

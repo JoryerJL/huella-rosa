@@ -11,7 +11,7 @@ export const roleLabel: Record<Role, string> = {
 };
 
 export const es = {
-  appName: "Expediente Rosa",
+  appName: "Huella Rosa",
   online: "Con señal",
   offline: "Sin señal",
   logout: "Salir",

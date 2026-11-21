@@ -1,4 +1,4 @@
-# Expediente Rosa: guía para el agente de código
+# Huella Rosa: guía para el agente de código
 
 Proyecto de hackathon (Nerdearla Vibeathon México 2026, reto 1 de EIRA: expediente digital único y registro de pacientes con conectividad intermitente). Lee `docs/SPEC.md` antes de escribir código y sigue `docs/PLAN.md` en orden. Una sola persona revisa tu trabajo: entrega pasos chicos que se puedan probar en el navegador.
 
@@ -61,6 +61,8 @@ Regla general: **el código y la estructura del proyecto van en inglés; lo que 
 | Lote de importación, fila, token de agente, plantilla de Excel | `ImportBatch`, `ImportRow`, `AgentToken`, `import template` |
 
 Si aparece un término que no está aquí, agrégalo a esta tabla antes de usarlo.
+
+Nombre del producto: **Huella Rosa** (lema: "Una mujer, una huella, un solo expediente, con o sin señal"). En pantalla, la palabra "huella" se reserva para el nombre; la huella SHA-256 del teléfono (`phoneHash`) nunca se menciona en la interfaz.
 
 ## Convenciones
 

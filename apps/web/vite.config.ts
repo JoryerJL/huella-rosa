@@ -11,8 +11,8 @@ export default defineConfig({
       registerType: "autoUpdate",
       includeAssets: ["icon.svg"],
       manifest: {
-        name: "Expediente Rosa",
-        short_name: "Expediente",
+        name: "Huella Rosa",
+        short_name: "Huella Rosa",
         description: "Registro de pacientes de EIRA con o sin internet.",
         lang: "es-MX",
         display: "standalone",

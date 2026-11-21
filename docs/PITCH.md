@@ -5,7 +5,7 @@ Regla: mostrar el producto funcionando. Una idea por bloque. Ensayar dos veces c
 ## Guion
 
 **0:00-0:25 Problema**
-"En cada jornada, EIRA llena formatos en papel y el mismo día los vuelve a capturar en Excel. Trabajo doble. La paciente se identifica por su nombre: si viene cuatro veces en un año, queda registrada cuatro veces y su historial se parte. Y en la sierra no hay señal. Expediente Rosa resuelve tres cosas: una paciente, un expediente; reconocer a quien regresa; y trabajar sin internet."
+"En cada jornada, EIRA llena formatos en papel y el mismo día los vuelve a capturar en Excel. Trabajo doble. La paciente se identifica por su nombre: si viene cuatro veces en un año, queda registrada cuatro veces y su historial se parte. Y en la sierra no hay señal. Huella Rosa resuelve tres cosas: una paciente, un expediente; reconocer a quien regresa; y trabajar sin internet."
 
 **0:25-0:55 Alta sin señal** (celular en modo avión)
 Indicador en "Sin señal". Doy de alta a una paciente nueva: nombre, fecha de nacimiento, localidad. Se guarda en el dispositivo con su identificador propio. El contador dice "1 cambio por enviar".

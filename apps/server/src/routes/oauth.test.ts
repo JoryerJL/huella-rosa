@@ -301,7 +301,8 @@ describe("agent API acting as the person", () => {
       confirmedByUser: true,
       confirmationText: "otra vez",
     });
-    expect(again.status).toBe(404);
+    expect(again.status).toBe(409);
+    expect(((await again.json()) as { error: string }).error).toBe("Esta vista previa ya se aplicó. Revisa el lote en Importar.");
     expect(await db.patient.count()).toBe(before + 3);
   });
 

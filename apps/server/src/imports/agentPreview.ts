@@ -201,7 +201,10 @@ const ACTION: Record<ApplyImportInput["decisions"][number]["action"], (patientId
   skip: () => ({ action: "discard" }),
 };
 
+const ALREADY_APPLIED = "Esta vista previa ya se aplicó. Revisa el lote en Importar.";
+
 export async function applyPreview(input: ApplyImportInput, agent: AgentIdentity): Promise<AgentApplyResult> {
+  if (await valkey.get(appliedKey(input.previewId))) throw new ImportError(ALREADY_APPLIED, 409);
   const raw = await valkey.get(previewKey(input.previewId));
   const preview = raw ? (JSON.parse(raw) as StoredPreview) : null;
   // Another person's preview looks the same as an expired one.
@@ -233,7 +236,7 @@ export async function applyPreview(input: ApplyImportInput, agent: AgentIdentity
 
   // A preview is applied once, even with two calls at the same time.
   const claimed = await valkey.set(appliedKey(preview.id), "1", "EX", PREVIEW_TTL_SECONDS, "NX");
-  if (claimed !== "OK") throw new ImportError("Esta vista previa ya se aplicó. Revisa el lote en Importar.", 409);
+  if (claimed !== "OK") throw new ImportError(ALREADY_APPLIED, 409);
 
   const staff: StaffProfile = { id: agent.userId, name: agent.userName, role: agent.role };
   const batch = await db.importBatch.create({

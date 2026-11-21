@@ -1,7 +1,7 @@
 import type {
   AdminConflict,
-  AgentTokenView,
-  CreatedAgentToken,
+  AgentGrantList,
+  AgentGrantView,
   AdminMatch,
   CampaignListItem,
   CreateCampaignInput,
@@ -87,19 +87,13 @@ export async function updateCampaign(id: string, input: UpdateCampaignInput): Pr
   ).campaign;
 }
 
-// ---------- AI agent tokens (SPEC 6.7) ----------
+// ---------- Connected AI agents (SPEC 6.7) ----------
 
-export async function fetchAgentTokens(): Promise<AgentTokenView[]> {
-  return (await request<{ agentTokens: AgentTokenView[] }>("/api/agent-tokens")).agentTokens;
+/** Own agents; administration gets everyone's. */
+export async function fetchAgentGrants(): Promise<AgentGrantView[]> {
+  return (await request<AgentGrantList>("/api/agent-grants")).grants;
 }
 
-/** The plain token comes back only here, once: show it and never store it. */
-export function createAgentToken(name: string): Promise<CreatedAgentToken> {
-  return request<CreatedAgentToken>("/api/agent-tokens", { method: "POST", body: JSON.stringify({ name }) });
-}
-
-export async function revokeAgentToken(id: string): Promise<AgentTokenView> {
-  return (
-    await request<{ agentToken: AgentTokenView }>(`/api/agent-tokens/${encodeURIComponent(id)}/revoke`, { method: "POST", body: "{}" })
-  ).agentToken;
+export async function revokeAgentGrant(id: string): Promise<AgentGrantView> {
+  return (await request<{ grant: AgentGrantView }>(`/api/agent-grants/${encodeURIComponent(id)}/revoke`, { method: "POST", body: "{}" })).grant;
 }

@@ -18,8 +18,8 @@ import { AdminMatches } from "./pages/AdminMatches";
 import { AdminConflicts } from "./pages/AdminConflicts";
 import { AdminStaff } from "./pages/AdminStaff";
 import { AdminCampaigns } from "./pages/AdminCampaigns";
-// Block 4b: AI agents.
-import { AdminAgents } from "./pages/AdminAgents";
+// Block 4b: AI agents connected to a staff account.
+import { AgentsPage } from "./pages/AgentsPage";
 import { startSyncEngine } from "./data/sync";
 // Block 3a: form photo
 import { ScanIdentifyPage } from "./pages/ScanIdentifyPage";
@@ -184,10 +184,10 @@ export function App() {
             }
           />
           <Route
-            path="/admin/agents"
+            path="/agents"
             element={
-              <RequireRole roles={["admin"]}>
-                <AdminAgents />
+              <RequireRole roles={["intake", ...CLINICAL, "admin"]}>
+                <AgentsPage />
               </RequireRole>
             }
           />

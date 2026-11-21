@@ -19,7 +19,9 @@
     "infra:deploy": "npm --prefix infra ci --no-audit --no-fund && npm --prefix infra run deploy",
     "infra:destroy": "npm --prefix infra ci --no-audit --no-fund && npm --prefix infra run destroy",
     "video:render": "npm --prefix video/demo-2min run render",
-    "video:qa": "npm --prefix video/demo-2min run qa"
+    "video:qa": "npm --prefix video/demo-2min run qa",
+    "demo:features": "tsx scripts/demo/features.ts && tsx scripts/demo/features-media.ts",
+    "demo:features:media": "tsx scripts/demo/features-media.ts"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

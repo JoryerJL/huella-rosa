@@ -1,0 +1,142 @@
+{
+  "_note": "One entry per feature clip (scripts/demo/features.ts). title/sentence/caption are on-screen Spanish (README, posters, videos); slug and group keys are English. Keep the plain-language rule from CLAUDE.md.",
+  "groups": {
+    "admin": "Administración",
+    "before": "Antes de la jornada",
+    "during": "Durante la jornada",
+    "specialists": "Especialistas",
+    "offline": "Sin señal",
+    "digitization": "Digitalización",
+    "review": "Revisión y bitácora"
+  },
+  "features": [
+    {
+      "n": 1,
+      "slug": "entrar-con-pin",
+      "group": "admin",
+      "title": "Entrar con usuario y PIN",
+      "sentence": "Cada persona entra con su usuario y un PIN corto; sin señal solo entra quien ya entró antes en esa tableta.",
+      "caption": "Sin señal, la tableta no deja entrar a alguien nuevo"
+    },
+    {
+      "n": 2,
+      "slug": "personal",
+      "group": "admin",
+      "title": "Dar de alta al personal",
+      "sentence": "Administración da de alta a quien sale a campo, con su rol y un PIN inicial.",
+      "caption": "Nombre, usuario, rol y PIN inicial"
+    },
+    {
+      "n": 3,
+      "slug": "crear-jornada",
+      "group": "admin",
+      "title": "Crear una jornada",
+      "sentence": "Se elige el municipio, las localidades y las fechas, y la app propone el nombre de la jornada.",
+      "caption": "El nombre se propone solo"
+    },
+    {
+      "n": 4,
+      "slug": "paquete-de-jornada",
+      "group": "before",
+      "title": "Descargar el paquete de jornada",
+      "sentence": "Antes de salir, cada tableta elige su jornada y guarda las pacientes y formatos para trabajar sin internet.",
+      "caption": "Se descarga una vez, con señal"
+    },
+    {
+      "n": 5,
+      "slug": "identificar-primero",
+      "group": "during",
+      "title": "Identificar primero",
+      "sentence": "Antes de registrar, se busca a la paciente; si ya vino, la app muestra por qué se parece y una persona confirma \"Es ella\".",
+      "caption": "Coincidencia fuerte, con sus motivos"
+    },
+    {
+      "n": 6,
+      "slug": "registrar-paciente-nueva",
+      "group": "during",
+      "title": "Registrar a una paciente nueva",
+      "sentence": "Si no está, se registra con su nombre por partes y el ID EIRA se calcula solo con sus iniciales y fecha.",
+      "caption": "El ID EIRA se calcula mientras escribes"
+    },
+    {
+      "n": 7,
+      "slug": "nueva-visita",
+      "group": "during",
+      "title": "Nueva visita con folio",
+      "sentence": "Se marcan los servicios del día, la app dice con quién pasará y entrega el folio que se escribe en el formato.",
+      "caption": "Servicios, \"Pasará con\" y folio"
+    },
+    {
+      "n": 8,
+      "slug": "pacientes-esperandome",
+      "group": "specialists",
+      "title": "Pacientes esperándome y mi paso",
+      "sentence": "Cada especialista ve quién le toca y llena solo los campos de su paso.",
+      "caption": "El médico solo ve sus campos"
+    },
+    {
+      "n": 9,
+      "slug": "cambios-por-enviar",
+      "group": "offline",
+      "title": "Sin señal, todo se guarda",
+      "sentence": "Sin internet la visita se guarda en la tableta y la barra de arriba cuenta los cambios por enviar.",
+      "caption": "Guardado en la tableta, listo para enviar"
+    },
+    {
+      "n": 10,
+      "slug": "estacion-por-folio",
+      "group": "offline",
+      "title": "Estación por folio y unión al volver la señal",
+      "sentence": "Una estación sin señal abre la visita con el folio; cuando vuelve la señal, su paso se une solo a la visita.",
+      "caption": "Dos tabletas sin señal; al volver, todo se une"
+    },
+    {
+      "n": 11,
+      "slug": "expediente",
+      "group": "specialists",
+      "title": "Expediente con historial",
+      "sentence": "El expediente junta todas las visitas y los resultados de cada estación; captura no ve los resultados clínicos.",
+      "caption": "Vista clínica y vista de captura"
+    },
+    {
+      "n": 12,
+      "slug": "foto-del-formato",
+      "group": "digitization",
+      "title": "Identificar con foto del formato",
+      "sentence": "Con una foto del formato en papel se llenan los datos para buscarla; lo que se lee con duda se marca para revisar.",
+      "caption": "Nada se guarda sin confirmar"
+    },
+    {
+      "n": 13,
+      "slug": "importar-excel",
+      "group": "digitization",
+      "title": "Importar una lista de Excel",
+      "sentence": "La lista de una brigada se revisa renglón por renglón: nuevas, posibles coincidencias y datos por corregir.",
+      "caption": "Nada se registra hasta que tú lo confirmas"
+    },
+    {
+      "n": 14,
+      "slug": "misma-persona",
+      "group": "review",
+      "title": "¿Es la misma persona?",
+      "sentence": "Si dos registros se parecen, administración los compara y decide; unirlos conserva los dos.",
+      "caption": "Unir no borra ningún registro"
+    },
+    {
+      "n": 15,
+      "slug": "mismo-dato",
+      "group": "review",
+      "title": "Dos personas cambiaron el mismo dato",
+      "sentence": "Si dos tabletas sin señal cambian el mismo dato, nada se pisa: administración elige cuál se queda.",
+      "caption": "Se elige con nombre y hora de cada quien"
+    },
+    {
+      "n": 16,
+      "slug": "bitacora-y-tablero",
+      "group": "review",
+      "title": "Tablero y bitácora",
+      "sentence": "El tablero muestra cómo va la jornada y la bitácora cuenta en frases sencillas quién hizo qué y cuándo.",
+      "caption": "Quién hizo qué, cuándo y en qué tableta"
+    }
+  ]
+}

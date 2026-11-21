@@ -138,6 +138,8 @@ interface SceneRecord {
   status: "pass" | "fail";
   checks: string[];
   stills: string[];
+  /** Named moments inside the scene (ms from recording start), for cutting the video by action. */
+  marks: Record<string, number>;
   error?: string;
 }
 
@@ -145,6 +147,12 @@ const timeline: SceneRecord[] = [];
 const softFailures: string[] = [];
 let t0 = 0;
 let currentChecks: string[] = [];
+let currentMarks: Record<string, number> = {};
+
+/** Records a named moment of the current scene in timeline.json. */
+function mark(name: string) {
+  currentMarks[name] = Date.now() - t0;
+}
 let currentScene = "setup";
 
 const tablets: Record<TabletId, { ctx: BrowserContext; page: Page }> = {} as never;
@@ -152,6 +160,7 @@ const tablets: Record<TabletId, { ctx: BrowserContext; page: Page }> = {} as nev
 async function scene(id: string, title: string, involved: TabletId[], fn: () => Promise<void>) {
   currentScene = id;
   currentChecks = [];
+  currentMarks = {};
   const startMs = Date.now() - t0;
   console.log(`\n▶ ${id} · ${title}`);
   const stills: string[] = [];
@@ -162,7 +171,7 @@ async function scene(id: string, title: string, involved: TabletId[], fn: () => 
       await tablets[t].page.screenshot({ path: file });
       stills.push(path.relative(ROOT, file));
     }
-    timeline.push({ scene: id, title, tablet: involved.join("+"), startMs, endMs: Date.now() - t0, status: "pass", checks: currentChecks, stills });
+    timeline.push({ scene: id, title, tablet: involved.join("+"), startMs, endMs: Date.now() - t0, status: "pass", checks: currentChecks, marks: currentMarks, stills });
     console.log(`  ✓ ${id} passed (${currentChecks.length} checks)`);
   } catch (err) {
     for (const t of involved) {
@@ -171,7 +180,7 @@ async function scene(id: string, title: string, involved: TabletId[], fn: () => 
       stills.push(path.relative(ROOT, file));
     }
     const error = err instanceof Error ? err.message : String(err);
-    timeline.push({ scene: id, title, tablet: involved.join("+"), startMs, endMs: Date.now() - t0, status: "fail", checks: currentChecks, stills, error });
+    timeline.push({ scene: id, title, tablet: involved.join("+"), startMs, endMs: Date.now() - t0, status: "fail", checks: currentChecks, marks: currentMarks, stills, error });
     console.error(`  ✗ ${id} failed: ${error}`);
     throw err;
   }
@@ -401,6 +410,7 @@ async function main() {
       }
       await checkForbidden(A, "Personal");
 
+      mark("campaign");
       await tap(A, A.getByRole("link", { name: "Jornadas", exact: true }));
       await see(A, "Nueva jornada");
       await typeInto(A, A.getByLabel("Municipio", { exact: true }), MUNICIPALITY);
@@ -455,6 +465,7 @@ async function main() {
       await pause();
 
       // Recurring patient: strong match with reasons, confirmed by a person.
+      mark("lucia-search");
       await fillSearch(A, LUCIA);
       await see(A, "¿Es alguna de ellas?");
       await see(A, LUCIA.shown);
@@ -467,6 +478,7 @@ async function main() {
       await tap(A, act(A, "Es ella"));
       await see(A, `Visita de hoy · ${LUCIA.shown}`);
       await see(A, "Sus datos ya están llenos. Solo confirma o corrige lo que cambió.");
+      mark("lucia-visit");
       await see(A, "Escribe este folio en el formato:");
       folio = await readFolio(A);
       await tap(A, A.getByRole("checkbox", { name: /Revisión mamaria/ }));
@@ -479,6 +491,7 @@ async function main() {
       await checkForbidden(A, "visita de Lucía");
       await pause(1500);
 
+      mark("lucia-saved");
       // New patient: registered by name parts; the EIRA ID is computed live.
       await go(A, "/intake");
       await see(A, "Identifica a la paciente");
@@ -541,10 +554,13 @@ async function main() {
       await tablets.B.ctx.setOffline(false);
       await see(B, "● Con señal");
       // The station's step reaches the server before the visit: it waits, it is not lost.
-      // A saved step is two changes (its fields and "done"), so the bar may count 2.
-      const WAITING = /^\d+ pasos? esperando a que llegue la visita$/;
+      // One step saved offline counts once, even though it is two changes (its fields and "done").
+      const WAITING = "1 paso esperando a que llegue la visita";
       await see(B, WAITING, 45_000);
       await see(B, "Pasos que necesitan atención");
+      const lines = await B.getByText(`Folio ${folio}:`, { exact: true }).count();
+      if (lines !== 1) throw new Error(`"Pasos que necesitan atención" lists folio ${folio} ${lines} times, expected once`);
+      currentChecks.push(`Folio ${folio} listed once`);
       await pause(2000);
       await tablets.A.ctx.setOffline(false);
       await see(A, "● Con señal");
@@ -584,6 +600,7 @@ async function main() {
       await see(B, "Pacientes esperándome");
       await see(B, /^Todo enviado · \d{2}:\d{2}$/, 30_000);
 
+      mark("record");
       await go(B, "/patients");
       await see(B, "Buscar expediente");
       await fillSearch(B, LUCIA);

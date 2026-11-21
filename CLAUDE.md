@@ -4,7 +4,7 @@ Proyecto de hackathon (Nerdearla Vibeathon México 2026, reto 1 de EIRA: expedie
 
 ## Reglas que no puedes romper
 
-1. Solo datos ficticios. Nunca inventes datos que parezcan reales ni pidas datos reales.
+1. Solo datos ficticios. Nunca pidas ni uses datos reales. Los nombres pueden ser realistas (comunes, combinados al azar), pero teléfonos (55-0000-00XX), ID (`DEMO…`) y localidades se mantienen claramente ficticios para que ningún registro corresponda a una persona real.
 2. Cada paciente tiene un identificador interno estable (UUID creado en el dispositivo). El nombre nunca es llave ni criterio único de coincidencia.
 3. Nada se vincula ni se fusiona sin confirmación humana explícita. Vincular conserva ambos registros; nunca se borra un expediente.
 4. La lectura de formatos (OCR) solo propone valores de los campos definidos en `plantillas/*.json`. No uses modelos generativos para interpretar, resumir o redactar datos clínicos. Todo valor leído se confirma antes de guardarse.

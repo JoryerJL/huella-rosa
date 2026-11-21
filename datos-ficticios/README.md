@@ -9,8 +9,8 @@ Todo lo que hay en esta carpeta es inventado. **Está prohibido usar datos reale
 - **Una jornada** con fecha, municipio y localidades, lista para descargar su paquete en el dispositivo de captura.
 - **Unas 8 pacientes** con historial. Algunas ya tienen visitas y servicios de una jornada anterior, para demostrar la segunda visita con historial.
 - **Al menos 2 casi duplicados a propósito**, para demostrar la búsqueda de coincidencias:
-  - misma fecha de nacimiento y el nombre con y sin acento ("Lucía Demo Tres" y "Lucia Demo Tres");
-  - misma fecha de nacimiento y los apellidos invertidos ("Ana Demo Prueba" y "Ana Prueba Demo").
+  - misma fecha de nacimiento y el nombre con y sin acento ("Lucía Ramírez Torres" y "Lucia Ramirez Torres");
+  - misma fecha de nacimiento y los apellidos invertidos ("Ana Sánchez Cruz" y "Ana Cruz Sánchez").
   - Opcional: una pareja con nombre parecido y fecha de nacimiento distinta, para mostrar que solo el nombre nunca basta.
 
 ## Formatos (`formatos/`)
@@ -22,7 +22,7 @@ Todo lo que hay en esta carpeta es inventado. **Está prohibido usar datos reale
 
 ## Convenciones
 
-- Nombres claramente falsos (por ejemplo "Paciente Demo Uno").
+- Nombres realistas pero comunes y combinados al azar (por ejemplo "María Guadalupe Hernández López"), para que el demo se sienta real sin describir a nadie. Lo que delata que son ficticios son los demás datos: teléfonos, ID y localidades.
 - Teléfonos 55-0000-00XX.
 - Localidades inventadas ("San Ejemplo de la Sierra").
 - ID del formato (campo 4, 11 casillas) con prefijo de prueba, por ejemplo `DEMO0000001`.

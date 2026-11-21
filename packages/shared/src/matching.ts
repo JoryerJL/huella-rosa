@@ -83,7 +83,7 @@ function tokensMatch(a: string, b: string): boolean {
 
 /**
  * Order-insensitive name similarity (0-1): Dice coefficient over token sets,
- * so "Ana Prueba Demo" and "Ana Demo Prueba" score 1.
+ * so "Ana Cruz Sánchez" and "Ana Sánchez Cruz" score 1.
  */
 export function nameSimilarity(a: string, b: string): number {
   const ta = [...new Set(nameTokens(a))];

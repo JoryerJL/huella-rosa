@@ -27,23 +27,23 @@ const campaigns = [
 }));
 
 const users = [
-  { id: "usr-intake", name: "Captura Demo", role: "intake" },
-  { id: "usr-clinician", name: "Clínica Demo", role: "clinician" },
-  { id: "usr-admin", name: "Administración Demo", role: "admin" },
+  { id: "usr-intake", name: "Laura Pérez Ortiz", role: "intake" },
+  { id: "usr-clinician", name: "Dra. Carmen Ruiz Delgado", role: "clinician" },
+  { id: "usr-admin", name: "Sofía Méndez Aguilar", role: "admin" },
 ];
 
 const patients = [
-  { n: 1, fullName: "Paciente Demo Uno", birthDate: "1985-03-12", birthState: "Jalisco", mobile: "55-0000-0001", localityId: "loc-san-ejemplo", formId: "DEMO0000001", affiliation: "6" },
-  { n: 2, fullName: "María Demo Dos", birthDate: "1972-07-30", birthState: "Michoacán", mobile: "55-0000-0002", localityId: "loc-san-ejemplo", formId: "DEMO0000002", affiliation: "2" },
-  // Near-duplicate target: staff will search "Lucia Demo Tres" (no accent).
-  { n: 3, fullName: "Lucía Demo Tres", birthDate: "1990-01-05", birthState: "Jalisco", mobile: "55-0000-0003", localityId: "loc-rancho-prueba", formId: null, affiliation: "6" },
+  { n: 1, fullName: "María Guadalupe Hernández López", birthDate: "1985-03-12", birthState: "Jalisco", mobile: "55-0000-0001", localityId: "loc-san-ejemplo", formId: "DEMO0000001", affiliation: "6" },
+  { n: 2, fullName: "Juana Martínez García", birthDate: "1972-07-30", birthState: "Michoacán", mobile: "55-0000-0002", localityId: "loc-san-ejemplo", formId: "DEMO0000002", affiliation: "2" },
+  // Near-duplicate target: staff will search "Lucia Ramirez Torres" (no accent).
+  { n: 3, fullName: "Lucía Ramírez Torres", birthDate: "1990-01-05", birthState: "Jalisco", mobile: "55-0000-0003", localityId: "loc-rancho-prueba", formId: null, affiliation: "6" },
   // Pair registered twice with swapped surnames: opens a MatchReview for admin.
-  { n: 4, fullName: "Ana Demo Prueba", birthDate: "1968-11-22", birthState: "Colima", mobile: "55-0000-0004", localityId: "loc-san-ejemplo", formId: null, affiliation: "1" },
-  { n: 5, fullName: "Ana Prueba Demo", birthDate: "1968-11-22", birthState: "Colima", mobile: null, localityId: "loc-villa-demo", formId: null, affiliation: "1" },
-  { n: 6, fullName: "Rosa Demo Seis", birthDate: "1979-04-18", birthState: "Jalisco", mobile: "55-0000-0006", localityId: "loc-villa-demo", formId: "DEMO0000006", affiliation: "3" },
-  // Similar name to Rosa Demo Seis but a different birth date: name alone is never enough.
-  { n: 7, fullName: "Rosa Demo Siete", birthDate: "1995-09-02", birthState: "Jalisco", mobile: "55-0000-0007", localityId: "loc-villa-demo", formId: null, affiliation: "6" },
-  { n: 8, fullName: "Elena Demo Ocho", birthDate: "1983-12-01", birthState: "Nayarit", mobile: "55-0000-0008", localityId: "loc-rancho-prueba", formId: null, affiliation: "7" },
+  { n: 4, fullName: "Ana Sánchez Cruz", birthDate: "1968-11-22", birthState: "Colima", mobile: "55-0000-0004", localityId: "loc-san-ejemplo", formId: null, affiliation: "1" },
+  { n: 5, fullName: "Ana Cruz Sánchez", birthDate: "1968-11-22", birthState: "Colima", mobile: null, localityId: "loc-villa-demo", formId: null, affiliation: "1" },
+  { n: 6, fullName: "Rosa Flores Morales", birthDate: "1979-04-18", birthState: "Jalisco", mobile: "55-0000-0006", localityId: "loc-villa-demo", formId: "DEMO0000006", affiliation: "3" },
+  // Similar name to Rosa Flores Morales but a different birth date: name alone is never enough.
+  { n: 7, fullName: "Rosa Flores Mendoza", birthDate: "1995-09-02", birthState: "Jalisco", mobile: "55-0000-0007", localityId: "loc-villa-demo", formId: null, affiliation: "6" },
+  { n: 8, fullName: "Elena Gómez Vázquez", birthDate: "1983-12-01", birthState: "Nayarit", mobile: "55-0000-0008", localityId: "loc-rancho-prueba", formId: null, affiliation: "7" },
 ];
 
 // Previous-campaign visits to demonstrate "second visit with history".

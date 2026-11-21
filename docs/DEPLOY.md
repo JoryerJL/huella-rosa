@@ -44,6 +44,7 @@ Cuenta `888577060863`, región `us-east-1`, identidad usada: `arn:aws:iam::88857
 | Parámetro SSM (fuera de la pila) | `/huella-rosa/tunnel-token` (SecureString, `alias/aws/ssm`) |
 | Cloudflare Tunnel (fuera de AWS) | `huella-rosa`, id `7a6c5e4d-e638-4105-8125-898be14d488d`, gestionado de forma remota |
 | Registro DNS (zona `jjjl.dev`) | `huella-rosa.jjjl.dev` CNAME con proxy → `7a6c5e4d-e638-4105-8125-898be14d488d.cfargotunnel.com`, id `8f6d885df9d3e182316690ba65553930` |
+| Regla de redirección HTTP → HTTPS (zona `jjjl.dev`, fase `http_request_dynamic_redirect`) | ruleset `a61fdd34afea45b699155bc40fcc8764`, regla `b415102624dc482f9c31927825a4339e`: `(http.host eq "huella-rosa.jjjl.dev" and not ssl)` → 301 a `https://huella-rosa.jjjl.dev` + ruta, conserva la consulta |
 
 La pila `CDKToolkit` (bootstrap de CDK) ya existía en la cuenta y no es parte de este despliegue.
 
@@ -87,8 +88,10 @@ La máquina sigue la rama `deploy`. Después de subir cambios a esa rama:
 ```sh
 aws ssm send-command --region us-east-1 --instance-ids i-03211c39d740dee06 \
   --document-name AWS-RunShellScript --comment "huella-rosa update" \
-  --parameters 'commands=["cd /opt/huella-rosa && git pull --ff-only && docker compose -f docker-compose.prod.yml up -d --build"]'
+  --parameters 'commands=["cd /opt/huella-rosa && git fetch --depth 1 origin deploy && git checkout deploy && git reset --hard origin/deploy && docker compose -f docker-compose.prod.yml up -d --build"]'
 ```
+
+La copia en la máquina es superficial (`--depth 1`), por eso se usa `git reset --hard origin/deploy` en lugar de `git pull`. Los archivos `.env` y `.env.tunnel` no están en git y se conservan. Las migraciones se aplican solas al reiniciar el contenedor `app`.
 
 Para entrar a la máquina: `aws ssm start-session --region us-east-1 --target i-03211c39d740dee06` (requiere el plugin de Session Manager).
 
@@ -103,7 +106,8 @@ npm run infra:destroy
 # Token del túnel
 aws ssm delete-parameter --region us-east-1 --name /huella-rosa/tunnel-token
 
-# Opcional, Cloudflare: registro DNS y túnel
+# Opcional, Cloudflare: regla de redirección, registro DNS y túnel
+cf rulesets account-rulesets rules delete b415102624dc482f9c31927825a4339e --ruleset-id a61fdd34afea45b699155bc40fcc8764 -z jjjl.dev
 cf dns records delete 8f6d885df9d3e182316690ba65553930 -z jjjl.dev
 cf tunnels delete 7a6c5e4d-e638-4105-8125-898be14d488d
 ```
@@ -126,7 +130,7 @@ Desde fuera de AWS, contra https://huella-rosa.jjjl.dev:
 
 ## Riesgos y límites
 
-- **HTTP no redirige a HTTPS.** La zona `jjjl.dev` no tiene activado "Always Use HTTPS" y este despliegue no cambia ajustes de la zona. Comparte siempre el enlace con `https://`: sin HTTPS la app no instala su service worker y no abre sin señal.
+- **HTTP → HTTPS solo para este nombre.** Una regla de redirección de la zona manda `http://huella-rosa.jjjl.dev/...` a `https://` con 301 (verificado: `/patients` → 301 `https://huella-rosa.jjjl.dev/patients`; con consulta también). "Always Use HTTPS" de la zona sigue apagado y ningún otro nombre cambia. Sin HTTPS la app no instala su service worker y no abre sin señal.
 
 - **Una sola máquina, sin respaldos.** SQLite y Valkey viven en volúmenes de Docker en el disco de la instancia. Si la instancia se reemplaza o se destruye la pila, se pierden los datos (solo ficticios). Para un piloto: base administrada (RDS/PostgreSQL) y respaldos.
 - **Sitio público.** Cualquiera con la URL ve la pantalla de entrada. Protegen el acceso el usuario y PIN, el límite de intentos en Valkey y que solo hay datos ficticios. Para un piloto conviene Cloudflare Access delante.

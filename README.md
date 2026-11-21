@@ -8,6 +8,8 @@ Hecho para EIRA Movimiento Rosa A.C.
 
 Prototipo de código abierto para [EIRA Movimiento Rosa A.C.](https://www.eiraac.org), construido en el Nerdearla Vibeathon México 2026 (reto 1: expediente digital único y registro de pacientes, aun con conectividad intermitente).
 
+> **Pruébalo en línea:** https://huella-rosa.jjjl.dev · usuarios, PIN y recorridos guiados (con y sin señal, foto del formato, Excel) en **[docs/JURADO.md](docs/JURADO.md)**.
+
 > **Prototipo con datos ficticios.** No está autorizado para usarse con pacientes reales. Cualquier función clínica o uso con datos personales requiere revisión de EIRA.
 
 ## El problema

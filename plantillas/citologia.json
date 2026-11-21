@@ -19,14 +19,14 @@
     { "clave": "residence", "etiqueta": "6. Residencia habitual", "tipo": "texto", "identificacion": true },
     { "clave": "hasEiraCard", "etiqueta": "21. Cuenta con Cartilla Eira", "tipo": "casilla", "opciones": { "1": "Sí", "2": "No" } },
     { "clave": "sampleDate", "etiqueta": "19. Fecha de la toma de muestra", "tipo": "fecha", "obligatorio": true },
-    { "clave": "interpretationDate", "etiqueta": "23. Fecha de interpretación", "tipo": "fecha", "visible_para": ["clinician"] },
-    { "clave": "cytologyNumber", "etiqueta": "24. Número citológico", "tipo": "texto", "visible_para": ["clinician"] },
-    { "clave": "laboratory", "etiqueta": "25. Laboratorio", "tipo": "texto", "visible_para": ["clinician"] },
-    { "clave": "sampleQuality", "etiqueta": "26. Características de la muestra", "tipo": "casilla", "opciones": { "1": "Adecuada", "2": "Inadecuada" }, "visible_para": ["clinician"] },
-    { "clave": "diagnosisCode", "etiqueta": "27. Diagnóstico citológico", "tipo": "casilla", "rango": [1, 11], "visible_para": ["clinician"] },
-    { "clave": "otherFindingsCode", "etiqueta": "27.1 Otros hallazgos", "tipo": "casilla", "rango": [1, 14], "visible_para": ["clinician"] },
-    { "clave": "repeatStudy", "etiqueta": "28. Repetir estudio", "tipo": "casilla", "opciones": { "1": "Sí", "2": "No" }, "visible_para": ["clinician"] },
-    { "clave": "pathologistReviewed", "etiqueta": "30. Revisada por patólogo(a)", "tipo": "casilla", "opciones": { "1": "Sí", "2": "No" }, "visible_para": ["clinician"] }
+    { "clave": "interpretationDate", "etiqueta": "23. Fecha de interpretación", "tipo": "fecha", "filledBy": "pathologist", "visible_para": ["nutritionist", "doctor", "pathologist"] },
+    { "clave": "cytologyNumber", "etiqueta": "24. Número citológico", "tipo": "texto", "filledBy": "pathologist", "visible_para": ["nutritionist", "doctor", "pathologist"] },
+    { "clave": "laboratory", "etiqueta": "25. Laboratorio", "tipo": "texto", "filledBy": "pathologist", "visible_para": ["nutritionist", "doctor", "pathologist"] },
+    { "clave": "sampleQuality", "etiqueta": "26. Características de la muestra", "tipo": "casilla", "opciones": { "1": "Adecuada", "2": "Inadecuada" }, "filledBy": "pathologist", "visible_para": ["nutritionist", "doctor", "pathologist"] },
+    { "clave": "diagnosisCode", "etiqueta": "27. Diagnóstico citológico", "tipo": "casilla", "rango": [1, 11], "filledBy": "pathologist", "visible_para": ["nutritionist", "doctor", "pathologist"] },
+    { "clave": "otherFindingsCode", "etiqueta": "27.1 Otros hallazgos", "tipo": "casilla", "rango": [1, 14], "filledBy": "pathologist", "visible_para": ["nutritionist", "doctor", "pathologist"] },
+    { "clave": "repeatStudy", "etiqueta": "28. Repetir estudio", "tipo": "casilla", "opciones": { "1": "Sí", "2": "No" }, "filledBy": "pathologist", "visible_para": ["nutritionist", "doctor", "pathologist"] },
+    { "clave": "pathologistReviewed", "etiqueta": "30. Revisada por patólogo(a)", "tipo": "casilla", "opciones": { "1": "Sí", "2": "No" }, "filledBy": "pathologist", "visible_para": ["nutritionist", "doctor", "pathologist"] }
   ],
   "reglas": [
     { "id": "confirmacion-humana", "descripcion": "Todo valor propuesto por la lectura automática requiere confirmación humana, con la imagen original a la vista, antes de guardarse." },

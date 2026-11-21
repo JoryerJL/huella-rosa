@@ -4,7 +4,7 @@ import { isClinicalRole } from "@er/shared";
 import { Page } from "../components/Page";
 import { StepChips } from "../components/StepChips";
 import { ClinicalConflictsLink } from "../components/ClinicalConflictsLink";
-import { Alert, Button, Card, buttonClass, inputClass } from "../components/ui";
+import { Alert, Button, Card, EiraIdBadge, buttonClass, inputClass } from "../components/ui";
 import { useLive, useOutboxSummary, useSyncState } from "../data/hooks";
 import { loadQueue, refreshQueueFromServer, type QueueEntry } from "../data/steps";
 import { useSession } from "../lib/session";
@@ -56,7 +56,10 @@ export function QueuePage() {
                 <li key={item.visitId}>
                   <Card className="flex flex-wrap items-center gap-4">
                     <div className="min-w-0 flex-1 space-y-2">
-                      <p className="text-2xl font-bold">{item.fullName || es.queue.unknownName}</p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-2xl font-bold">{item.fullName || es.queue.unknownName}</p>
+                        <EiraIdBadge formId={item.formId} />
+                      </div>
                       <p className="text-lg text-muted">{es.queue.folioLine(item.folio, clock(item.registeredAt))}</p>
                       <StepChips steps={item.steps} />
                     </div>

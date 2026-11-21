@@ -45,28 +45,31 @@ model User {
 }
 
 model Patient {
-  id            String    @id // UUID created on the device
-  formId        String? // "4. ID" field of the form
-  fullName      String // visual check only; never a key
-  birthDate     String // YYYY-MM-DD
-  birthState    String?
-  phone         String?
-  mobile        String?
-  residence     String?
-  localityId    String?
-  locality      Locality? @relation(fields: [localityId], references: [id])
-  affiliation   String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt // change tracking for GET /api/sync/pull
-  createdBy     String
-  deviceId      String
-  version       Int       @default(1)
-  fieldVersions String    @default("{}") // JSON: field -> version
+  id              String    @id // UUID created on the device
+  formId          String? // "4. ID" field of the form
+  fullName        String // visual check only; never a key
+  givenNames      String? // name parts (SPEC 6.1.1), used to propose the EIRA ID
+  paternalSurname String?
+  maternalSurname String?
+  birthDate       String // YYYY-MM-DD
+  birthState      String?
+  phone           String?
+  mobile          String?
+  residence       String?
+  localityId      String?
+  locality        Locality? @relation(fields: [localityId], references: [id])
+  affiliation     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt // change tracking for GET /api/sync/pull
+  createdBy       String
+  deviceId        String
+  version         Int       @default(1)
+  fieldVersions   String    @default("{}") // JSON: field -> version
   // When linked, this record points to the main record. Nothing is deleted.
-  linkedToId    String?
-  linkedTo      Patient?  @relation("PatientLink", fields: [linkedToId], references: [id])
-  linkedFrom    Patient[] @relation("PatientLink")
-  visits        Visit[]
+  linkedToId      String?
+  linkedTo        Patient?  @relation("PatientLink", fields: [linkedToId], references: [id])
+  linkedFrom      Patient[] @relation("PatientLink")
+  visits          Visit[]
 
   @@index([birthDate])
   @@index([formId])
@@ -163,20 +166,20 @@ model SyncConflict {
 }
 
 model FormScan {
-  id         String   @id @default(uuid())
-  imageRef   String
-  templateId String
-  status     String   @default("QUEUED") // QUEUED | READ | CONFIRMED | FAILED
-  extracted  String? // JSON: field -> { value, confidence }
-  visitId    String?
-  createdAt  DateTime @default(now())
+  id             String   @id @default(uuid())
+  imageRef       String
+  templateId     String
+  status         String   @default("QUEUED") // QUEUED | READ | CONFIRMED | FAILED
+  extracted      String? // JSON: field -> { value, confidence }
+  visitId        String?
+  createdAt      DateTime @default(now())
   // Block 3a (form photo): visit link by folio for offline attachments, uploader, and who confirmed.
   campaignId     String?
   folio          String?
   originalName   String?
   mimeType       String?
   uploadedBy     String?
-  confirmedRoles String  @default("[]") // JSON array of roles that confirmed their part
+  confirmedRoles String   @default("[]") // JSON array of roles that confirmed their part
 
   @@index([visitId])
   @@index([campaignId, folio])

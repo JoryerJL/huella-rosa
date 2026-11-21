@@ -9,11 +9,11 @@ import {
 } from "@er/shared";
 import { Page } from "../components/Page";
 import { StepChips } from "../components/StepChips";
-import { Alert, Button, Card, Check, Warn, buttonClass, inputClass } from "../components/ui";
+import { Alert, Button, Card, Check, EiraIdBadge, Warn, buttonClass, inputClass } from "../components/ui";
 import { BackButton } from "./PatientRecordPage";
 import { getPackageMeta, type LocalVisit } from "../data/db";
 import { getPatientRecord, listCampaigns, opMeta } from "../data/patients";
-import { buildStepOps, findVisitByFolio, knownPatientName, saveStep } from "../data/steps";
+import { buildStepOps, findVisitByFolio, knownPatientFormId, knownPatientName, saveStep } from "../data/steps";
 import { useSession } from "../lib/session";
 import { isValidFolio, normalizeFolio } from "../lib/folio";
 import { formatShortDate, isoFromParts } from "../lib/format";
@@ -25,6 +25,7 @@ import { confirmScan, listScans } from "../data/scans";
 interface Loaded {
   visit: LocalVisit | null;
   name: string | null;
+  formId?: string | null;
   campaignId: string | null;
 }
 
@@ -52,8 +53,12 @@ export function StepPage() {
     let active = true;
     (async () => {
       const visit = await findVisitByFolio(folio);
-      const [name, campaignId] = await Promise.all([knownPatientName(visit), resolveCampaignId(visit)]);
-      if (active) setLoaded({ visit, name, campaignId });
+      const [name, formId, campaignId] = await Promise.all([
+        knownPatientName(visit),
+        knownPatientFormId(visit),
+        resolveCampaignId(visit),
+      ]);
+      if (active) setLoaded({ visit, name, formId, campaignId });
     })().catch(() => active && setLoaded({ visit: null, name: null, campaignId: null }));
     return () => {
       active = false;
@@ -160,6 +165,7 @@ function StepForm({ folio, role, staffName, loaded }: { folio: string; role: Cli
   return (
     <Page
       title={es.step.title(folio, loaded.name)}
+      badge={loaded.visit && <EiraIdBadge formId={loaded.formId} />}
       subtitle={es.step.subtitle(es.stepRole[role])}
       leading={<BackButton />}
     >

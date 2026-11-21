@@ -2,7 +2,7 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
-import { DEFAULT_STEPS_BY_SERVICE, formatFolio, type ClinicalRole, type ServiceType } from "@er/shared";
+import { DEFAULT_STEPS_BY_SERVICE, buildEiraId, formatFolio, joinNameParts, type ClinicalRole, type ServiceType } from "@er/shared";
 import { hashPin } from "../src/pin";
 
 const db = new PrismaClient(process.env.DATABASE_URL ? { datasourceUrl: process.env.DATABASE_URL } : undefined);
@@ -36,19 +36,26 @@ const users = [
   { id: "usr-admin", username: "smendez", name: "Sofía Méndez Aguilar", role: "admin" },
 ];
 
-const patients = [
-  { n: 1, fullName: "María Guadalupe Hernández López", birthDate: "1985-03-12", birthState: "Jalisco", mobile: "55-0000-0001", localityId: "loc-san-ejemplo", formId: "DEMO0000001", affiliation: "6" },
-  { n: 2, fullName: "Juana Martínez García", birthDate: "1972-07-30", birthState: "Michoacán", mobile: "55-0000-0002", localityId: "loc-san-ejemplo", formId: "DEMO0000002", affiliation: "2" },
+// Name parts are typed; fullName and the EIRA ID ("4. ID") are derived with the real rule (SPEC 6.1.1).
+const patientParts = [
+  { n: 1, givenNames: "María Guadalupe", paternalSurname: "Hernández", maternalSurname: "López", birthDate: "1985-03-12", birthState: "Jalisco", mobile: "55-0000-0001", localityId: "loc-san-ejemplo", affiliation: "6" },
+  { n: 2, givenNames: "Juana", paternalSurname: "Martínez", maternalSurname: "García", birthDate: "1972-07-30", birthState: "Michoacán", mobile: "55-0000-0002", localityId: "loc-san-ejemplo", affiliation: "2" },
   // Near-duplicate target: staff will search "Lucia Ramirez Torres" (no accent).
-  { n: 3, fullName: "Lucía Ramírez Torres", birthDate: "1990-01-05", birthState: "Jalisco", mobile: "55-0000-0003", localityId: "loc-rancho-prueba", formId: null, affiliation: "6" },
+  { n: 3, givenNames: "Lucía", paternalSurname: "Ramírez", maternalSurname: "Torres", birthDate: "1990-01-05", birthState: "Jalisco", mobile: "55-0000-0003", localityId: "loc-rancho-prueba", affiliation: "6" },
   // Pair registered twice with swapped surnames: opens a MatchReview for admin.
-  { n: 4, fullName: "Ana Sánchez Cruz", birthDate: "1968-11-22", birthState: "Colima", mobile: "55-0000-0004", localityId: "loc-san-ejemplo", formId: null, affiliation: "1" },
-  { n: 5, fullName: "Ana Cruz Sánchez", birthDate: "1968-11-22", birthState: "Colima", mobile: null, localityId: "loc-villa-demo", formId: null, affiliation: "1" },
-  { n: 6, fullName: "Rosa Flores Morales", birthDate: "1979-04-18", birthState: "Jalisco", mobile: "55-0000-0006", localityId: "loc-villa-demo", formId: "DEMO0000006", affiliation: "3" },
+  { n: 4, givenNames: "Ana", paternalSurname: "Sánchez", maternalSurname: "Cruz", birthDate: "1968-11-22", birthState: "Colima", mobile: "55-0000-0004", localityId: "loc-san-ejemplo", affiliation: "1" },
+  { n: 5, givenNames: "Ana", paternalSurname: "Cruz", maternalSurname: "Sánchez", birthDate: "1968-11-22", birthState: "Colima", mobile: null, localityId: "loc-villa-demo", affiliation: "1" },
+  { n: 6, givenNames: "Rosa", paternalSurname: "Flores", maternalSurname: "Morales", birthDate: "1979-04-18", birthState: "Jalisco", mobile: "55-0000-0006", localityId: "loc-villa-demo", affiliation: "3" },
   // Similar name to Rosa Flores Morales but a different birth date: name alone is never enough.
-  { n: 7, fullName: "Rosa Flores Mendoza", birthDate: "1995-09-02", birthState: "Jalisco", mobile: "55-0000-0007", localityId: "loc-villa-demo", formId: null, affiliation: "6" },
-  { n: 8, fullName: "Elena Gómez Vázquez", birthDate: "1983-12-01", birthState: "Nayarit", mobile: "55-0000-0008", localityId: "loc-rancho-prueba", formId: null, affiliation: "7" },
+  { n: 7, givenNames: "Rosa", paternalSurname: "Flores", maternalSurname: "Mendoza", birthDate: "1995-09-02", birthState: "Jalisco", mobile: "55-0000-0007", localityId: "loc-villa-demo", affiliation: "6" },
+  { n: 8, givenNames: "Elena", paternalSurname: "Gómez", maternalSurname: "Vázquez", birthDate: "1983-12-01", birthState: "Nayarit", mobile: "55-0000-0008", localityId: "loc-rancho-prueba", affiliation: "7" },
 ];
+
+const patients = patientParts.map((p) => ({
+  ...p,
+  fullName: joinNameParts(p),
+  formId: buildEiraId(p),
+}));
 
 // Previous-campaign visits to demonstrate "second visit with history".
 const priorVisits: { n: number; services: { type: ServiceType; data: Record<string, string> }[] }[] = [
@@ -133,6 +140,9 @@ async function main() {
   const summary = patients.map((p) => ({
     id: pid(p.n),
     fullName: p.fullName,
+    givenNames: p.givenNames,
+    paternalSurname: p.paternalSurname,
+    maternalSurname: p.maternalSurname,
     birthDate: p.birthDate,
     birthState: p.birthState,
     localityId: p.localityId,

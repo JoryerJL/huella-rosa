@@ -49,6 +49,9 @@ const WAITING_MESSAGE = "Esperando a que llegue la visita";
 export const FIELD_LABELS: Record<PatientField, string> = {
   formId: "ID del formato",
   fullName: "nombre",
+  givenNames: "nombre(s)",
+  paternalSurname: "apellido paterno",
+  maternalSurname: "apellido materno",
   birthDate: "fecha de nacimiento",
   birthState: "entidad de nacimiento",
   phone: "teléfono",

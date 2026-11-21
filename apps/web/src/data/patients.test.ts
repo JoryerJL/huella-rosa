@@ -1,7 +1,7 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "./db";
-import { createPatient, mergeSearchResults, opMeta, searchPatients } from "./patients";
+import { createPatient, getPatientRecord, mergeSearchResults, opMeta, resolveLocalPatientId, searchPatients } from "./patients";
 import { toastFor } from "./sync";
 import { hashPhone } from "../lib/phoneHash";
 import { es } from "../i18n/es";
@@ -25,7 +25,7 @@ async function loadPackage(expiresInMs: number) {
     fullName: "Lucía Ramírez Torres",
     birthDate: "1978-03-12",
     birthState: "Puebla",
-    formId: "DEMO000123",
+    formId: "RATL780312",
     localityId: null,
     localityName: "San Ejemplo",
     phoneHashes: [(await hashPhone("55-0000-0003"))!],
@@ -90,6 +90,40 @@ describe("createPatient", () => {
     const outbox = await db.outbox.toArray();
     expect(outbox).toHaveLength(1);
     expect(outbox[0]).toMatchObject({ opId: op.opId, status: "pending", kind: "CREATE_PATIENT" });
+  });
+});
+
+describe("readable record links (SPEC 6.1.1)", () => {
+  it("opens the record by <EIRA ID>-<4 chars> without signal, and old uuid links keep working", async () => {
+    await loadPackage(7 * DAY);
+    const id = "11111111-1111-4111-8111-111111111111";
+    expect(await resolveLocalPatientId("RATL780312-1111")).toBe(id);
+    expect(await resolveLocalPatientId("ratl780312-1111")).toBe(id);
+    expect(await resolveLocalPatientId(id)).toBe(id);
+    expect(await resolveLocalPatientId("RATL780312-9999")).toBeNull();
+    const record = await getPatientRecord("RATL780312-1111");
+    expect(record).toMatchObject({ id, formId: "RATL780312", fullName: "Lucía Ramírez Torres" });
+  });
+
+  it("keeps the name parts typed at registration", async () => {
+    const op = {
+      ...opMeta(),
+      kind: "CREATE_PATIENT" as const,
+      patientId: "33333333-3333-4333-8333-333333333333",
+      fields: {
+        fullName: "Ana de la Cruz",
+        givenNames: "Ana",
+        paternalSurname: "de la Cruz",
+        maternalSurname: null,
+        formId: "CRXA791130",
+        birthDate: "1979-11-30",
+      },
+      decision: "NO_MATCH" as const,
+      rejectedCandidateIds: [],
+    };
+    await createPatient(op);
+    const record = await getPatientRecord("CRXA791130-3333");
+    expect(record).toMatchObject({ givenNames: "Ana", paternalSurname: "de la Cruz", maternalSurname: null });
   });
 });
 

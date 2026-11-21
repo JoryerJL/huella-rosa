@@ -1,4 +1,7 @@
 import {
+  isUuid,
+  parsePatientSlug,
+  pickBySlug,
   scoreCandidate,
   type CampaignView,
   type MatchCandidate,
@@ -166,6 +169,9 @@ async function localRecord(id: string): Promise<PatientRecord | null> {
     id: patient.id,
     formId: patient.formId,
     fullName: patient.fullName,
+    givenNames: patient.givenNames ?? null,
+    paternalSurname: patient.paternalSurname ?? null,
+    maternalSurname: patient.maternalSurname ?? null,
     birthDate: patient.birthDate,
     birthState: patient.birthState,
     // Phone numbers never live on the device, only their hashes.
@@ -181,12 +187,26 @@ async function localRecord(id: string): Promise<PatientRecord | null> {
   };
 }
 
+/**
+ * Internal id for a record route param: the uuid itself (old links) or the readable slug
+ * "<EIRA ID>-<4 chars of the uuid>" resolved against this device (SPEC 6.1.1). Null when unknown here.
+ */
+export async function resolveLocalPatientId(param: string): Promise<string | null> {
+  if (isUuid(param)) return param;
+  const parsed = parsePatientSlug(param);
+  if (!parsed) return null;
+  const candidates = await db.patients.filter((p) => p.id.toLowerCase().startsWith(parsed.uuidPrefix)).toArray();
+  return pickBySlug(param, candidates)?.id ?? null;
+}
+
 /** With signal: the server record (clinical data only for clinical roles), plus visits still in the outbox. */
-export async function getPatientRecord(id: string): Promise<PatientRecord> {
+export async function getPatientRecord(param: string): Promise<PatientRecord> {
+  const localId = await resolveLocalPatientId(param);
   if (navigator.onLine) {
     try {
-      const record = await request<PatientRecord>(`/api/patients/${encodeURIComponent(id)}`);
-      const local = await db.visits.where("patientId").equals(id).toArray();
+      // The server resolves a slug too, for patients not in this tablet's package.
+      const record = await request<PatientRecord>(`/api/patients/${encodeURIComponent(localId ?? param)}`);
+      const local = await db.visits.where("patientId").equals(record.id).toArray();
       const localById = new Map(local.map((v) => [v.id, v]));
       const known = new Set(record.visits.map((v) => v.id));
       const pending = local.filter((v) => !known.has(v.id));
@@ -201,7 +221,7 @@ export async function getPatientRecord(id: string): Promise<PatientRecord> {
       if (!fallback) throw err;
     }
   }
-  const local = await localRecord(id);
+  const local = localId ? await localRecord(localId) : null;
   if (!local) throw new ApiError(es.record.notOnDevice, 404);
   return local;
 }
@@ -243,6 +263,9 @@ export async function createPatient(op: CreatePatientOp): Promise<void> {
       await db.patients.put({
         id: op.patientId,
         fullName: f.fullName,
+        givenNames: f.givenNames ?? null,
+        paternalSurname: f.paternalSurname ?? null,
+        maternalSurname: f.maternalSurname ?? null,
         birthDate: f.birthDate,
         birthState: f.birthState ?? null,
         formId: f.formId ?? null,

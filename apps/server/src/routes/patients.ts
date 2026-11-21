@@ -3,7 +3,10 @@ import type { Prisma } from "@prisma/client";
 import {
   CLINICAL_ROLES,
   isClinicalRole,
+  isUuid,
   normalizePhone,
+  parsePatientSlug,
+  pickBySlug,
   searchQuerySchema,
   type MatchCandidate,
   type PatientRecord,
@@ -115,7 +118,9 @@ export const patientRoutes = new Hono<SessionEnv>()
   })
   .get("/:id", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
     const staff = c.get("staff");
-    const requested = c.req.param("id");
+    // Accepts the internal uuid (old links) or the readable slug "<EIRA ID>-<4 chars>" (SPEC 6.1.1).
+    const requested = await resolvePatientParam(c.req.param("id"));
+    if (!requested) return c.json({ error: "No encontramos este expediente." }, 404);
     // A linked record opens its main record, which shows the merged history.
     const link = await db.patient.findUnique({ where: { id: requested }, select: { linkedToId: true } });
     const id = link?.linkedToId ?? requested;
@@ -152,6 +157,9 @@ export const patientRoutes = new Hono<SessionEnv>()
       id: patient.id,
       formId: patient.formId,
       fullName: patient.fullName,
+      givenNames: patient.givenNames,
+      paternalSurname: patient.paternalSurname,
+      maternalSurname: patient.maternalSurname,
       birthDate: patient.birthDate,
       birthState: patient.birthState,
       phone: patient.phone,
@@ -174,6 +182,18 @@ export const patientRoutes = new Hono<SessionEnv>()
     });
     return c.json(record);
   });
+
+/** Internal id for a route param that is either a uuid or a readable slug; null when no patient matches. */
+export async function resolvePatientParam(param: string): Promise<string | null> {
+  if (isUuid(param)) return param;
+  const parsed = parsePatientSlug(param);
+  if (!parsed) return null;
+  const candidates = await db.patient.findMany({
+    where: { id: { startsWith: parsed.uuidPrefix } },
+    select: { id: true, formId: true },
+  });
+  return pickBySlug(param, candidates)?.id ?? null;
+}
 
 function parseData(raw: string): Record<string, string> {
   try {

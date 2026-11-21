@@ -23,7 +23,9 @@ export const emptyDraft: SearchDraft = { fullName: "", day: "", month: "", year:
 export function draftToQuery(draft: SearchDraft): SearchQuery | null {
   const birthDate = isoFromParts(draft.day, draft.month, draft.year);
   if (!birthDate) return null;
-  return { fullName: draft.fullName.trim(), birthDate, [draft.extraKind]: draft.extra.trim() };
+  // The EIRA ID is compared without case (SPEC 6.1.1): "ratl900105" finds RATL900105.
+  const extra = draft.extraKind === "formId" ? draft.extra.trim().toUpperCase() : draft.extra.trim();
+  return { fullName: draft.fullName.trim(), birthDate, [draft.extraKind]: extra };
 }
 
 export function PatientSearchForm({

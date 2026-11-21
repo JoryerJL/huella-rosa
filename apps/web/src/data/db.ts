@@ -14,6 +14,10 @@ import type {
 
 /** Package patient plus fields only known on this device (typed by intake, not yet synced back). */
 export interface LocalPatient extends PackagePatient {
+  /** Name parts typed at registration on this device (SPEC 6.1.1). */
+  givenNames?: string | null;
+  paternalSurname?: string | null;
+  maternalSurname?: string | null;
   residence?: string | null;
   affiliation?: string | null;
 }
@@ -28,6 +32,8 @@ export interface LocalVisit extends PackageVisit {
   registeredAt?: string;
   patientName?: string;
   patientBirthDate?: string;
+  /** EIRA ID from GET /api/queue when the patient is not in the local package. */
+  patientFormId?: string | null;
 }
 
 export type OutboxStatus = "pending" | "sent" | "failed";
@@ -157,6 +163,7 @@ export function mergeVisit(incoming: LocalVisit, existing: LocalVisit | undefine
     registeredAt: incoming.registeredAt ?? existing.registeredAt,
     patientName: incoming.patientName ?? existing.patientName,
     patientBirthDate: incoming.patientBirthDate ?? existing.patientBirthDate,
+    patientFormId: incoming.patientFormId ?? existing.patientFormId,
   };
 }
 

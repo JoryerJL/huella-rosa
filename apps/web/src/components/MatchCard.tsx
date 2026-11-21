@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import type { MatchCandidate } from "@er/shared";
 import { es } from "../i18n/es";
 import { formatBirthDate, formatShortDate } from "../lib/format";
-import { Check, Chip, Warn } from "./ui";
+import { Check, Chip, EiraIdBadge, Warn } from "./ui";
 
 /** One candidate from the search: strength as text + icon (never color alone), reasons and last visit. */
 export function MatchCard({ candidate, action }: { candidate: MatchCandidate; action: ReactNode }) {
@@ -11,7 +11,6 @@ export function MatchCard({ candidate, action }: { candidate: MatchCandidate; ac
   const details = [
     es.matches.born(formatBirthDate(patient.birthDate)),
     patient.phoneLast4 ? es.matches.phoneLast4(patient.phoneLast4) : es.matches.noPhone,
-    patient.formId ? es.matches.formId(patient.formId) : null,
     es.common.visitsCount(patient.visitCount),
   ].filter(Boolean);
 
@@ -20,6 +19,7 @@ export function MatchCard({ candidate, action }: { candidate: MatchCandidate; ac
       <div className="min-w-0 space-y-3">
         <div className="flex flex-wrap items-center gap-3">
           <h2 className="text-2xl font-bold">{patient.fullName}</h2>
+          <EiraIdBadge formId={patient.formId} />
           <span
             className={`inline-flex items-center gap-1 rounded-md px-3 py-1 text-base font-semibold ${
               strong ? "bg-green-100 text-ok" : "bg-amber-100 text-warn"

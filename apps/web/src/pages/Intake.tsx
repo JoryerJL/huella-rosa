@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router";
-import type { MatchCandidate, SearchQuery } from "@er/shared";
+import { patientSlug, type MatchCandidate, type SearchQuery } from "@er/shared";
 import { Page } from "../components/Page";
 import { MatchCard } from "../components/MatchCard";
 import { PatientSearchForm, draftToQuery, emptyDraft, type SearchDraft } from "../components/PatientSearchForm";
@@ -100,7 +100,7 @@ export function Intake() {
                   key={c.patient.id}
                   candidate={c}
                   action={
-                    <Link to={`/patients/${c.patient.id}/visit?match=1`} className={buttonClass("primary", "w-full px-10 sm:w-auto")}>
+                    <Link to={`/patients/${patientSlug(c.patient)}/visit?match=1`} className={buttonClass("primary", "w-full px-10 sm:w-auto")}>
                       <Check />
                       {es.matches.isHer}
                     </Link>

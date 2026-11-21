@@ -98,6 +98,9 @@ export interface PatientRecord {
   id: string;
   formId: string | null;
   fullName: string;
+  givenNames?: string | null;
+  paternalSurname?: string | null;
+  maternalSurname?: string | null;
   birthDate: string;
   birthState: string | null;
   phone: string | null;
@@ -117,6 +120,10 @@ export interface PatientRecord {
 export const patientFieldsSchema = z.object({
   formId: z.string().trim().nullable().optional(),
   fullName: z.string().trim().min(2),
+  /** Name parts (SPEC 6.1.1, additive): used to propose the EIRA ID. fullName stays the joined name. */
+  givenNames: z.string().trim().nullable().optional(),
+  paternalSurname: z.string().trim().nullable().optional(),
+  maternalSurname: z.string().trim().nullable().optional(),
   birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   birthState: z.string().trim().nullable().optional(),
   phone: z.string().trim().nullable().optional(),
@@ -229,6 +236,8 @@ export interface QueueItem {
   patientId: string;
   fullName: string;
   birthDate: string;
+  /** EIRA ID (SPEC 6.1.1, additive): shown on the queue item and in readable links. */
+  formId?: string | null;
   registeredAt: string;
   steps: VisitStepView[];
 }

@@ -116,6 +116,11 @@ export const es = {
     month: "Mes",
     year: "Año",
   },
+  eiraId: {
+    label: "ID EIRA",
+    none: "Sin ID EIRA",
+    aria: (formId: string) => `ID EIRA ${formId.split("").join(" ")}`,
+  },
   search: {
     fullName: "Nombre completo",
     day: "Nacimiento: día",
@@ -183,9 +188,15 @@ export const es = {
     birthDate: "Fecha de nacimiento",
     submit: "Registrar y seguir con la visita",
     cancel: "Volver a las coincidencias",
+    eiraIdHint: "Lo calculamos con sus iniciales y fecha; corrígelo si el formato dice otro.",
+    errorGivenNames: "Escribe su nombre o nombres.",
+    errorPaternal: "Escribe su apellido paterno.",
   },
   fields: {
     fullName: "Nombre completo",
+    givenNames: "Nombre(s)",
+    paternalSurname: "Apellido paterno",
+    maternalSurname: "Apellido materno",
     birthDate: "Fecha de nacimiento",
     formId: "ID EIRA (4. ID)",
     birthState: "Entidad de nacimiento",

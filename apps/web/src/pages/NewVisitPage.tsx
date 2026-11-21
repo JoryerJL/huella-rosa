@@ -4,6 +4,7 @@ import {
   CLINICAL_ROLES,
   DEFAULT_STEPS_BY_SERVICE,
   SERVICE_TYPES,
+  patientSlug,
   type ClinicalRole,
   type PatientFields,
   type PatientRecord,
@@ -193,7 +194,7 @@ function VisitForm({ record }: { record: PatientRecord }) {
           <p className="text-lg">{es.visit.savedFolio(folio)}</p>
           <p className="text-5xl font-bold tracking-wider text-brand-strong">{folio}</p>
           <AttachScanButton link={{ visitId: ids.visitId, campaignId, folio }} />
-          <Button onClick={() => navigate(`/patients/${record.id}`)} className="w-full text-xl">
+          <Button onClick={() => navigate(`/patients/${patientSlug(record)}`)} className="w-full text-xl">
             {es.visit.goToRecord}
           </Button>
         </Card>

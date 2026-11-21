@@ -1,4 +1,5 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { es } from "../i18n/es";
 
 // Small shared building blocks. Touch targets are at least 56 px (min-h-14), text 18 px or more.
 
@@ -53,6 +54,23 @@ export function Alert({ children, tone = "danger" }: { children: ReactNode; tone
     <p role={tone === "danger" ? "alert" : "status"} className={`rounded-xl px-4 py-3 font-semibold ${cls}`}>
       {children}
     </p>
+  );
+}
+
+/** EIRA ID shown prominently (SPEC 6.1.1): monospace so each box of the paper form reads clearly. */
+export function EiraIdBadge({ formId, className = "" }: { formId: string | null | undefined; className?: string }) {
+  return formId ? (
+    <span
+      className={`inline-flex items-center gap-2 rounded-lg bg-blush px-3 py-1 text-plum ${className}`}
+      aria-label={es.eiraId.aria(formId)}
+    >
+      <span className="text-sm font-semibold uppercase">{es.eiraId.label}</span>
+      <span className="font-mono text-xl font-bold tracking-widest">{formId}</span>
+    </span>
+  ) : (
+    <span className={`inline-flex items-center rounded-lg border border-line px-3 py-1 text-base text-muted ${className}`}>
+      {es.eiraId.none}
+    </span>
   );
 }
 

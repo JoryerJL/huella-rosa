@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link, useParams } from "react-router";
 import {
   IMPORT_FIELDS,
+  patientSlug,
   type ImportBatchView,
   type ImportField,
   type ImportRowDecisionInput,
@@ -331,7 +332,7 @@ function ReviewStep({ batch, setBatch }: { batch: ImportBatchView; setBatch: (b:
                       {decisionLabel(row)}
                     </span>
                     {row.patientId && (
-                      <Link to={`/patients/${row.patientId}`} className={buttonClass("secondary")}>
+                      <Link to={`/patients/${patientSlug({ id: row.patientId, formId: rowFormId(row) })}`} className={buttonClass("secondary")}>
                         {es.imports.openRecord}
                       </Link>
                     )}
@@ -397,4 +398,10 @@ export function ImportBatchPage() {
     );
   }
   return batch.needsMapping ? <ColumnsStep batch={batch} onDone={setBatch} /> : <ReviewStep batch={batch} setBatch={setBatch} />;
+}
+
+/** EIRA ID of the record a decided row points to: the matched patient's, else the one in the row. */
+function rowFormId(row: ImportRowView): string | null {
+  const matched = row.candidates.find((c) => c.patient.id === row.patientId);
+  return matched?.patient.formId ?? row.data.formId ?? null;
 }

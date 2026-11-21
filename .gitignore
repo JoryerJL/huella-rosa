@@ -12,3 +12,4 @@ uploads/
 datos-reales/
 dev-dist/
 *.tsbuildinfo
+.atl/

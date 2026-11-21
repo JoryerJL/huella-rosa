@@ -239,7 +239,7 @@ Servidor Hono sobre Node (rutas API con validación de rol y bitácora)
 | App instalable que abre sin señal (`npm run demo`) | **Implementado** |
 | Roles validados en el servidor y bitácora | **Implementado** en todas las acciones construidas |
 | Servidor MCP: un agente de IA (Devin, Claude) entra con la cuenta de la persona, analiza una foto o un Excel, muestra el plan y lo aplica solo con su confirmación | **Implementado** (local; ver `apps/mcp/README.md`) |
-| Digitalización de formatos con AWS Textract real | **Implementado** en el despliegue (`OCR_MODE=textract`, fotos en S3); en local sigue `mock` |
+| Digitalización de formatos con AWS Textract real | **Implementado** en el despliegue (`OCR_MODE=textract`, fotos en S3); con 8 formatos ficticios: 46 de 48 datos correctos y la paciente encontrada solo con la foto en 7 de 8 (ver `docs/OCR-PRUEBAS.md`). Siguiente: marcar en ámbar datos vacíos y tolerar fotos inclinadas; probar con formatos reales escritos a mano. En local sigue `mock` |
 | Despliegue en AWS (EC2 + S3 + Textract) detrás de Cloudflare Tunnel, con AWS CDK | **Implementado**: https://huella-rosa.jjjl.dev (ver `docs/DEPLOY.md`) |
 | Usuarios del personal | **Simulado** (usuarios de demostración) |
 | Lectura de formatos | **Simulado** en local (`OCR_MODE=mock`); real con Textract en el despliegue |

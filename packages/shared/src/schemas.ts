@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  userId: z.string().min(1),
+  /** Staff username (never a list on screen). Case-insensitive. */
+  username: z.string().trim().toLowerCase().min(3).max(40),
   pin: z.string().regex(/^\d{4,6}$/),
 });
 export type LoginInput = z.infer<typeof loginSchema>;

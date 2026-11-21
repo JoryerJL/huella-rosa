@@ -168,6 +168,62 @@ export interface SyncPushResponse {
   results: OpResult[];
 }
 
+// ---------- Block 2: offline package, pull and live events (SPEC 6.1, 6.5, 6.8) ----------
+
+/** One patient in the campaign package: minimal index for offline matching. Never clinical. */
+export interface PackagePatient {
+  id: string;
+  fullName: string;
+  birthDate: string;
+  birthState: string | null;
+  formId: string | null;
+  localityId: string | null;
+  localityName: string | null;
+  /** SHA-256 hex of each normalized phone (normalizePhone), never the number itself. */
+  phoneHashes: string[];
+  /** Last 4 digits only, for visual check on the match card. */
+  phoneLast4: string | null;
+  version: number;
+  /** Set when this record is linked to a main record. */
+  linkedToId: string | null;
+}
+
+/** Visit history without clinical data. */
+export interface PackageVisit {
+  id: string;
+  patientId: string;
+  campaignId: string;
+  campaignName: string;
+  date: string;
+  folio: string | null;
+  serviceTypes: ServiceType[];
+}
+
+/** GET /api/campaigns/:id/package (intake). */
+export interface CampaignPackage {
+  campaign: CampaignView & { localityIds: string[] };
+  campaigns: CampaignView[];
+  patients: PackagePatient[];
+  visits: PackageVisit[];
+  generatedAt: string;
+  /** generatedAt + 7 days. The device refuses to use an expired package. */
+  expiresAt: string;
+  /** Opaque cursor to pass to GET /api/sync/pull. */
+  cursor: string;
+}
+
+/** GET /api/sync/pull?campaignId=&cursor= (intake): changes made by anyone since the cursor. */
+export interface PullResponse {
+  patients: PackagePatient[];
+  visits: PackageVisit[];
+  cursor: string;
+}
+
+/** GET /api/sync/events: Server-Sent Events, event name "changed", data = { cursor }. */
+export interface SyncChangedEvent {
+  cursor: string;
+}
+
 /** GET /api/campaigns — campaigns for the visit form (current one first). */
 export interface CampaignView {
   id: string;

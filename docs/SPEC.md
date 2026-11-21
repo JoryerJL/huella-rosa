@@ -176,7 +176,7 @@ Límites del MCP:
 
 Una jornada puede pasar **hasta 3 días sin internet**. Por eso:
 
-1. **Sesión sin red:** al entrar con señal, el dispositivo guarda una sesión válida por 4 días. Sin red se desbloquea con un PIN del personal. El rol se aplica en el dispositivo y **el servidor lo vuelve a validar al sincronizar**: rechaza operaciones de un usuario sin permiso.
+1. **Sesión sin red:** se entra siempre con **usuario y PIN**; la pantalla nunca muestra la lista del personal. Al entrar con señal, el servidor valida y el dispositivo guarda una sesión válida por 4 días y un verificador del PIN (PBKDF2-SHA-256 con sal aleatoria; nunca el PIN). Sin red solo puede entrar quien ya entró antes con señal en ese mismo dispositivo y dentro de esos 4 días; 5 PIN equivocados bloquean ese usuario en el dispositivo por 15 minutos. El rol se aplica en el dispositivo y **el servidor lo vuelve a validar al sincronizar**: rechaza operaciones de un usuario sin permiso.
 2. **Paquete de jornada vigente 7 días**, descargado antes de salir.
 3. **Identificar no depende del OCR:** sin señal, captura teclea nombre y fecha de nacimiento para buscar; la foto del formato se guarda y se lee al volver la señal.
 4. **Fotos comprimidas** en el dispositivo (lado mayor de 1600 px, JPEG) para que 3 días de jornada quepan sin problema.
@@ -190,8 +190,7 @@ Una jornada puede pasar **hasta 3 días sin internet**. Por eso:
 | Ruta | Rol | Contenido |
 |---|---|---|
 | `/` | todos | Entrada a la app; indicador "Con señal / Sin señal" y operaciones pendientes |
-| `/login` | personal | Usuarios de demostración |
-| `/intake` | captura | Buscar o registrar paciente |
+| `/login` | personal | Usuario y PIN (con o sin señal); nunca lista al personal || `/intake` | captura | Buscar o registrar paciente |
 | `/intake/scan` | captura | Foto del formato y confirmación de campos |
 | `/intake/import` | captura | Descargar plantilla de Excel, subir Excel o CSV, revisar lotes (incluidos los propuestos por agentes) |
 | `/patients` | captura, clínica | Buscar expediente (pantalla de inicio de consulta clínica) |
@@ -205,7 +204,8 @@ Una jornada puede pasar **hasta 3 días sin internet**. Por eso:
 ## 8. API
 
 ```
-POST /api/auth/login                 público     usuario demo -> sesión
+POST /api/auth/login                 público     usuario + PIN -> sesión (límite de intentos en Valkey)
+GET  /api/sync/events                personal    aviso "hay cambios" (SSE alimentado por pub/sub de Valkey)
 GET  /api/campaigns/[id]/package     captura     paquete de jornada (índice mínimo)
 GET  /api/patients/search            personal    coincidencias con puntaje y motivos
 GET  /api/patients/[id]              personal    expediente (campos según rol)

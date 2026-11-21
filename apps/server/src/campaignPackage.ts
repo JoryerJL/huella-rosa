@@ -1,6 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import {
+  campaignStatus,
   hashPhone,
+  localIsoDate,
+  type CampaignListItem,
+  type LocalityView,
   normalizePhone,
   type CampaignView,
   type PackagePatient,
@@ -198,9 +202,24 @@ export async function buildChangesSince(scope: CampaignScope, since: Date) {
   };
 }
 
-export async function listCampaigns(): Promise<CampaignView[]> {
-  return db.campaign.findMany({
-    select: { id: true, name: true, date: true, endDate: true },
-    orderBy: [{ date: "desc" }, { name: "asc" }],
+/** Campaigns with place, localities and status computed from the dates (SPEC 6.0). */
+export async function listCampaigns(): Promise<CampaignListItem[]> {
+  const [rows, localities] = await Promise.all([
+    db.campaign.findMany({
+      select: { id: true, name: true, municipality: true, state: true, date: true, endDate: true, localityIds: true },
+      orderBy: [{ date: "desc" }, { name: "asc" }],
+    }),
+    db.locality.findMany({ select: { id: true, name: true, municipality: true, hasSignal: true } }),
+  ]);
+  const byId = new Map(localities.map((l) => [l.id, l]));
+  const today = localIsoDate();
+  return rows.map((row) => {
+    const localityIds = parseIds(row.localityIds);
+    return {
+      ...row,
+      localityIds,
+      localities: localityIds.map((id) => byId.get(id)).filter((l): l is LocalityView => l !== undefined),
+      status: campaignStatus(row.date, row.endDate, today),
+    };
   });
 }

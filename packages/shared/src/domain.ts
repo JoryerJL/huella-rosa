@@ -56,3 +56,41 @@ export interface StaffProfile {
   name: string;
   role: Role;
 }
+
+// ---------- Staff and campaign administration (SPEC 6.0) ----------
+
+/** Login name rule: lowercase letters, digits and dots, 3 to 40 characters. */
+export const USERNAME_PATTERN = /^[a-z0-9.]{3,40}$/;
+/** Initial PIN: 4 to 6 digits, told to the person face to face. */
+export const PIN_PATTERN = /^\d{4,6}$/;
+
+/** Computed from the campaign dates, never stored: UPCOMING (Próxima), ACTIVE (En curso), FINISHED (Terminada). */
+export const CAMPAIGN_STATUSES = ["UPCOMING", "ACTIVE", "FINISHED"] as const;
+export type CampaignStatus = (typeof CAMPAIGN_STATUSES)[number];
+
+/** Dates are "YYYY-MM-DD" strings, so string comparison is date comparison. */
+export function campaignStatus(date: string, endDate: string, today: string): CampaignStatus {
+  if (today < date) return "UPCOMING";
+  if (today > endDate) return "FINISHED";
+  return "ACTIVE";
+}
+
+/** Today as "YYYY-MM-DD" in the local time zone of the machine running this code. */
+export function localIsoDate(now = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+// Month names for the proposed campaign name. The name is stored data (shown as typed), so the
+// same rule must run on the server (default) and in the form (proposal).
+const CAMPAIGN_NAME_MONTHS = [
+  "enero", "febrero", "marzo", "abril", "mayo", "junio",
+  "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+];
+
+/** "Jornada <municipality> · <month> <year>" from the first day, e.g. "Jornada Valle Ficticio · diciembre 2026". */
+export function defaultCampaignName(municipality: string, date: string): string {
+  const [year, month] = date.split("-");
+  const monthName = CAMPAIGN_NAME_MONTHS[Number(month) - 1] ?? "";
+  return `Jornada ${municipality.trim()} · ${monthName} ${year ?? ""}`.trim();
+}

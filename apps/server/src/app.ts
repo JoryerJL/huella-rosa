@@ -15,6 +15,9 @@ import { scanRoutes } from "./routes/scans";
 import { importRoutes } from "./routes/imports";
 // Block 4a: administration.
 import { conflictRoutes, dashboardRoutes, matchRoutes } from "./routes/admin";
+// Staff and campaign administration (SPEC 6.0).
+import { staffRoutes } from "./routes/staff";
+import { localityRoutes } from "./routes/localities";
 
 export const app = new Hono()
   .use(logger())
@@ -39,7 +42,9 @@ export const app = new Hono()
   // Block 4a: administration.
   .route("/api/matches", matchRoutes)
   .route("/api/conflicts", conflictRoutes)
-  .route("/api/dashboard", dashboardRoutes);
+  .route("/api/dashboard", dashboardRoutes)
+  .route("/api/staff", staffRoutes)
+  .route("/api/localities", localityRoutes);
 
 /** Type used by the web app's typed client (hono/client). */
 export type AppType = typeof app;

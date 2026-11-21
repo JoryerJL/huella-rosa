@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -k -n server,web -c magenta,cyan \"npm run dev -w @er/server\" \"npm run dev -w @er/web\"",
+    "dev": "concurrently -k -n server,web,mcp -c magenta,cyan,yellow \"npm run dev -w @er/server\" \"npm run dev -w @er/web\" \"npm run dev -w @er/mcp\"",
     "build": "npm run build -w @er/web",
     "demo": "npm run build -w @er/web && node apps/web/scripts/check-precache.mjs && concurrently -k -n server,web -c magenta,cyan \"npm run start -w @er/server\" \"npm run preview -w @er/web\"",
     "db:migrate": "npm run db:migrate -w @er/server",

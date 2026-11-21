@@ -442,6 +442,8 @@ export interface ImportBatchSummary {
   /** True while the column mapping waits for a person (rows are not evaluated yet). */
   needsMapping: boolean;
   counts: ImportBatchCounts;
+  /** "agente de <staff name>" when an AI agent proposed the batch (source MCP), else null. */
+  agentName: string | null;
 }
 
 /** GET /api/imports/:id */
@@ -477,6 +479,126 @@ export interface ImportRegisterNewResponse {
   registered: number;
   failed: number;
   batch: ImportBatchView;
+}
+
+// ---------- Block 4b: AI agents through MCP (SPEC 5, 6.7) ----------
+
+/** An AI agent connected to a staff account (OAuth). Never carries tokens or their hashes. */
+export interface AgentGrantView {
+  id: string;
+  /** Name the agent gave when it registered (e.g. "Claude Code"). */
+  clientName: string;
+  /** Staff account the agent acts as. */
+  userName: string;
+  isMine: boolean;
+  createdAt: string;
+  lastUsedAt: string | null;
+  revokedAt: string | null;
+}
+
+/** GET /api/agent-grants */
+export interface AgentGrantList {
+  grants: AgentGrantView[];
+}
+
+/** GET /api/agent/me: who the agent acts as. */
+export interface AgentIdentityView {
+  userName: string;
+  role: Role;
+  clientName: string;
+}
+
+/** An agent preview can be applied for this long after the analysis. */
+export const AGENT_PREVIEW_TTL_MINUTES = 30;
+
+/** POST /api/agent/analyze/spreadsheet: an Excel (.xlsx) or CSV file, base64. Max 2 MB. */
+export const analyzeSpreadsheetSchema = z.object({
+  fileBase64: z.string().min(4).max(2_900_000).describe("The .xlsx or .csv file, base64-encoded (max 2 MB)."),
+  fileName: z.string().trim().min(1).max(200).describe("Original file name, ending in .xlsx or .csv."),
+});
+export type AnalyzeSpreadsheetInput = z.infer<typeof analyzeSpreadsheetSchema>;
+
+/** POST /api/agent/analyze/photo: a photo of the paper form, base64. Max 10 MB. */
+export const analyzePhotoSchema = z.object({
+  imageBase64: z.string().min(4).max(14_000_000).describe("The photo of the paper form, base64-encoded (max 10 MB)."),
+  mimeType: z.enum(["image/jpeg", "image/png", "image/webp", "image/svg+xml"]),
+  fileName: z.string().trim().max(200).optional().describe("Original file name, if known."),
+});
+export type AnalyzePhotoInput = z.infer<typeof analyzePhotoSchema>;
+
+/** A possible existing record for a preview row: identification data only, never clinical. */
+export interface AgentPreviewCandidate {
+  patientId: string;
+  fullName: string;
+  birthDate: string;
+  birthState: string | null;
+  localityName: string | null;
+  formId: string | null;
+  phoneLast4: string | null;
+  strength: MatchStrength;
+  score: number;
+  reasons: MatchReason[];
+}
+
+export interface AgentPreviewRow {
+  row: number;
+  status: "NEW" | "POSSIBLE_MATCH" | "INVALID";
+  fields: ImportRowData;
+  /** Photo only: reading confidence per field (0-1). */
+  confidence?: Partial<Record<ImportField, number>>;
+  /** Plain Spanish reason when INVALID. */
+  reason: string | null;
+  candidates: AgentPreviewCandidate[];
+  /** Earlier rows of the same file that look like the same person. */
+  sameAsRows: ImportSameAsRow[];
+}
+
+/** Analysis result: nothing is saved until apply_import with the person's decisions. */
+export interface AgentPreview {
+  previewId: string;
+  kind: "SPREADSHEET" | "PHOTO";
+  fileName: string;
+  expiresAt: string;
+  /** Spreadsheet only: which column feeds which field. */
+  columns?: { header: string; field: ImportField | null }[];
+  counts: { new: number; possibleMatch: number; invalid: number };
+  rows: AgentPreviewRow[];
+}
+
+/** POST /api/agent/apply: only the decisions the person confirmed. */
+export const applyImportSchema = z.object({
+  previewId: z.string().uuid().describe("previewId returned by analyze_spreadsheet or analyze_form_photo."),
+  decisions: z
+    .array(
+      z.object({
+        row: z.number().int().min(1).describe("Row number from the preview."),
+        action: z.enum(["register", "isHer", "skip"]).describe("register = new patient; isHer = same person as patientId; skip = do not import."),
+        patientId: z.string().min(1).max(64).optional().describe("Required for isHer: the candidate the person chose."),
+      }),
+    )
+    .min(1)
+    .max(1000),
+  confirmedByUser: z.literal(true).describe("Must be true: the person explicitly confirmed this plan."),
+  confirmationText: z.string().trim().min(2).max(500).describe("The person's own words confirming the plan."),
+});
+export type ApplyImportInput = z.infer<typeof applyImportSchema>;
+
+export interface AgentApplyResult {
+  batchId: string;
+  registered: number;
+  linked: number;
+  skipped: number;
+  failed: { row: number; reason: string }[];
+  /** Rows without a decision: they stay in the batch for review in the app. */
+  pending: number;
+  reviewUrl: string;
+}
+
+/** GET /api/agent/import-template response. */
+export interface AgentImportTemplate {
+  maxRows: number;
+  columns: { field: ImportField; label: string; required: boolean; rule: string }[];
+  rules: string[];
 }
 
 // ---------- Block 4a: administration (SPEC 6.5, 6.6) ----------

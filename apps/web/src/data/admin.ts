@@ -1,5 +1,7 @@
 import type {
   AdminConflict,
+  AgentGrantList,
+  AgentGrantView,
   AdminMatch,
   CampaignListItem,
   CreateCampaignInput,
@@ -83,4 +85,15 @@ export async function updateCampaign(id: string, input: UpdateCampaignInput): Pr
       body: JSON.stringify(input),
     })
   ).campaign;
+}
+
+// ---------- Connected AI agents (SPEC 6.7) ----------
+
+/** Own agents; administration gets everyone's. */
+export async function fetchAgentGrants(): Promise<AgentGrantView[]> {
+  return (await request<AgentGrantList>("/api/agent-grants")).grants;
+}
+
+export async function revokeAgentGrant(id: string): Promise<AgentGrantView> {
+  return (await request<{ grant: AgentGrantView }>(`/api/agent-grants/${encodeURIComponent(id)}/revoke`, { method: "POST", body: "{}" })).grant;
 }

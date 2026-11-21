@@ -195,28 +195,33 @@ EIRA ya tiene registros en Excel. Tres entradas llevan esos datos al expediente,
 
 1. **Plantilla de Excel:** se descarga desde la app (`/intake/import`). Sus columnas son los campos de identificación de `plantillas/mamaria.json` con etiquetas en español y una hoja de instrucciones. Sirve para capturar en Excel cuando no hay app a la mano.
 2. **Subir un Excel o CSV:** la plantilla llena o un Excel existente de EIRA. Si las columnas no son las de la plantilla, el sistema propone a qué campo corresponde cada columna y una persona confirma el mapeo.
-3. **Servidor MCP:** un agente de IA (por ejemplo Devin o Claude, con la suscripción del equipo) puede leer un Excel desordenado, normalizarlo y **proponer** las altas a través de herramientas MCP. Esto aprovecha a los agentes para el trabajo repetitivo de limpiar datos.
+3. **Agente de IA por MCP:** una persona de Captura le da a su agente (por ejemplo Claude Code o Devin, con la suscripción del equipo) un Excel o la foto del formato. El agente lo analiza con las mismas herramientas de la app, le dice qué importaría y lo hace por ella **solo después de que confirme**. Esto aprovecha a los agentes para el trabajo repetitivo.
 
-Las tres entradas crean un **lote de importación** y nada más:
+Las tres entradas pasan por la misma validación y la misma búsqueda de coincidencias:
 
 - Cada fila se valida (campos obligatorios, fechas, formato del ID) y pasa por la misma búsqueda de coincidencias (6.2).
 - Cada fila queda como `NEW` (sin coincidencias), `POSSIBLE_MATCH` (con candidatas y motivos) o `INVALID` (con el motivo en lenguaje sencillo).
-- Captura revisa el lote: confirma altas, elige "Es ella" para agregar la visita al expediente existente, o descarta la fila. **Nada se guarda sin esa confirmación**; las filas confirmadas entran por el mismo camino de escritura que el resto (operaciones de sincronización).
+- Una persona de Captura decide cada fila: registrar, "Es ella" para agregarla al expediente que ella elige, o no importarla. **Nada se guarda sin esa confirmación**; las filas confirmadas entran por el mismo camino de escritura que el resto (operaciones de sincronización). En la app la decisión se toma en la revisión del lote; con un agente, en la conversación, y el lote queda en el historial de Importar con origen MCP.
 
-Herramientas MCP: servidor aparte en `apps/mcp` construido con **FastMCP** (TypeScript, paquete `fastmcp`), transporte HTTP en streaming en `/mcp`. Autentica cada llamada con el token de agente y llama a la API del servidor de Huella Rosa con ese token; no toca la base de datos directamente.
+**Entrar con la cuenta de Huella Rosa.** El servidor MCP no usa claves compartidas. La primera vez que un agente se conecta, el servidor responde que necesita permiso y el agente abre el navegador en la página "Conectar un agente de IA a tu cuenta": la persona escribe su usuario y PIN (mismas reglas, límite de intentos y mensaje que el inicio de sesión) y aprueba. Técnicamente es OAuth 2.1 con PKCE y registro dinámico del agente, como pide la especificación de autorización de MCP: el servidor de Huella Rosa es el servidor de autorización y emite un acceso de 1 hora y una renovación que cambia en cada uso, ligados a esa persona y guardados solo como resumen SHA-256 (`AgentGrant`). Desde ahí el agente actúa como esa persona y con su rol. Cada quien ve y desconecta sus agentes en "Agentes conectados" (barra superior); administración puede desconectar cualquiera.
+
+Herramientas MCP: servidor aparte en `apps/mcp` construido con **FastMCP** (TypeScript, paquete `fastmcp`), transporte HTTP en streaming en `/mcp`. Publica sus metadatos de recurso protegido, revisa el acceso con el servidor de Huella Rosa en cada solicitud y llama a su API; no toca la base de datos directamente.
 
 | Herramienta | Qué hace |
 |---|---|
 | `get_import_template` | Devuelve las columnas esperadas y sus reglas |
-| `propose_import` | Recibe filas normalizadas y crea un lote pendiente de revisión |
-| `get_import_status` | Estado de un lote: filas nuevas, posibles coincidencias, inválidas, confirmadas |
+| `analyze_spreadsheet` | Lee un Excel o CSV con el lector de la app, valida y busca coincidencias **sin guardar nada**. Devuelve cada fila como nueva, posible coincidencia (con candidatas y motivos) o con datos por corregir, y un `previewId` que dura 30 minutos |
+| `analyze_form_photo` | Lee los campos de identificación de la foto del formato con el lector de formatos de la app (`OCR_MODE`, nunca un modelo generativo), con su confianza, y busca coincidencias **sin guardar nada**. Nunca devuelve campos clínicos |
+| `apply_import` | Ejecuta solo las decisiones que la persona confirmó para un `previewId`: registrar, "Es ella" con la paciente que ella eligió (solo llena campos vacíos) o no importar. Exige `confirmedByUser` y las palabras de la persona. Cada vista previa se aplica una sola vez |
 
 Límites del MCP:
 
-- Ninguna herramienta puede confirmar, vincular, fusionar ni borrar. Solo proponer.
-- Solo campos de identificación. Ninguna herramienta lee ni recibe datos clínicos.
-- Cada agente usa un token propio con rol `intake`, emitido por administración y revocable; cada llamada queda en bitácora como `agent:<nombre del token>`.
-- La búsqueda de pacientes no se expone por MCP: evita que un agente consulte expedientes; las coincidencias se calculan en el servidor y solo las ve captura al revisar el lote.
+- Solo cuentas de Captura analizan e importan; otros roles reciben un mensaje sencillo.
+- El agente siempre muestra el plan y pide confirmación explícita antes de `apply_import`. Nunca decide una coincidencia por su cuenta: "Es ella" exige la paciente que la persona eligió entre las candidatas.
+- Ninguna herramienta vincula expedientes entre sí, fusiona ni borra.
+- Solo campos de identificación. Ninguna herramienta devuelve ni recibe datos clínicos.
+- La búsqueda libre de pacientes no se expone por MCP: el agente solo ve las candidatas de las filas que analizó.
+- Bitácora: "Análisis por agente de <nombre> (<cliente>)" y "Importación confirmada por <nombre> vía agente (<cliente>)", con ids y conteos, nunca valores de las filas.
 - Enviar datos de pacientes a un servicio de IA externo es una transferencia de datos personales: en el prototipo solo hay datos ficticios; en un piloto requiere aviso de privacidad, contrato con el proveedor y revisión legal.
 
 ### 6.8 Requisito: hasta 3 días sin conexión

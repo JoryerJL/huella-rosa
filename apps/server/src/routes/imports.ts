@@ -31,7 +31,7 @@ function isZip(bytes: Uint8Array) {
 }
 
 /** Reads an uploaded .xlsx or .csv into rows of text cells. */
-async function readUpload(file: File): Promise<string[][]> {
+export async function readUpload(file: File): Promise<string[][]> {
   const name = file.name.toLowerCase();
   const bytes = new Uint8Array(await file.arrayBuffer());
   if (name.endsWith(".xlsx")) {

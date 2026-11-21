@@ -53,7 +53,7 @@ interface PendingRow {
   cells: string[];
 }
 
-interface StoredCandidates {
+export interface StoredCandidates {
   patients: MatchCandidate[];
   rows: ImportSameAsRow[];
 }
@@ -70,7 +70,7 @@ const parseJson = <T>(raw: string | null, fallback: T): T => {
 // ---------- Creating a batch ----------
 
 /** Header row + data rows (with their spreadsheet row numbers), blank rows dropped. */
-function splitTable(table: string[][]): { headers: string[]; rows: PendingRow[] } {
+export function splitTable(table: string[][]): { headers: string[]; rows: PendingRow[] } {
   const headerIndex = table.findIndex((cells) => !isBlankRow(cells));
   if (headerIndex < 0) throw new ImportError("El archivo está vacío. Revisa que tenga la fila de títulos y al menos una paciente.");
   const headers = table[headerIndex].map((h) => h.trim());
@@ -136,11 +136,11 @@ function withExamples(columns: ImportColumn[], rows: PendingRow[]): ImportColumn
   });
 }
 
-function rowsWithData(rows: PendingRow[], columns: ImportColumn[]) {
+export function rowsWithData(rows: PendingRow[], columns: ImportColumn[]) {
   return rows.map((row) => ({ rowNumber: row.rowNumber, data: rowValues(row.cells, columns) }));
 }
 
-function countsDetail(counts: ImportBatchCounts) {
+export function countsDetail(counts: ImportBatchCounts) {
   return `rows=${counts.total} new=${counts.new} possible=${counts.possibleMatch} invalid=${counts.invalid}`;
 }
 
@@ -208,39 +208,63 @@ async function candidatesFor(data: ImportRowData): Promise<MatchCandidate[]> {
   });
 }
 
-/**
- * Validates and matches rows, storing each as INVALID, NEW or POSSIBLE_MATCH. Reusable by the
- * MCP `propose_import` tool (block 4), which hands over already-normalized identification data.
- */
-export async function evaluateRows(
-  batchId: string,
-  items: { rowNumber: number; data: ImportRowData }[],
-): Promise<ImportBatchCounts> {
+/** One row after validation and matching, before it is stored anywhere. */
+export interface AssessedRow {
+  rowNumber: number;
+  data: ImportRowData;
+  status: "NEW" | "POSSIBLE_MATCH" | "INVALID";
+  reason: string | null;
+  candidates: StoredCandidates | null;
+}
+
+/** Validates and matches rows without writing anything (also used by the agent preview). */
+export async function assessRows(items: { rowNumber: number; data: ImportRowData }[]): Promise<AssessedRow[]> {
   const earlier: { rowNumber: number; data: ImportRowData }[] = [];
-  const records = [];
+  const assessed: AssessedRow[] = [];
   for (const item of items) {
     const check = validateRow(item.data);
     if (!check.valid) {
-      records.push({ batchId, rowNumber: item.rowNumber, data: JSON.stringify(check.data), status: "INVALID", reason: check.reason });
+      assessed.push({ rowNumber: item.rowNumber, data: check.data, status: "INVALID", reason: check.reason, candidates: null });
       continue;
     }
     const patients = await candidatesFor(check.data);
     const rows = findSameAsRows(check.data, earlier);
     earlier.push({ rowNumber: item.rowNumber, data: check.data });
-    const candidates: StoredCandidates = { patients, rows };
-    records.push({
-      batchId,
+    assessed.push({
       rowNumber: item.rowNumber,
-      data: JSON.stringify(check.data),
+      data: check.data,
       status: patients.length > 0 || rows.length > 0 ? "POSSIBLE_MATCH" : "NEW",
-      candidates: JSON.stringify(candidates),
+      reason: null,
+      candidates: { patients, rows },
     });
   }
-  await db.importRow.createMany({ data: records });
-  return countRows(records.map((r) => r.status as ImportRowStatus));
+  return assessed;
 }
 
-function countRows(statuses: ImportRowStatus[]): ImportBatchCounts {
+/** Stores assessed rows in a batch. */
+export async function storeRows(batchId: string, assessed: AssessedRow[]): Promise<ImportBatchCounts> {
+  await db.importRow.createMany({
+    data: assessed.map((r) => ({
+      batchId,
+      rowNumber: r.rowNumber,
+      data: JSON.stringify(r.data),
+      status: r.status,
+      reason: r.reason,
+      candidates: r.candidates ? JSON.stringify(r.candidates) : undefined,
+    })),
+  });
+  return countRows(assessed.map((r) => r.status));
+}
+
+/** Validates and matches rows, storing each as INVALID, NEW or POSSIBLE_MATCH. */
+export async function evaluateRows(
+  batchId: string,
+  items: { rowNumber: number; data: ImportRowData }[],
+): Promise<ImportBatchCounts> {
+  return storeRows(batchId, await assessRows(items));
+}
+
+export function countRows(statuses: ImportRowStatus[]): ImportBatchCounts {
   const count = (s: ImportRowStatus) => statuses.filter((x) => x === s).length;
   return {
     total: statuses.length,
@@ -268,6 +292,8 @@ function toSummaryView(batch: BatchRecord, statuses: ImportRowStatus[]): ImportB
     counts: mapping.confirmed
       ? countRows(statuses)
       : { ...countRows([]), total: parseJson<PendingRow[]>(batch.pendingRows, []).length },
+    // Agent batches are created by "agente de <staff name>" (SPEC 6.7).
+    agentName: batch.source === "MCP" ? batch.createdBy : null,
   };
 }
 
@@ -283,6 +309,14 @@ export async function listBatches(limit = 20): Promise<ImportBatchSummary[]> {
       rows.filter((r) => r.batchId === batch.id).map((r) => r.status as ImportRowStatus),
     ),
   );
+}
+
+/** One batch's summary (counts only), or null when it does not exist. */
+export async function getBatchSummary(batchId: string): Promise<ImportBatchSummary | null> {
+  const batch = await db.importBatch.findUnique({ where: { id: batchId } });
+  if (!batch) return null;
+  const rows = await db.importRow.findMany({ where: { batchId }, select: { status: true } });
+  return toSummaryView(batch, rows.map((r) => r.status as ImportRowStatus));
 }
 
 export async function getBatchView(batchId: string): Promise<ImportBatchView> {

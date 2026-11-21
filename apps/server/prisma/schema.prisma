@@ -208,7 +208,7 @@ model AuditLog {
 
 // ---------- Block 3b: Excel/CSV import (SPEC 6.7) ----------
 
-// One uploaded file (or, later, one MCP propose_import call). Nothing here is a patient yet:
+// One uploaded file, or one apply_import of an AI agent (source MCP). Nothing here is a patient yet:
 // every row waits for an explicit person decision before it reaches the single write path.
 model ImportBatch {
   id            String      @id @default(uuid())
@@ -217,7 +217,8 @@ model ImportBatch {
   columnMapping String      @default("{}") // JSON: { confirmed, columns: [{ index, header, field, suggested }] }
   // Raw cells kept only until the column mapping is confirmed, then cleared (set to null).
   pendingRows   String?
-  createdBy     String // user id or "agent:<token name>"
+  createdBy     String // user id, or "agente de <staff name>" for batches proposed by an AI agent
+  agentGrantId  String? // AgentGrant that proposed the batch (source MCP)
   status        String      @default("OPEN") // OPEN | DONE
   createdAt     DateTime    @default(now())
   rows          ImportRow[]
@@ -240,4 +241,33 @@ model ImportRow {
   decidedAt  DateTime?
 
   @@unique([batchId, rowNumber])
+}
+
+// Block 4b: AI agents connected to a staff account through OAuth 2.1 + PKCE (SPEC 6.7).
+// Huella Rosa is the authorization server; the MCP server is the protected resource.
+// Clients register themselves (RFC 7591, public clients only).
+model OAuthClient {
+  id           String   @id @default(uuid()) // client_id
+  clientName   String
+  redirectUris String // JSON array of exact redirect URIs
+  createdAt    DateTime @default(now())
+}
+
+// One agent connected to one staff account. Tokens are stored as SHA-256 only; the access
+// token lives 1 hour and the refresh token rotates on every use.
+model AgentGrant {
+  id               String    @id @default(uuid())
+  userId           String
+  clientId         String
+  clientName       String
+  scopes           String    @default("imports")
+  accessTokenHash  String    @unique
+  accessExpiresAt  DateTime
+  refreshTokenHash String    @unique
+  refreshExpiresAt DateTime
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime?
+  revokedAt        DateTime?
+
+  @@index([userId])
 }

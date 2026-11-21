@@ -4,6 +4,7 @@ import { useSession } from "../lib/session";
 import { useOutboxSummary, usePackageStatus, useSyncState } from "../data/hooks";
 import { canSync, dismissSyncToast, syncNow } from "../data/sync";
 import { useEffect } from "react";
+import { Link } from "react-router";
 
 function clock(iso: string): string {
   const d = new Date(iso);
@@ -85,6 +86,9 @@ export function TopBar() {
             <span className="text-base">
               <strong>{profile.name}</strong> · {roleLabel[profile.role]}
             </span>
+            <Link to="/agents" className="flex min-h-12 items-center rounded-lg border border-line px-4 font-semibold hover:bg-surface">
+              {es.agents.topBarLink}
+            </Link>
             <button
               type="button"
               onClick={onLogout}

@@ -415,6 +415,33 @@ export const es = {
     photosPending: (n: number) => (n === 1 ? "1 foto por enviar" : `${n} fotos por enviar`),
   },
   // ---------- Block 3b: Excel import (SPEC 6.7) ----------
+  agents: {
+    topBarLink: "Agentes conectados",
+    title: "Agentes conectados",
+    subtitle: "Programas de IA que entraron con tu cuenta. Actúan como tú: analizan un Excel o una foto y solo importan lo que tú confirmes.",
+    subtitleAdmin: "Programas de IA que entraron con una cuenta del personal. Como administración puedes desconectar cualquiera.",
+    listTitle: "Tus agentes",
+    listTitleAdmin: "Agentes del personal",
+    activeGroup: "Conectados",
+    revokedGroup: "Desconectados",
+    connected: "Conectado",
+    disconnected: "Desconectado",
+    account: (name: string) => `Cuenta de ${name}`,
+    connectedAt: (when: string) => `Conectado el ${when}`,
+    lastUsed: (when: string) => `Último uso ${when}`,
+    neverUsed: "Sin usar todavía",
+    revokedAt: (when: string) => `Desconectado el ${when}`,
+    revoke: "Desconectar",
+    confirmRevoke: (name: string) => `¿Desconectar ${name}? Ya no podrá usar tu cuenta. Lo que ya importó se queda igual.`,
+    empty: "Todavía no has conectado ningún agente.",
+    howTitle: "Cómo conectar un agente",
+    howSteps: [
+      "1. En el agente (Claude Code, Devin) agrega Huella Rosa.",
+      "2. Se abre esta app: entra con tu usuario y PIN y elige «Conectar agente».",
+      "3. Pídele que analice tu Excel o la foto del formato. Te mostrará qué va a importar y solo lo hará cuando digas que sí.",
+    ],
+    howNote: "Nunca puede buscar pacientes ni ver datos clínicos. Desconéctalo aquí cuando ya no lo uses.",
+  },
   imports: {
     navLink: "Importar desde Excel",
     title: "Importar desde Excel",
@@ -432,6 +459,8 @@ export const es = {
     batchesTitle: "Archivos subidos",
     noBatches: "Todavía no has subido archivos.",
     batchLine: (when: string, summary: string) => `${when} · ${summary}`,
+    /** who = "agente de <staff name>". */
+    proposedByAgent: (who: string) => `Desde el ${who}`,
     rowsCount: (n: number) => (n === 1 ? "1 renglón" : `${n} renglones`),
     summary: (c: { new: number; possibleMatch: number; invalid: number; confirmed: number; discarded: number }) =>
       [

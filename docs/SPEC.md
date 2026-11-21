@@ -83,7 +83,7 @@ ImportBatch    id, source [TEMPLATE | EXCEL | MCP], fileName?, columnMapping (JS
 ImportRow      id, batchId, rowNumber, data (JSON con campos de identificación),
                status [NEW | POSSIBLE_MATCH | INVALID | CONFIRMED | DISCARDED],
                reason?, candidates (JSON), patientId?, decidedBy?, decidedAt?
-AgentToken     id, name, tokenHash, role (siempre intake), createdBy, revokedAt?
+AgentGrant     id, userId, clientName, scopes, tokenHash, refreshTokenHash, createdAt, lastUsedAt?, revokedAt?   (agente conectado con la cuenta de la persona, OAuth)
 AuditLog       id, at, actorId, deviceId, action, entity, entityId, detail
 ```
 
@@ -299,7 +299,7 @@ POST /api/imports                    captura     subir Excel o CSV -> lote con f
 GET  /api/imports/[id]               captura     lote y sus filas
 POST /api/imports/[id]/mapping       captura     confirmar mapeo de columnas
 POST /api/imports/[id]/rows/[row]    captura     confirmar alta, "Es ella" o descartar
-POST /api/agent-tokens               admin       emitir o revocar token de agente
+GET  /.well-known/oauth-authorization-server, POST /oauth/register, GET|POST /oauth/authorize, POST /oauth/token   OAuth 2.1 + PKCE para agentes; GET /api/agents (mis agentes conectados), POST /api/agents/:id/revoke
 POST /mcp (apps/mcp, FastMCP)        agente      servidor MCP (token de agente); llama a /api/imports con ese token
 ```
 

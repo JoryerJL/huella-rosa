@@ -60,7 +60,7 @@ Regla general: **el código y la estructura del proyecto van en inglés; lo que 
 | Servicios: revisión mamaria, ultrasonido, papanicolaou, mastografía | `BREAST_REVIEW`, `ULTRASOUND`, `PAP`, `MAMMOGRAPHY` |
 | Nombre, fecha de nacimiento, entidad de nacimiento, "4. ID", "Folio Eira", residencia, afiliación | `fullName`, `birthDate`, `birthState`, `formId`, `folio`, `residence`, `affiliation` |
 | Con señal / Sin señal | `online` / `offline` |
-| Lote de importación, fila, token de agente, plantilla de Excel | `ImportBatch`, `ImportRow`, `AgentToken`, `import template` |
+| Lote de importación, fila, token de agente, plantilla de Excel | `ImportBatch`, `ImportRow`, `AgentGrant` (agente conectado), `import template` |
 
 Si aparece un término que no está aquí, agrégalo a esta tabla antes de usarlo.
 

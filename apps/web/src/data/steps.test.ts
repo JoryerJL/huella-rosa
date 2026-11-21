@@ -93,7 +93,7 @@ describe("planned steps", () => {
     };
     expect(isOutsideCampaign(meta, "2026-11-21")).toBe(false);
     expect(isOutsideCampaign(meta, "2026-11-23")).toBe(true);
-    expect(isOutsideCampaign({ ...meta, campaign: { id: "c-1", name: "J", date: "2026-11-20" } }, "2026-11-21")).toBe(true);
+    expect(isOutsideCampaign({ ...meta, campaign: { id: "c-1", name: "J", date: "2026-11-20", endDate: "2026-11-20" } }, "2026-11-21")).toBe(true);
   });
 });
 

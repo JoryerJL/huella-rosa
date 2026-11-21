@@ -25,8 +25,8 @@ tl.fromTo(".screen", { opacity: 0 }, { opacity: 1, duration: 0.4, ease: "power1.
 
 // ---- End card ----
 fadeIn("#close", T.close[0]);
-tl.from("#cl-mark", { scale: 0.6, rotation: -8, opacity: 0, duration: 0.6, ease: "back.out(1.7)" }, T.close[0] + 0.2);
-tl.from("#cl-name", { y: 36, opacity: 0, duration: 0.55, ease: "expo.out" }, T.close[0] + 0.45);
-tl.from("#cl-eira", { y: 20, opacity: 0, duration: 0.5, ease: "power2.out" }, T.close[0] + 0.8);
+tl.from("#cl-mark", { scale: 0.6, rotation: -8, opacity: 0, duration: 0.5, ease: "back.out(1.7)" }, T.close[0] + 0.1);
+tl.from("#cl-name", { y: 36, opacity: 0, duration: 0.45, ease: "expo.out" }, T.close[0] + 0.3);
+tl.from("#cl-eira", { y: 20, opacity: 0, duration: 0.4, ease: "power2.out" }, T.close[0] + 0.5);
 
 window.__timelines["main"] = tl;

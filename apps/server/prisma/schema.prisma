@@ -165,6 +165,16 @@ model FormScan {
   extracted  String? // JSON: field -> { value, confidence }
   visitId    String?
   createdAt  DateTime @default(now())
+  // Block 3a (form photo): visit link by folio for offline attachments, uploader, and who confirmed.
+  campaignId     String?
+  folio          String?
+  originalName   String?
+  mimeType       String?
+  uploadedBy     String?
+  confirmedRoles String  @default("[]") // JSON array of roles that confirmed their part
+
+  @@index([visitId])
+  @@index([campaignId, folio])
 }
 
 // Durable idempotency: every sync op id is stored once (Valkey is only the fast path).
@@ -186,4 +196,40 @@ model AuditLog {
   detail   String? // short text, never clinical values
 
   @@index([entityId])
+}
+
+// ---------- Block 3b: Excel/CSV import (SPEC 6.7) ----------
+
+// One uploaded file (or, later, one MCP propose_import call). Nothing here is a patient yet:
+// every row waits for an explicit person decision before it reaches the single write path.
+model ImportBatch {
+  id            String      @id @default(uuid())
+  source        String // TEMPLATE | EXCEL | MCP
+  fileName      String?
+  columnMapping String      @default("{}") // JSON: { confirmed, columns: [{ index, header, field, suggested }] }
+  // Raw cells kept only until the column mapping is confirmed, then cleared (set to null).
+  pendingRows   String?
+  createdBy     String // user id or "agent:<token name>"
+  status        String      @default("OPEN") // OPEN | DONE
+  createdAt     DateTime    @default(now())
+  rows          ImportRow[]
+
+  @@index([createdAt])
+}
+
+model ImportRow {
+  id         String      @id @default(uuid())
+  batchId    String
+  batch      ImportBatch @relation(fields: [batchId], references: [id])
+  rowNumber  Int // spreadsheet row number, as the person sees it in Excel
+  data       String // JSON: identification fields only
+  status     String // NEW | POSSIBLE_MATCH | INVALID | CONFIRMED | DISCARDED
+  reason     String? // plain Spanish reason when INVALID
+  candidates String      @default("{}") // JSON: { patients: MatchCandidate[], rows: [{ rowNumber, reasons }] }
+  decision   String? // REGISTERED | IS_HER | DISCARDED
+  patientId  String?
+  decidedBy  String?
+  decidedAt  DateTime?
+
+  @@unique([batchId, rowNumber])
 }

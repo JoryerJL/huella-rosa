@@ -13,6 +13,11 @@ import { CampaignsPage } from "./pages/CampaignsPage";
 import { QueuePage } from "./pages/QueuePage";
 import { StepPage } from "./pages/StepPage";
 import { startSyncEngine } from "./data/sync";
+// Block 3a: form photo
+import { ScanIdentifyPage } from "./pages/ScanIdentifyPage";
+// Block 3b: Excel import
+import { ImportPage } from "./pages/ImportPage";
+import { ImportBatchPage } from "./pages/ImportBatchPage";
 
 const CLINICAL: Role[] = [...CLINICAL_ROLES];
 
@@ -98,6 +103,32 @@ export function App() {
             element={
               <RequireRole roles={["admin"]}>
                 <AdminAudit />
+              </RequireRole>
+            }
+          />
+          {/* Block 3a: form photo */}
+          <Route
+            path="/intake/scan"
+            element={
+              <RequireRole roles={["intake"]}>
+                <ScanIdentifyPage />
+              </RequireRole>
+            }
+          />
+          {/* Block 3b: Excel import */}
+          <Route
+            path="/intake/import"
+            element={
+              <RequireRole roles={["intake"]}>
+                <ImportPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/intake/import/:id"
+            element={
+              <RequireRole roles={["intake"]}>
+                <ImportBatchPage />
               </RequireRole>
             }
           />

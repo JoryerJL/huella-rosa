@@ -1,7 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "types": ["node"]
+    "types": [
+      "node"
+    ]
   },
-  "include": ["src", "prisma"]
+  "include": [
+    "src",
+    "prisma",
+    "scripts",
+    "test"
+  ]
 }

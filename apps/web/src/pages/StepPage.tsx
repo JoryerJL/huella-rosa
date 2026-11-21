@@ -1,9 +1,17 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate, useParams } from "react-router";
-import { isClinicalRole, type ClinicalRole, type PatientRecord, type ServiceType, type SyncOp } from "@er/shared";
+import {
+  LOW_CONFIDENCE,
+  isClinicalRole,
+  type ClinicalRole,
+  type PatientRecord,
+  type ScanView,
+  type ServiceType,
+  type SyncOp,
+} from "@er/shared";
 import { Page } from "../components/Page";
 import { StepChips } from "../components/StepChips";
-import { Alert, Button, Card, Check, buttonClass, inputClass } from "../components/ui";
+import { Alert, Button, Card, Check, Warn, buttonClass, inputClass } from "../components/ui";
 import { BackButton } from "./PatientRecordPage";
 import { getPackageMeta, type LocalVisit } from "../data/db";
 import { getPatientRecord, listCampaigns, opMeta } from "../data/patients";
@@ -13,6 +21,8 @@ import { isValidFolio, normalizeFolio } from "../lib/folio";
 import { formatShortDate } from "../lib/format";
 import { stepFieldsFor, type StepField } from "../lib/stepFields";
 import { es } from "../i18n/es";
+// Block 3a: form photo
+import { confirmScan, listScans } from "../data/scans";
 
 type StepOp = Extract<SyncOp, { kind: "UPDATE_SERVICE_FIELDS" | "COMPLETE_STEP" }>;
 
@@ -85,11 +95,42 @@ function StepForm({ folio, role, staffName, loaded }: { folio: string; role: Cli
 
   const mine = loaded.visit?.steps?.find((s) => s.role === role);
 
+  // Block 3a: a read form photo prefills only this specialist's fields, as suggestions to confirm.
+  const [scan, setScan] = useState<ScanView | null>(null);
+  const [suggested, setSuggested] = useState<Record<string, number>>({});
+  const [reviewed, setReviewed] = useState(false);
+  useEffect(() => {
+    if (!navigator.onLine || !loaded.campaignId) return;
+    let active = true;
+    listScans({ campaignId: loaded.campaignId, folio, visitId: loaded.visit?.id })
+      .then((list) => {
+        const read = list.find((x) => x.status === "READ" || x.status === "CONFIRMED") ?? list[0] ?? null;
+        if (!active || !read) return;
+        setScan(read);
+        const own = new Set(fields.map((f) => f.key));
+        const found: Record<string, number> = {};
+        const prefill: Record<string, string> = {};
+        for (const [key, v] of Object.entries(read.fields)) {
+          if (!own.has(key) || !v.value.trim()) continue;
+          found[key] = v.confidence;
+          prefill[key] = v.value;
+        }
+        setSuggested(found);
+        setValues((current) => ({ ...prefill, ...Object.fromEntries(Object.entries(current).filter(([, v]) => v.trim())) }));
+      })
+      .catch(() => undefined); // No signal or no photo: the step works as before.
+    return () => {
+      active = false;
+    };
+  }, [loaded.campaignId, loaded.visit?.id, folio, fields]);
+  const hasSuggestions = Object.keys(suggested).length > 0;
+
   async function submit(kind: "DONE" | "SKIPPED") {
     const name = confirmedName.trim();
     if (name.length < 2) return setError(es.step.errorName);
     if (!loaded.campaignId) return setError(es.step.noCampaign);
     if (kind === "SKIPPED" && reason.trim().length === 0) return setError(es.step.errorReason);
+    if (kind === "DONE" && hasSuggestions && !reviewed) return setError(es.scan.stepConfirmError);
 
     const base = { campaignId: loaded.campaignId, folio, confirmedName: name };
     const ops: StepOp[] = [];
@@ -113,6 +154,10 @@ function StepForm({ folio, role, staffName, loaded }: { folio: string; role: Cli
     setError(null);
     try {
       await saveStep(ops, staffName);
+      // Field names only; the values travel in the UPDATE_SERVICE_FIELDS op above.
+      if (kind === "DONE" && scan && hasSuggestions) {
+        await confirmScan(scan.id, Object.keys(suggested)).catch(() => undefined);
+      }
       navigate("/queue");
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
@@ -158,14 +203,27 @@ function StepForm({ folio, role, staffName, loaded }: { folio: string; role: Cli
             <Card className="space-y-5">
               <h2 className="text-xl font-bold">{es.step.fieldsTitle}</h2>
               {fields.length === 0 && <p className="text-muted">{es.step.noFields}</p>}
+              {hasSuggestions && <Alert tone="warn">{es.scan.stepSuggested}</Alert>}
               {fields.map((f) => (
                 <FieldInput
                   key={`${f.serviceType}:${f.key}`}
                   field={f}
                   value={values[f.key] ?? ""}
+                  low={f.key in suggested && suggested[f.key]! < LOW_CONFIDENCE}
                   onChange={(v) => setValues((s) => ({ ...s, [f.key]: v }))}
                 />
               ))}
+              {hasSuggestions && (
+                <label className="flex min-h-14 items-center gap-3 rounded-xl border-2 border-field px-4 text-lg font-semibold">
+                  <input
+                    type="checkbox"
+                    className="h-6 w-6"
+                    checked={reviewed}
+                    onChange={(e) => setReviewed(e.target.checked)}
+                  />
+                  {es.scan.stepConfirm}
+                </label>
+              )}
             </Card>
           )}
 
@@ -202,13 +260,40 @@ function StepForm({ folio, role, staffName, loaded }: { folio: string; role: Cli
           )}
         </form>
 
-        <History patientId={loaded.visit?.patientId ?? null} />
+        <div className="space-y-6">
+          {scan && (
+            <Card className="space-y-3">
+              <h2 className="text-xl font-bold">{es.scan.stepPhotoTitle}</h2>
+              <a href={scan.imageUrl} target="_blank" rel="noreferrer">
+                <img src={scan.imageUrl} alt={es.scan.photoAlt} className="w-full rounded-xl border border-line bg-white" />
+              </a>
+            </Card>
+          )}
+          <History patientId={loaded.visit?.patientId ?? null} />
+        </div>
       </div>
     </Page>
   );
 }
 
-function FieldInput({ field, value, onChange }: { field: StepField; value: string; onChange: (v: string) => void }) {
+function FieldInput({
+  field,
+  value,
+  low = false,
+  onChange,
+}: {
+  field: StepField;
+  value: string;
+  /** Read from the photo with low confidence: amber until the specialist checks it. */
+  low?: boolean;
+  onChange: (v: string) => void;
+}) {
+  const lowHint = low ? (
+    <span className="mt-1 flex items-center gap-1 text-base font-semibold text-warn">
+      <Warn />
+      {es.scan.checkThis}
+    </span>
+  ) : null;
   if (field.kind === "choice") {
     return (
       <fieldset>
@@ -230,6 +315,7 @@ function FieldInput({ field, value, onChange }: { field: StepField; value: strin
             );
           })}
         </div>
+        {lowHint}
       </fieldset>
     );
   }
@@ -240,13 +326,14 @@ function FieldInput({ field, value, onChange }: { field: StepField; value: strin
         <textarea className={`${inputClass} min-h-28 py-3`} value={value} onChange={(e) => onChange(e.target.value)} />
       ) : (
         <input
-          className={inputClass}
+          className={`${inputClass} ${low ? "border-amber-500 bg-amber-50" : ""}`}
           type={field.kind === "date" ? "date" : "text"}
           inputMode={field.kind === "number" ? "decimal" : undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}
         />
       )}
+      {lowHint}
     </label>
   );
 }

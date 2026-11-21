@@ -3,6 +3,8 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+const apiProxy = process.env.API_PROXY ?? "http://localhost:3001";
+
 export default defineConfig({
   plugins: [
     react(),
@@ -34,6 +36,12 @@ export default defineConfig({
   server: {
     port: 5173,
     // API_PROXY lets a second checkout run its server on another port.
-    proxy: { "/api": process.env.API_PROXY ?? "http://localhost:3001" },
+    proxy: { "/api": apiProxy },
+  },
+  // `npm run demo`: the production build (with its service worker) behind the same /api proxy.
+  preview: {
+    port: Number(process.env.PREVIEW_PORT ?? 4173),
+    strictPort: true,
+    proxy: { "/api": apiProxy },
   },
 });

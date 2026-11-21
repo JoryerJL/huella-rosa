@@ -1,7 +1,7 @@
 # Production stack (see docs/DEPLOY.md). Runs on the EC2 instance in /opt/huella-rosa.
 #   docker compose -f docker-compose.prod.yml up -d --build
 # Local check without the tunnel:
-#   docker compose -f docker-compose.prod.yml up -d --build app valkey
+#   docker compose -f docker-compose.prod.yml up -d --build app mcp valkey
 # Files on the instance, never committed: .env (app settings) and .env.tunnel (TUNNEL_TOKEN).
 services:
   app:
@@ -19,6 +19,8 @@ services:
       PORT: "3001"
       DATABASE_URL: file:/data/huella-rosa.db
       VALKEY_URL: redis://valkey:6379
+      # OAuth metadata, sign-in page and token endpoints use the public HTTPS origin.
+      OAUTH_ISSUER: ${PUBLIC_URL:-https://huella-rosa.jjjl.dev}
     volumes:
       - db:/data
     # Only reachable from the host itself; the public entry is the Cloudflare Tunnel.
@@ -27,6 +29,28 @@ services:
     depends_on:
       valkey:
         condition: service_healthy
+
+  # MCP server for AI agents (apps/mcp). Same image as app; reachable publicly through the tunnel
+  # ingress rules for /mcp and /.well-known/oauth-protected-resource (see docs/DEPLOY.md).
+  mcp:
+    image: huella-rosa:latest
+    pull_policy: never
+    restart: unless-stopped
+    working_dir: /app/apps/mcp
+    command: ["npx", "tsx", "src/index.ts"]
+    environment:
+      NODE_ENV: production
+      HR_API_URL: http://app:3001
+      HR_AUTH_URL: ${PUBLIC_URL:-https://huella-rosa.jjjl.dev}
+      MCP_PORT: "3002"
+      # FastMCP binds to localhost by default; cloudflared reaches it over the compose network.
+      FASTMCP_HOST: 0.0.0.0
+      MCP_PUBLIC_URL: ${PUBLIC_URL:-https://huella-rosa.jjjl.dev}/mcp
+    # The image healthcheck probes the app's /api/health; it does not apply here.
+    healthcheck:
+      disable: true
+    depends_on:
+      - app
 
   valkey:
     image: valkey/valkey:8

@@ -32,10 +32,11 @@ model Campaign {
 }
 
 model User {
-  id      String @id
-  name    String
-  role    String // intake | clinician | admin
-  pinHash String // scrypt hash, demo only
+  id       String @id
+  username String @unique // login name, lowercase; staff are never listed on screen
+  name     String
+  role     String // intake | clinician | admin
+  pinHash  String // scrypt hash, demo only
 }
 
 model Patient {
@@ -51,6 +52,7 @@ model Patient {
   locality      Locality? @relation(fields: [localityId], references: [id])
   affiliation   String?
   createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt // change tracking for GET /api/sync/pull
   createdBy     String
   deviceId      String
   version       Int       @default(1)
@@ -63,6 +65,7 @@ model Patient {
 
   @@index([birthDate])
   @@index([formId])
+  @@index([updatedAt])
 }
 
 model Visit {
@@ -74,10 +77,13 @@ model Visit {
   date       String // YYYY-MM-DD
   folio      String? // "Folio Eira"
   createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt // change tracking for GET /api/sync/pull
   createdBy  String
   deviceId   String
   version    Int       @default(1)
   services   Service[]
+
+  @@index([updatedAt])
 }
 
 model Service {

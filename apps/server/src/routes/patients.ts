@@ -1,12 +1,9 @@
 import { Hono } from "hono";
 import type { Prisma } from "@prisma/client";
 import {
-  nameTokens,
   normalizePhone,
-  scoreCandidate,
   searchQuerySchema,
   type MatchCandidate,
-  type MatchScore,
   type PatientRecord,
   type PatientSummary,
   type SearchResponse,
@@ -17,11 +14,11 @@ import {
 import { db } from "../db";
 import { writeAudit } from "../audit";
 import { valkey } from "../valkey";
+import { scoreMainCandidates } from "../matchCandidates";
 import { requireRole, type SessionEnv } from "../session";
 
 const SEARCH_LIMIT_PER_MINUTE = 60;
 const MAX_CANDIDATES = 10;
-const PREFILTER_LIMIT = 500;
 
 const visitInclude = {
   campaign: { select: { name: true } },
@@ -86,43 +83,8 @@ export const patientRoutes = new Hono<SessionEnv>()
     }
     const query = parsed.data;
 
-    // Cheap DB prefilter; the real decision is scoreCandidate (same rules as offline search).
-    const or: Prisma.PatientWhereInput[] = [{ birthDate: query.birthDate }];
-    const formId = query.formId?.trim();
-    if (formId) or.push({ formId }, { formId: formId.toUpperCase() });
-    const phone = normalizePhone(query.phone);
-    if (phone.length >= 7) {
-      const last4 = phone.slice(-4);
-      or.push({ phone: { contains: last4 } }, { mobile: { contains: last4 } });
-    }
-    for (const token of nameTokens(query.fullName).filter((t) => t.length >= 3)) {
-      or.push({ fullName: { contains: token } });
-    }
-
-    const rows = await db.patient.findMany({
-      where: { OR: or },
-      select: {
-        id: true,
-        fullName: true,
-        birthDate: true,
-        formId: true,
-        phone: true,
-        mobile: true,
-        birthState: true,
-        linkedToId: true,
-      },
-      take: PREFILTER_LIMIT,
-    });
-
-    // Linked records resolve to their main record; keep the best score per main record.
-    const best = new Map<string, MatchScore>();
-    for (const row of rows) {
-      const result = scoreCandidate(query, row);
-      if (result.score <= 0) continue;
-      const mainId = row.linkedToId ?? row.id;
-      const current = best.get(mainId);
-      if (!current || result.score > current.score) best.set(mainId, result);
-    }
+    // Cheap DB prefilter + scoreCandidate (same rules as offline search).
+    const best = await scoreMainCandidates(query);
 
     const ranked = [...best.entries()]
       .sort((a, b) => b[1].score - a[1].score)

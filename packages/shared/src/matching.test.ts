@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nameSimilarity, normalizeName, normalizePhone, scoreCandidate } from "./matching";
+import { hashPhone, nameSimilarity, normalizeName, normalizePhone, scoreCandidate } from "./matching";
 
 // Fictitious data only (CLAUDE.md rule 1).
 
@@ -77,5 +77,52 @@ describe("scoreCandidate", () => {
     );
     expect(result.score).toBe(0);
     expect(result.reasons).toEqual([]);
+  });
+});
+
+describe("hashPhone", () => {
+  it("hashes the normalized phone as SHA-256 hex, so formatting does not matter", async () => {
+    const a = await hashPhone("+52 (55) 0000-0003");
+    const b = await hashPhone("55-0000-0003");
+    expect(a).toMatch(/^[0-9a-f]{64}$/);
+    expect(a).toBe(b);
+    expect(a).not.toContain("5500000003");
+  });
+
+  it("returns an empty string when there are too few digits to identify anyone", async () => {
+    expect(await hashPhone(null)).toBe("");
+    expect(await hashPhone("12-34")).toBe("");
+  });
+});
+
+describe("scoreCandidate with phone hashes (offline package)", () => {
+  it("same phone formatted differently + same birth date -> STRONG with SAME_PHONE via hashes", async () => {
+    const candidate = {
+      fullName: "Elena Gómez Vázquez",
+      birthDate: "1983-12-01",
+      phoneHashes: [await hashPhone("55-0000-0008")],
+    };
+    const query = { fullName: "Nombre Distinto", birthDate: "1983-12-01", phone: "+52 55 0000 0008" };
+    const result = scoreCandidate(query, candidate, await hashPhone(query.phone));
+    expect(result.strength).toBe("STRONG");
+    expect(result.reasons).toEqual(expect.arrayContaining(["SAME_PHONE", "SAME_BIRTH_DATE"]));
+  });
+
+  it("different phone hash -> no SAME_PHONE", async () => {
+    const result = scoreCandidate(
+      { fullName: "Nombre Distinto", birthDate: "1983-12-01", phone: "5511112222" },
+      { fullName: "Elena Gómez Vázquez", birthDate: "1983-12-01", phoneHashes: [await hashPhone("5500000008")] },
+      await hashPhone("5511112222"),
+    );
+    expect(result.reasons).not.toContain("SAME_PHONE");
+    expect(result.strength).toBe("WEAK");
+  });
+
+  it("without a query hash, plain phone matching still works as before", () => {
+    const result = scoreCandidate(
+      { fullName: "Nombre Distinto", birthDate: "1983-12-01", phone: "5500000008" },
+      { fullName: "Elena Gómez Vázquez", birthDate: "1983-12-01", mobile: "55-0000-0008", phoneHashes: [] },
+    );
+    expect(result.reasons).toContain("SAME_PHONE");
   });
 });

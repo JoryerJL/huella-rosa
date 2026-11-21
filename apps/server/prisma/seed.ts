@@ -27,9 +27,9 @@ const campaigns = [
 }));
 
 const users = [
-  { id: "usr-intake", name: "Laura Pérez Ortiz", role: "intake" },
-  { id: "usr-clinician", name: "Dra. Carmen Ruiz Delgado", role: "clinician" },
-  { id: "usr-admin", name: "Sofía Méndez Aguilar", role: "admin" },
+  { id: "usr-intake", username: "lperez", name: "Laura Pérez Ortiz", role: "intake" },
+  { id: "usr-clinician", username: "cruiz", name: "Dra. Carmen Ruiz Delgado", role: "clinician" },
+  { id: "usr-admin", username: "smendez", name: "Sofía Méndez Aguilar", role: "admin" },
 ];
 
 const patients = [
@@ -129,7 +129,7 @@ async function main() {
   writeFileSync(out, JSON.stringify(summary, null, 2) + "\n");
 
   console.log(
-    `Seed OK: ${users.length} users (PIN ${DEMO_PIN}), ${localities.length} localities, ` +
+    `Seed OK: ${users.length} users (${users.map((u) => u.username).join(", ")}; PIN ${DEMO_PIN}), ${localities.length} localities, ` +
       `${campaigns.length} campaigns, ${patients.length} patients, ${priorVisits.length} prior visits, 1 match review.`,
   );
 }

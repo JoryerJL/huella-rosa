@@ -16,6 +16,8 @@ import { StepPage } from "./pages/StepPage";
 import { AdminHome } from "./pages/AdminHome";
 import { AdminMatches } from "./pages/AdminMatches";
 import { AdminConflicts } from "./pages/AdminConflicts";
+import { AdminStaff } from "./pages/AdminStaff";
+import { AdminCampaigns } from "./pages/AdminCampaigns";
 import { startSyncEngine } from "./data/sync";
 
 const CLINICAL: Role[] = [...CLINICAL_ROLES];
@@ -127,6 +129,22 @@ export function App() {
             element={
               <RequireRole roles={["admin", ...CLINICAL]}>
                 <AdminConflicts />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/staff"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminStaff />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/campaigns"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminCampaigns />
               </RequireRole>
             }
           />

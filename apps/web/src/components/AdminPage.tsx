@@ -11,6 +11,8 @@ const NAV = [
   { to: "/admin/matches", label: es.admin.nav.matches, end: false },
   { to: "/admin/conflicts", label: es.admin.nav.conflicts, end: false },
   { to: "/admin/audit", label: es.admin.nav.audit, end: false },
+  { to: "/admin/staff", label: es.admin.nav.staff, end: false },
+  { to: "/admin/campaigns", label: es.admin.nav.campaigns, end: false },
 ];
 
 /** Administration screens need signal (SPEC 6.9): offline they show one plain message instead. */

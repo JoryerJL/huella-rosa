@@ -1,4 +1,15 @@
-import type { AdminConflict, AdminMatch, DashboardResponse, PatientAuditEntry } from "@er/shared";
+import type {
+  AdminConflict,
+  AdminMatch,
+  CampaignListItem,
+  CreateCampaignInput,
+  CreateStaffInput,
+  DashboardResponse,
+  LocalityView,
+  PatientAuditEntry,
+  StaffView,
+  UpdateCampaignInput,
+} from "@er/shared";
 import { request } from "../lib/http";
 
 // Administration reads and decisions go straight to the server: these screens are online-only (SPEC 6.9).
@@ -35,4 +46,41 @@ export async function fetchPatientAudit(patientId: string): Promise<PatientAudit
 
 export function fetchDashboard(campaignId: string) {
   return request<DashboardResponse>(`/api/dashboard?campaignId=${encodeURIComponent(campaignId)}`);
+}
+
+// ---------- Staff and campaigns (SPEC 6.0) ----------
+
+export async function fetchStaff(): Promise<StaffView[]> {
+  return (await request<{ staff: StaffView[] }>("/api/staff")).staff;
+}
+
+/** The PIN goes to the server once and is never stored or shown again by the app. */
+export async function createStaff(input: CreateStaffInput): Promise<StaffView> {
+  return (await request<{ staff: StaffView }>("/api/staff", { method: "POST", body: JSON.stringify(input) })).staff;
+}
+
+export async function setStaffActive(id: string, active: boolean): Promise<StaffView> {
+  const action = active ? "reactivate" : "deactivate";
+  return (await request<{ staff: StaffView }>(`/api/staff/${encodeURIComponent(id)}/${action}`, { method: "POST", body: "{}" })).staff;
+}
+
+export function fetchAdminCampaigns(): Promise<CampaignListItem[]> {
+  return request<CampaignListItem[]>("/api/campaigns");
+}
+
+export async function fetchLocalities(): Promise<LocalityView[]> {
+  return (await request<{ localities: LocalityView[] }>("/api/localities")).localities;
+}
+
+export async function createCampaign(input: Partial<CreateCampaignInput>): Promise<CampaignListItem> {
+  return (await request<{ campaign: CampaignListItem }>("/api/campaigns", { method: "POST", body: JSON.stringify(input) })).campaign;
+}
+
+export async function updateCampaign(id: string, input: UpdateCampaignInput): Promise<CampaignListItem> {
+  return (
+    await request<{ campaign: CampaignListItem }>(`/api/campaigns/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    })
+  ).campaign;
 }

@@ -16,7 +16,7 @@ import { getPatientRecord, listCampaigns, opMeta } from "../data/patients";
 import { buildStepOps, findVisitByFolio, knownPatientName, saveStep } from "../data/steps";
 import { useSession } from "../lib/session";
 import { isValidFolio, normalizeFolio } from "../lib/folio";
-import { formatShortDate } from "../lib/format";
+import { formatShortDate, isoFromParts } from "../lib/format";
 import { stepFieldsFor, type StepField } from "../lib/stepFields";
 import { es } from "../i18n/es";
 // Block 3a: form photo
@@ -127,6 +127,11 @@ function StepForm({ folio, role, staffName, loaded }: { folio: string; role: Cli
     if (!loaded.campaignId) return setError(es.step.noCampaign);
     if (kind === "SKIPPED" && reason.trim().length === 0) return setError(es.step.errorReason);
     if (kind === "DONE" && hasSuggestions && !reviewed) return setError(es.scan.stepConfirmError);
+
+    if (kind === "DONE") {
+      const badDate = fields.find((f) => f.kind === "date" && values[f.key] && !ISO_DATE.test(values[f.key]!));
+      if (badDate) return setError(es.step.errorDate(badDate.label));
+    }
 
     const base = { campaignId: loaded.campaignId, folio, confirmedName: name };
     const ops = buildStepOps({ kind, role, fields, values, base, ids, reason });
@@ -257,6 +262,54 @@ function StepForm({ folio, role, staffName, loaded }: { folio: string; role: Cli
   );
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/** "YYYY-MM-DD" -> parts; anything else ("D/M/Y" typed so far) splits on "/". */
+function dateParts(value: string): [string, string, string] {
+  if (ISO_DATE.test(value)) {
+    const [y, m, d] = value.split("-");
+    return [d!, m!, y!];
+  }
+  const [d = "", m = "", y = ""] = value.split("/");
+  return [d, m, y];
+}
+
+const onlyDigits = (v: string, max: number) => v.replace(/\D/g, "").slice(0, max);
+
+/** Same DD / MM / AAAA boxes as the search form; stores "YYYY-MM-DD" once the date is valid. */
+function DatePartsInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [d, m, y] = dateParts(value);
+  function update(next: [string, string, string]) {
+    const [nd, nm, ny] = next;
+    if (!nd && !nm && !ny) return onChange("");
+    onChange(isoFromParts(nd, nm, ny) ?? `${nd}/${nm}/${ny}`);
+  }
+  const box = (part: string, placeholder: string, aria: string, max: number, at: 0 | 1 | 2) => (
+    <input
+      className={inputClass}
+      inputMode="numeric"
+      placeholder={placeholder}
+      aria-label={`${label}: ${aria}`}
+      value={part}
+      onChange={(e) => {
+        const next: [string, string, string] = [d, m, y];
+        next[at] = onlyDigits(e.target.value, max);
+        update(next);
+      }}
+    />
+  );
+  return (
+    <fieldset>
+      <legend className="text-lg font-semibold">{label}</legend>
+      <div className="mt-1 grid grid-cols-[1fr_1fr_1.8fr] gap-4">
+        {box(d, "DD", es.step.day, 2, 0)}
+        {box(m, "MM", es.step.month, 2, 1)}
+        {box(y, "AAAA", es.step.year, 4, 2)}
+      </div>
+    </fieldset>
+  );
+}
+
 function FieldInput({
   field,
   value,
@@ -300,6 +353,14 @@ function FieldInput({
       </fieldset>
     );
   }
+  if (field.kind === "date") {
+    return (
+      <div>
+        <DatePartsInput label={field.label} value={value} onChange={onChange} />
+        {lowHint}
+      </div>
+    );
+  }
   return (
     <label className="block">
       <span className="text-lg font-semibold">{field.label}</span>
@@ -308,7 +369,7 @@ function FieldInput({
       ) : (
         <input
           className={`${inputClass} ${low ? "border-amber-500 bg-amber-50" : ""}`}
-          type={field.kind === "date" ? "date" : "text"}
+          type="text"
           inputMode={field.kind === "number" ? "decimal" : undefined}
           value={value}
           onChange={(e) => onChange(e.target.value)}

@@ -1,5 +1,6 @@
 import { isRole, loginSchema, type StaffProfile } from "@er/shared";
 import { db, requestPersistentStorage } from "./db";
+import { ensureFolioPrefix } from "./folioPrefix";
 import { ApiError, request } from "../lib/http";
 import { createPinVerifier, verifyPin } from "../lib/pinVerifier";
 import { es } from "../i18n/es";
@@ -39,6 +40,8 @@ async function loginOnline(username: string, pin: string): Promise<LoginResult> 
     lockedUntil: null,
   });
   requestPersistentStorage();
+  // Once per tablet: the folio prefix intake needs to register visits without signal.
+  void ensureFolioPrefix();
   return { ok: true, profile: data.profile, sessionSavedAt };
 }
 

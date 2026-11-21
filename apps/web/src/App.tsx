@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
-import { ROLE_HOME } from "@er/shared";
+import { CLINICAL_ROLES, ROLE_HOME, type Role } from "@er/shared";
 import { SessionProvider, useSession } from "./lib/session";
 import { RequireRole } from "./components/RequireRole";
 import { Login } from "./pages/Login";
@@ -10,7 +10,11 @@ import { PatientRecordPage } from "./pages/PatientRecordPage";
 import { NewVisitPage } from "./pages/NewVisitPage";
 import { AdminAudit } from "./pages/AdminAudit";
 import { CampaignsPage } from "./pages/CampaignsPage";
+import { QueuePage } from "./pages/QueuePage";
+import { StepPage } from "./pages/StepPage";
 import { startSyncEngine } from "./data/sync";
+
+const CLINICAL: Role[] = [...CLINICAL_ROLES];
 
 function Home() {
   const { profile } = useSession();
@@ -44,7 +48,7 @@ export function App() {
           <Route
             path="/patients"
             element={
-              <RequireRole roles={["intake", "clinician"]}>
+              <RequireRole roles={["intake", ...CLINICAL]}>
                 <Patients />
               </RequireRole>
             }
@@ -52,7 +56,7 @@ export function App() {
           <Route
             path="/patients/:id"
             element={
-              <RequireRole roles={["intake", "clinician"]}>
+              <RequireRole roles={["intake", ...CLINICAL]}>
                 <PatientRecordPage />
               </RequireRole>
             }
@@ -68,8 +72,24 @@ export function App() {
           <Route
             path="/campaigns"
             element={
-              <RequireRole roles={["intake", "admin"]}>
+              <RequireRole roles={["intake", ...CLINICAL, "admin"]}>
                 <CampaignsPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/queue"
+            element={
+              <RequireRole roles={CLINICAL}>
+                <QueuePage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/visits/:folio/step"
+            element={
+              <RequireRole roles={CLINICAL}>
+                <StepPage />
               </RequireRole>
             }
           />

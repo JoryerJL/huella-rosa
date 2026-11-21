@@ -1,8 +1,10 @@
 import { Link, useNavigate, useParams } from "react-router";
-import type { PatientRecord, ServiceView, VisitView } from "@er/shared";
+import type { PatientRecord, ServiceView } from "@er/shared";
 import { Page } from "../components/Page";
 import { Alert, BackArrow, Button, Card, Lock, Plus, buttonClass } from "../components/ui";
 import { usePatientRecord } from "../data/usePatientRecord";
+import type { VisitWithSteps } from "../data/patients";
+import { StepChips } from "../components/StepChips";
 import { useSession } from "../lib/session";
 import { ageFrom, formatBirthDate, formatShortDate, todayIso } from "../lib/format";
 import { es } from "../i18n/es";
@@ -28,7 +30,7 @@ export function recordSubtitle(record: PatientRecord): string {
     .join(" · ");
 }
 
-/** Expediente (SPEC 6.3): identification, linked records note and visit timeline. Clinical data only for clinician. */
+/** Expediente (SPEC 6.3): identification, linked records note and visit timeline. Clinical data only for the clinical roles (server decides). */
 export function PatientRecordPage() {
   const { id } = useParams();
   const { profile } = useSession();
@@ -123,7 +125,7 @@ function Item({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function VisitItem({ visit, first }: { visit: VisitView; first: boolean }) {
+function VisitItem({ visit, first }: { visit: VisitWithSteps; first: boolean }) {
   const isToday = visit.date === todayIso();
   const hasData = visit.services.some((s) => s.data !== null);
   return (
@@ -150,6 +152,11 @@ function VisitItem({ visit, first }: { visit: VisitView; first: boolean }) {
           </li>
         ))}
       </ul>
+      {visit.steps && visit.steps.length > 0 && (
+        <div className="mt-2">
+          <StepChips steps={visit.steps} />
+        </div>
+      )}
       {hasData ? (
         <div className="mt-3 space-y-2">
           {visit.services.map((s) => (s.data ? <ServiceResult key={s.id} service={s} data={s.data} /> : null))}

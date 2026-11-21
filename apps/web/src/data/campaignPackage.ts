@@ -1,5 +1,5 @@
 import type { CampaignPackage, CampaignView } from "@er/shared";
-import { db, setSyncMeta, type PackageMeta } from "./db";
+import { db, mergeVisit, setSyncMeta, type PackageMeta } from "./db";
 import { syncNow } from "./sync";
 import { ApiError, request } from "../lib/http";
 import { es } from "../i18n/es";
@@ -23,7 +23,8 @@ export async function downloadCampaignPackage(): Promise<PackageMeta> {
 
   const meta: PackageMeta = {
     campaignId: pkg.campaign.id,
-    campaign: { id: pkg.campaign.id, name: pkg.campaign.name, date: pkg.campaign.date },
+    // Keep every CampaignView field (e.g. endDate) except the package-only locality list.
+    campaign: (({ localityIds: _localities, ...view }) => view)(pkg.campaign),
     campaigns: pkg.campaigns,
     generatedAt: pkg.generatedAt,
     expiresAt: pkg.expiresAt,
@@ -33,11 +34,13 @@ export async function downloadCampaignPackage(): Promise<PackageMeta> {
     // Keep rows that still have unsynced ops on this device; replace everything else.
     const keep = new Set<string>();
     const open = await db.outbox.where("status").anyOf("pending", "failed").toArray();
-    for (const entry of open) keep.add(entry.op.patientId);
+    for (const entry of open) if ("patientId" in entry.op) keep.add(entry.op.patientId);
+    const previousVisits = new Map((await db.visits.toArray()).map((v) => [v.id, v]));
     await db.patients.filter((p) => !keep.has(p.id)).delete();
     await db.visits.filter((v) => !keep.has(v.patientId)).delete();
     await db.patients.bulkPut(pkg.patients);
-    await db.visits.bulkPut(pkg.visits);
+    // Keep the step state this tablet knows for visits that come back in the package.
+    await db.visits.bulkPut(pkg.visits.map((v) => mergeVisit(v, previousVisits.get(v.id))));
     await db.meta.put({ key: "package", value: meta });
   });
   await setSyncMeta({ cursor: pkg.cursor, lastSyncAt: new Date().toISOString() });

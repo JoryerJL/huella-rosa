@@ -14,15 +14,21 @@ export function TopBar() {
   const online = useOnline();
   const { profile, signOut } = useSession();
   const outbox = useOutboxSummary();
-  const { sync } = usePackageStatus();
+  const { sync, meta } = usePackageStatus();
   const syncState = useSyncState();
 
-  const pendingLine = outbox.pending > 0 ? es.sync.pending(outbox.pending) : es.sync.allSynced;
+  // WAITING ops stay pending: they are counted here and named below.
+  const pendingLine =
+    outbox.pending > 0
+      ? es.sync.pending(outbox.pending)
+      : sync.lastSyncAt
+        ? es.sync.allSent(clock(sync.lastSyncAt))
+        : es.sync.allSynced;
   const sinceLine =
     outbox.pending > 0 && outbox.oldestPendingAt
       ? es.sync.since(clock(outbox.oldestPendingAt))
       : sync.lastSyncAt
-        ? es.sync.lastSync(clock(sync.lastSyncAt))
+        ? null
         : es.sync.never;
 
   function onLogout() {
@@ -32,11 +38,18 @@ export function TopBar() {
 
   return (
     <header className="flex flex-wrap items-center justify-between gap-4 border-b border-line bg-white px-6 py-3">
-      <span className="text-xl font-bold text-brand">{es.appName}</span>
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xl font-bold text-brand">{es.appName}</span>
+        {/* The campaign every visit on this tablet goes to (SPEC 6.2 item 5). */}
+        <span className="text-base text-muted">{meta ? meta.campaign.name : es.package.noPackageShort}</span>
+      </div>
       <div className="flex flex-wrap items-center gap-4">
         <div className="text-base leading-tight" role="status" aria-live="polite">
           <strong className="block">{pendingLine}</strong>
-          <span className="text-muted">{sinceLine}</span>
+          {sinceLine && <span className="text-muted">{sinceLine}</span>}
+          {outbox.waiting.length > 0 && (
+            <span className="block font-semibold text-warn">{es.sync.waitingCount(outbox.waiting.length)}</span>
+          )}
           {outbox.failed.length > 0 && <span className="block font-semibold text-warn">{es.sync.failed(outbox.failed.length)}</span>}
           {syncState.error && <span className="block max-w-xs font-semibold text-danger">{syncState.error}</span>}
         </div>

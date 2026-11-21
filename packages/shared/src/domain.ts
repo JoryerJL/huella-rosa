@@ -17,7 +17,7 @@ export const ROLE_HOME: Record<Role, string> = {
   nutritionist: "/queue",
   doctor: "/queue",
   pathologist: "/queue",
-  admin: "/admin/audit",
+  admin: "/admin",
 };
 
 export const STEP_STATUSES = ["PENDING", "DONE", "SKIPPED"] as const;

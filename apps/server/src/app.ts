@@ -13,6 +13,8 @@ import { queueRoutes } from "./routes/queue";
 import { scanRoutes } from "./routes/scans";
 // Block 3b: Excel import
 import { importRoutes } from "./routes/imports";
+// Block 4a: administration.
+import { conflictRoutes, dashboardRoutes, matchRoutes } from "./routes/admin";
 
 export const app = new Hono()
   .use(logger())
@@ -33,7 +35,11 @@ export const app = new Hono()
   // Block 3a: form photo
   .route("/api/scans", scanRoutes)
   // Block 3b: Excel import
-  .route("/api/imports", importRoutes);
+  .route("/api/imports", importRoutes)
+  // Block 4a: administration.
+  .route("/api/matches", matchRoutes)
+  .route("/api/conflicts", conflictRoutes)
+  .route("/api/dashboard", dashboardRoutes);
 
 /** Type used by the web app's typed client (hono/client). */
 export type AppType = typeof app;

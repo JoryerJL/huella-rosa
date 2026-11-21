@@ -14,9 +14,11 @@ export interface SyncState {
   running: boolean;
   /** Plain Spanish message when the last attempt could not finish (e.g. the session ended). */
   error: string | null;
+  /** One line after a pass that sent something: "Se enviaron N cambios" or "N cambios necesitan revisión". */
+  toast: string | null;
 }
 
-let state: SyncState = { running: false, error: null };
+let state: SyncState = { running: false, error: null, toast: null };
 const listeners = new Set<() => void>();
 
 function setState(patch: Partial<SyncState>) {
@@ -52,13 +54,27 @@ export function settle(result: OpResult | undefined) {
   };
 }
 
-export async function pushOutbox(): Promise<void> {
+/** How a push pass ended, for the toast when signal returns. */
+export interface PushSummary {
+  sent: number;
+  review: number;
+}
+
+/** The toast line for a push pass; null when nothing was sent. */
+export function toastFor(summary: PushSummary): string | null {
+  if (summary.review > 0) return es.syncToast.review(summary.review);
+  if (summary.sent > 0) return es.syncToast.sent(summary.sent);
+  return null;
+}
+
+export async function pushOutbox(): Promise<PushSummary> {
+  const summary: PushSummary = { sent: 0, review: 0 };
   // WAITING ops stay pending; send each op at most once per pass so they do not loop.
   const sentThisPass = new Set<string>();
   for (;;) {
     const batch = await db.outbox.where("status").equals("pending").sortBy("seq");
     const slice = batch.filter((e) => !sentThisPass.has(e.opId)).slice(0, PUSH_BATCH_SIZE);
-    if (slice.length === 0) return;
+    if (slice.length === 0) return summary;
     const res = await request<SyncPushResponse>("/api/sync/push", {
       method: "POST",
       body: JSON.stringify({ ops: slice.map((e) => e.op) }),
@@ -71,11 +87,13 @@ export async function pushOutbox(): Promise<void> {
         const patch = settle(byId.get(entry.opId));
         if (patch && entry.seq !== undefined) {
           answered++;
+          if (patch.status === "sent") summary.sent++;
+          if (patch.status === "failed") summary.review++;
           await db.outbox.update(entry.seq, patch);
         }
       }
     });
-    if (answered === 0) return; // Avoid looping on a batch the server ignored.
+    if (answered === 0) return summary; // Avoid looping on a batch the server ignored.
   }
 }
 
@@ -113,9 +131,11 @@ export function syncNow(): Promise<void> {
   inFlight = (async () => {
     setState({ running: true });
     try {
-      await pushOutbox();
+      const summary = await pushOutbox();
       // Block 3a: queued form photos go after the ops, so their visit usually exists already.
       await pushScanQueue();
+      const toast = toastFor(summary);
+      if (toast) setState({ toast });
       await pull();
       await setSyncMeta({ lastSyncAt: new Date().toISOString() });
       setState({ error: null });
@@ -136,6 +156,10 @@ export function syncNow(): Promise<void> {
 }
 
 /** Fire-and-forget sync after a local write. */
+export function dismissSyncToast(): void {
+  if (state.toast) setState({ toast: null });
+}
+
 export function requestSync(): void {
   void syncNow();
 }

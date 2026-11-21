@@ -1,62 +1,85 @@
-import { useEffect, useState } from "react";
-import { Page } from "../components/Page";
-import { api } from "../lib/api";
-import { es } from "../i18n/es";
+import { useState } from "react";
+import type { MatchCandidate, PatientAuditEntry, SearchQuery } from "@er/shared";
+import { AdminPage, when } from "../components/AdminPage";
+import { MatchCard } from "../components/MatchCard";
+import { PatientSearchForm, emptyDraft } from "../components/PatientSearchForm";
+import { Alert, Button, Card } from "../components/ui";
+import { fetchPatientAudit } from "../data/admin";
+import { searchPatients } from "../data/patients";
+import { auditSentence, es } from "../i18n/es";
 
-interface Entry {
-  id: number;
-  at: string;
-  actorId: string;
-  action: string;
-  deviceId: string | null;
-  detail: string | null;
-}
+const t = es.admin.audit;
 
+/** Bitácora por paciente: find her with the usual search, then read what happened in plain Spanish. */
 export function AdminAudit() {
-  const [entries, setEntries] = useState<Entry[] | null>(null);
+  const [candidates, setCandidates] = useState<MatchCandidate[] | null>(null);
+  const [selected, setSelected] = useState<{ name: string; entries: PatientAuditEntry[] } | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api.api.audit
-      .$get({ query: {} })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(String(res.status));
-        const data = (await res.json()) as { entries: Entry[] };
-        setEntries(data.entries);
-      })
-      .catch(() => setError(es.audit.loadError));
-  }, []);
+  async function onSearch(q: SearchQuery) {
+    setBusy(true);
+    setError(null);
+    try {
+      setCandidates((await searchPatients(q)).candidates);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : es.errors.generic);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function open(c: MatchCandidate) {
+    setError(null);
+    try {
+      setSelected({ name: c.patient.fullName, entries: await fetchPatientAudit(c.patient.id) });
+    } catch {
+      setError(es.audit.loadError);
+    }
+  }
 
   return (
-    <Page title={es.audit.title} subtitle={es.audit.subtitle}>
-      {error && <p role="alert" className="rounded-lg bg-red-50 px-4 py-3 text-danger">{error}</p>}
-      {entries && entries.length === 0 && <p className="text-muted">{es.audit.empty}</p>}
-      {entries && entries.length > 0 && (
-        <div className="overflow-x-auto rounded-xl border border-line bg-white">
-          <table className="w-full text-left text-base">
-            <thead className="bg-surface">
-              <tr>
-                <th className="px-4 py-3">{es.audit.when}</th>
-                <th className="px-4 py-3">{es.audit.who}</th>
-                <th className="px-4 py-3">{es.audit.action}</th>
-                <th className="px-4 py-3">{es.audit.device}</th>
-                <th className="px-4 py-3">{es.audit.detail}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map((e) => (
-                <tr key={e.id} className="border-t border-line">
-                  <td className="px-4 py-3 whitespace-nowrap">{new Date(e.at).toLocaleString("es-MX")}</td>
-                  <td className="px-4 py-3">{e.actorId}</td>
-                  <td className="px-4 py-3 font-mono">{e.action}</td>
-                  <td className="px-4 py-3 font-mono text-sm">{e.deviceId?.slice(0, 8) ?? "—"}</td>
-                  <td className="px-4 py-3">{e.detail ?? ""}</td>
-                </tr>
+    <AdminPage title={selected ? t.timelineTitle(selected.name) : t.title} subtitle={selected ? undefined : t.subtitle}>
+      {error && <Alert>{error}</Alert>}
+      {selected ? (
+        <div className="space-y-4">
+          <Button variant="outline" onClick={() => setSelected(null)}>
+            {t.back}
+          </Button>
+          {selected.entries.length === 0 ? (
+            <p className="text-lg text-muted">{t.empty}</p>
+          ) : (
+            <Card>
+              <ol className="space-y-3">
+                {selected.entries.map((e) => (
+                  <li key={e.id} className="flex flex-wrap items-baseline gap-x-3 border-t border-line pt-3 first:border-0 first:pt-0">
+                    <span className="text-lg">
+                      {auditSentence(e)} · <strong>{when(e.at)}</strong>
+                    </span>
+                    {e.deviceShort && <span className="text-base text-muted">{t.device(e.deviceShort)}</span>}
+                  </li>
+                ))}
+              </ol>
+            </Card>
+          )}
+        </div>
+      ) : (
+        <div className="max-w-3xl space-y-6">
+          <PatientSearchForm initial={emptyDraft} busy={busy} onSearch={onSearch} />
+          {candidates && candidates.length === 0 && <Alert tone="warn">{es.matches.emptyClinician}</Alert>}
+          {candidates && candidates.length > 0 && (
+            <ul className="space-y-4">
+              {candidates.map((c) => (
+                <MatchCard
+                  key={c.patient.id}
+                  candidate={c}
+                  action={<Button onClick={() => void open(c)}>{es.admin.nav.audit}</Button>}
+                />
               ))}
-            </tbody>
-          </table>
+            </ul>
+          )}
         </div>
       )}
-    </Page>
+    </AdminPage>
   );
 }

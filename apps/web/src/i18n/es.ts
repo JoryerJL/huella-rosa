@@ -463,4 +463,138 @@ export const es = {
       affiliation: "Afiliación",
     },
   },
+  // Block 4a: administration screens (SPEC 6.5, 6.6, 6.9).
+  admin: {
+    needsSignal: "Necesitas señal para esta pantalla",
+    needsSignalBody: "Lo que se registra en campo sigue guardándose en las tabletas. Vuelve cuando tengas señal.",
+    loadError: "No pudimos cargar esta pantalla. Revisa tu señal e intenta de nuevo.",
+    nav: {
+      home: "Tablero",
+      matches: "¿Es la misma persona?",
+      conflicts: "Dos personas cambiaron el mismo dato",
+      audit: "Bitácora",
+    },
+    home: {
+      title: "Tablero de la jornada",
+      subtitle: "Cómo va la jornada y qué necesita tu atención.",
+      campaign: "Jornada",
+      patients: "Pacientes atendidas",
+      visits: "Visitas registradas",
+      recurring: "Ya habían venido antes",
+      matchesOpen: "¿Es la misma persona? por revisar",
+      matchesLinked: "Registros unidos",
+      conflictsOpen: "Datos cambiados por dos personas",
+      stations: "Por estación",
+      station: "Estación",
+      pending: "Esperando",
+      done: "Atendidas",
+      skipped: "Omitidas",
+      avgMinutes: "Minutos promedio desde el registro",
+      noAvg: "—",
+      byLocality: "Pacientes esperando por localidad",
+      noneWaiting: "Nadie está esperando.",
+      review: "Revisar",
+    },
+    matches: {
+      title: "¿Es la misma persona?",
+      subtitle: "Dos registros se parecen. Revisa sus datos y decide. Nada se borra: unir conserva los dos registros.",
+      empty: "No hay registros por revisar. ✓",
+      registeredBy: (name: string, when: string) => `Registrada por ${name} · ${when}`,
+      visits: (n: number) => (n === 1 ? "1 visita" : `${n} visitas`),
+      why: "Por qué se parecen",
+      differLegend: "Los datos resaltados son distintos entre los dos registros.",
+      safeNote: "Vincular no borra ningún registro. Tu decisión queda en la bitácora.",
+      link: "Es la misma: vincular",
+      notSame: "No es la misma persona",
+      linked: "Listo: quedaron unidos. Su historial ya se ve junto.",
+      dismissed: "Listo: quedan como personas distintas.",
+      confirmLink: "¿Unir estos dos registros? Los dos se conservan y su historial se verá junto.",
+      empty_value: "—",
+    },
+    conflicts: {
+      title: "Dos personas cambiaron el mismo dato",
+      subtitle: "Mientras no había señal, dos personas escribieron un valor distinto en el mismo dato. Elige cuál se queda.",
+      clinicalSubtitle: "Datos de tu especialidad que dos personas llenaron distinto. Elige cuál se queda.",
+      empty: "No hay datos por revisar. ✓",
+      patient: (name: string) => `Paciente: ${name}`,
+      folio: (folio: string) => `Visita ${folio}`,
+      saved: "Lo que ya estaba guardado",
+      incoming: (name: string) => `Lo que capturó ${name} sin señal`,
+      incomingNoName: "Lo que se capturó sin señal",
+      byWhen: (name: string | null, when: string | null) => [name, when].filter(Boolean).join(" · "),
+      keepSaved: "Dejar lo guardado",
+      keepIncoming: "Usar lo nuevo",
+      emptyValue: "(vacío)",
+      done: "Guardado ✓",
+      fromQueue: (n: number) => (n === 1 ? "1 dato de tu especialidad necesita revisión" : `${n} datos de tu especialidad necesitan revisión`),
+    },
+    audit: {
+      title: "Bitácora",
+      subtitle: "Busca a la paciente para ver todo lo que pasó con su expediente.",
+      timelineTitle: (name: string) => `Bitácora de ${name}`,
+      empty: "Todavía no hay movimientos para esta paciente.",
+      back: "Buscar otra paciente",
+      someone: "Alguien",
+      device: (short: string) => `tableta ${short}`,
+    },
+  },
+  // Block 4a: online search (SPEC 6.9) and the toast when signal returns.
+  searchHints: {
+    maybeElsewhere: "Puede que esté registrada en otra jornada: confírmalo cuando haya señal",
+  },
+  syncToast: {
+    sent: (n: number) => (n === 1 ? "Se envió 1 cambio" : `Se enviaron ${n} cambios`),
+    review: (n: number) => (n === 1 ? "1 cambio necesita revisión" : `${n} cambios necesitan revisión`),
+  },
 };
+
+/** One plain-Spanish line of the per-patient log: "Laura Pérez registró la visita A3-001-B". */
+export function auditSentence(e: {
+  actorName: string | null;
+  action: string;
+  folio: string | null;
+  role: string | null;
+  fields: string[];
+  choice: "server" | "device" | null;
+}): string {
+  const who = e.actorName ?? es.admin.audit.someone;
+  const visit = e.folio ? `la visita ${e.folio}` : "una visita";
+  const fields = e.fields.length ? e.fields.join(", ") : "un dato";
+  const station = e.role && e.role in roleLabel ? roleLabel[e.role as Role] : "una estación";
+  switch (e.action) {
+    case "PATIENT_CREATE":
+      return `${who} registró a la paciente`;
+    case "PATIENT_UPDATE":
+      return `${who} corrigió ${fields}`;
+    case "VISIT_CREATE":
+      return `${who} registró ${visit}`;
+    case "VISIT_OUTSIDE_CAMPAIGN_DATES":
+      return `${who} registró ${visit} con fecha fuera de la jornada`;
+    case "MATCH_CONFIRMED":
+      return `${who} reconoció que ya había venido antes`;
+    case "MATCH_REJECTED":
+      return `${who} indicó que no era ninguna de las personas parecidas`;
+    case "MATCH_REVIEW_OPENED":
+      return "Apareció un registro parecido: quedó para que administración lo revise";
+    case "MATCH_LINKED":
+      return `${who} unió dos registros de la misma persona`;
+    case "MATCH_DISMISSED":
+      return `${who} indicó que dos registros parecidos son personas distintas`;
+    case "SYNC_CONFLICT":
+      return `Dos personas cambiaron ${fields}: quedó para revisión`;
+    case "CONFLICT_RESOLVED":
+      return `${who} eligió ${e.choice === "device" ? "lo nuevo" : "lo que ya estaba guardado"} en ${fields}`;
+    case "SERVICE_FIELDS_UPDATED":
+      return `${who} llenó ${fields} en ${visit}`;
+    case "STEP_COMPLETED":
+      return `${who} terminó ${station} en ${visit}`;
+    case "STEP_SKIPPED":
+      return `${who} omitió ${station} en ${visit}`;
+    case "SEED":
+      return "Se cargaron los datos de demostración";
+    default:
+      if (e.action.includes("SCAN")) return `${who} trabajó con la foto del formato de ${visit}`;
+      if (e.action.includes("IMPORT")) return `${who} trabajó con un archivo de Excel`;
+      return `${who} hizo un cambio en el expediente`;
+  }
+}

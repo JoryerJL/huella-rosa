@@ -12,6 +12,10 @@ import { AdminAudit } from "./pages/AdminAudit";
 import { CampaignsPage } from "./pages/CampaignsPage";
 import { QueuePage } from "./pages/QueuePage";
 import { StepPage } from "./pages/StepPage";
+// Block 4a: administration.
+import { AdminHome } from "./pages/AdminHome";
+import { AdminMatches } from "./pages/AdminMatches";
+import { AdminConflicts } from "./pages/AdminConflicts";
 import { startSyncEngine } from "./data/sync";
 // Block 3a: form photo
 import { ScanIdentifyPage } from "./pages/ScanIdentifyPage";
@@ -129,6 +133,31 @@ export function App() {
             element={
               <RequireRole roles={["intake"]}>
                 <ImportBatchPage />
+              </RequireRole>
+            }
+          />
+          {/* Block 4a: administration (online-only screens, SPEC 6.9). */}
+          <Route
+            path="/admin"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminHome />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/matches"
+            element={
+              <RequireRole roles={["admin"]}>
+                <AdminMatches />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/admin/conflicts"
+            element={
+              <RequireRole roles={["admin", ...CLINICAL]}>
+                <AdminConflicts />
               </RequireRole>
             }
           />

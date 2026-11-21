@@ -7,8 +7,12 @@ try {
   // No .env file: defaults below are enough for local development.
 }
 
+const port = Number(process.env.PORT ?? 3001);
+
 export const env = {
-  port: Number(process.env.PORT ?? 3001),
+  port,
+  // Block 4b: public URL of this server as OAuth authorization server for AI agents (SPEC 6.7).
+  oauthIssuer: (process.env.OAUTH_ISSUER ?? `http://localhost:${port}`).replace(/\/+$/, ""),
   valkeyUrl: process.env.VALKEY_URL ?? "redis://localhost:6379",
   isProduction: process.env.NODE_ENV === "production",
   // Block 3a: form photo reading and image storage (SPEC 6.4, 9). Defaults run without AWS.

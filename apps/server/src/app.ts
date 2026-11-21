@@ -19,8 +19,9 @@ import { conflictRoutes, dashboardRoutes, matchRoutes } from "./routes/admin";
 import { staffRoutes } from "./routes/staff";
 import { localityRoutes } from "./routes/localities";
 // Block 4b: AI agents through MCP (SPEC 6.7).
-import { agentTokenRoutes } from "./routes/agentTokens";
+import { agentGrantRoutes } from "./routes/agentGrants";
 import { agentRoutes } from "./routes/agent";
+import { oauthRoutes } from "./routes/oauth";
 
 export const app = new Hono()
   .use(logger())
@@ -48,8 +49,9 @@ export const app = new Hono()
   .route("/api/dashboard", dashboardRoutes)
   .route("/api/staff", staffRoutes)
   .route("/api/localities", localityRoutes)
-  // Block 4b: agent tokens (admin) and the agent-only API (Bearer agent token).
-  .route("/api/agent-tokens", agentTokenRoutes)
+  // Block 4b: AI agents. OAuth authorization server, connected agents per person, agent-only API.
+  .route("/", oauthRoutes)
+  .route("/api/agent-grants", agentGrantRoutes)
   .route("/api/agent", agentRoutes);
 
 /** Type used by the web app's typed client (hono/client). */

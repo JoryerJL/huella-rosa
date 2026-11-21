@@ -442,7 +442,7 @@ export interface ImportBatchSummary {
   /** True while the column mapping waits for a person (rows are not evaluated yet). */
   needsMapping: boolean;
   counts: ImportBatchCounts;
-  /** Name of the AI agent token that proposed the batch (source MCP), else null. */
+  /** "agente de <staff name>" when an AI agent proposed the batch (source MCP), else null. */
   agentName: string | null;
 }
 
@@ -483,25 +483,29 @@ export interface ImportRegisterNewResponse {
 
 // ---------- Block 4b: AI agents through MCP (SPEC 5, 6.7) ----------
 
-/** Plain agent tokens look like hr_agent_<43 base64url chars>. */
-export const AGENT_TOKEN_PREFIX = "hr_agent_";
-
-/** GET /api/agent-tokens item. Never carries the token or its hash. */
-export interface AgentTokenView {
+/** An AI agent connected to a staff account (OAuth). Never carries tokens or their hashes. */
+export interface AgentGrantView {
   id: string;
-  name: string;
+  /** Name the agent gave when it registered (e.g. "Claude Code"). */
+  clientName: string;
+  /** Staff account the agent acts as. */
+  userName: string;
+  isMine: boolean;
   createdAt: string;
+  lastUsedAt: string | null;
   revokedAt: string | null;
 }
 
-/** POST /api/agent-tokens body. */
-export const createAgentTokenSchema = z.object({ name: z.string().trim().min(2).max(60) });
-export type CreateAgentTokenInput = z.infer<typeof createAgentTokenSchema>;
+/** GET /api/agent-grants */
+export interface AgentGrantList {
+  grants: AgentGrantView[];
+}
 
-/** POST /api/agent-tokens response: the plain token is returned only here, once. */
-export interface CreatedAgentToken {
-  agentToken: AgentTokenView;
-  token: string;
+/** GET /api/agent/me: who the agent acts as. */
+export interface AgentIdentityView {
+  userName: string;
+  role: Role;
+  clientName: string;
 }
 
 export const MAX_AGENT_IMPORT_ROWS = 500;

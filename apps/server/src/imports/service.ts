@@ -193,16 +193,20 @@ export async function confirmMapping(
 export async function createBatchFromAgentRows(input: {
   rows: ImportRowData[];
   note: string | null;
-  agentName: string;
+  /** "agente de <staff name>": batch creator and audit actor. */
+  actorId: string;
+  grantId: string;
+  clientName: string;
 }): Promise<ImportBatchSummary> {
   if (input.rows.length === 0) throw new ImportError("El lote no tiene filas.");
-  const actorId = `${AGENT_ACTOR_PREFIX}${input.agentName}`;
+  const actorId = input.actorId;
   const batch = await db.importBatch.create({
     data: {
       source: "MCP",
       fileName: input.note,
       columnMapping: JSON.stringify({ confirmed: true, columns: [] } satisfies ImportColumnMapping),
       createdBy: actorId,
+      agentGrantId: input.grantId,
     },
   });
   const items = input.rows.map((row, i) => ({ rowNumber: i + 1, data: cleanAgentRow(row) }));
@@ -213,7 +217,7 @@ export async function createBatchFromAgentRows(input: {
     deviceId: null,
     entity: "ImportBatch",
     entityId: batch.id,
-    detail: countsDetail(counts),
+    detail: `client=${input.clientName} ${countsDetail(counts)}`,
   });
   return (await getBatchSummary(batch.id))!;
 }
@@ -311,15 +315,9 @@ function toSummaryView(batch: BatchRecord, statuses: ImportRowStatus[]): ImportB
     counts: mapping.confirmed
       ? countRows(statuses)
       : { ...countRows([]), total: parseJson<PendingRow[]>(batch.pendingRows, []).length },
-    agentName: agentNameOf(batch.createdBy),
+    // Agent batches are created by "agente de <staff name>" (SPEC 6.7).
+    agentName: batch.source === "MCP" ? batch.createdBy : null,
   };
-}
-
-/** Agent batches are created by "agent:<token name>" (SPEC 6.7). */
-export const AGENT_ACTOR_PREFIX = "agent:";
-
-function agentNameOf(createdBy: string): string | null {
-  return createdBy.startsWith(AGENT_ACTOR_PREFIX) ? createdBy.slice(AGENT_ACTOR_PREFIX.length) : null;
 }
 
 export async function listBatches(limit = 20): Promise<ImportBatchSummary[]> {

@@ -4,6 +4,7 @@ import {
   agentImportSchema,
   IMPORT_FIELDS,
   MAX_AGENT_IMPORT_ROWS,
+  type AgentIdentityView,
   type AgentImportStatus,
   type AgentImportTemplate,
   type ImportBatchSummary,
@@ -11,15 +12,16 @@ import {
 } from "@er/shared";
 import { db } from "../db";
 import { writeAudit } from "../audit";
-import { requireAgent, type AgentEnv } from "../agentTokens";
+import { agentRateLimit, requireAgent, type AgentEnv } from "../agentGrants";
 import { TEMPLATE_HEADERS } from "../imports/columns";
 import { AFFILIATION_OPTIONS, FORM_ID_PROBLEM } from "../imports/rows";
 import { createBatchFromAgentRows, getBatchSummary, ImportError } from "../imports/service";
 
-// API for AI agents (SPEC 6.7), reached through the MCP server with an agent token.
-// Agents can only read the template, propose a batch and read its counts. They never confirm,
-// link, merge, delete, search patients or read clinical data, and never see rows or candidates.
-// Every call is audited as agent:<token name> with counts only, never row values.
+// API for AI agents (SPEC 6.7), reached through the MCP server with an OAuth access token bound
+// to a staff account. The agent acts as that person with that person's role: it can read the
+// template, propose a batch (intake only) and read the counts of batches it proposed. It never
+// confirms, links, merges, deletes, searches patients or reads clinical data, and never sees rows
+// or candidates. Every call is audited as "agente de <name>" with the client name and counts only.
 
 const FIELD_RULES: Record<ImportField, string> = {
   fullName: "Required. Full name as written; at least 3 characters with letters. Never used alone to match people.",
@@ -57,15 +59,39 @@ function toStatus(batch: ImportBatchSummary): AgentImportStatus {
 const countsDetail = (s: AgentImportStatus) =>
   `new=${s.counts.new} possible=${s.counts.possibleMatch} invalid=${s.counts.invalid} confirmed=${s.counts.confirmed} discarded=${s.counts.discarded}`;
 
+const ROLE_LABEL: Record<AgentIdentityView["role"], string> = {
+  intake: "Captura",
+  nutritionist: "Nutrición",
+  doctor: "Médico",
+  pathologist: "Patología",
+  admin: "Administración",
+};
+
+export const ONLY_INTAKE_MESSAGE = (role: AgentIdentityView["role"]) =>
+  `Solo una cuenta de Captura puede proponer pacientes. Esta cuenta es de ${ROLE_LABEL[role]}: pide a alguien de Captura que conecte el agente con su cuenta.`;
+
 export const agentRoutes = new Hono<AgentEnv>()
   .use(requireAgent)
   .onError((error, c) => {
     if (error instanceof ImportError) return c.json({ error: error.message }, error.status);
     throw error;
   })
+  // Token check used by the MCP server on every request: not a tool call, so no audit or limit.
+  .get("/me", (c) => {
+    const agent = c.get("agent");
+    const me: AgentIdentityView = { userName: agent.userName, role: agent.role, clientName: agent.clientName };
+    return c.json(me);
+  })
+  .use(agentRateLimit)
   .get("/import-template", async (c) => {
     const agent = c.get("agent");
-    await writeAudit({ actorId: agent.actorId, action: "AGENT_TEMPLATE_READ", entity: "AgentToken", entityId: agent.tokenId });
+    await writeAudit({
+      actorId: agent.actorId,
+      action: "AGENT_TEMPLATE_READ",
+      entity: "AgentGrant",
+      entityId: agent.grantId,
+      detail: `client=${agent.clientName}`,
+    });
     return c.json(TEMPLATE);
   })
   .post(
@@ -73,6 +99,16 @@ export const agentRoutes = new Hono<AgentEnv>()
     bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "Body too large: at most 1 MB." }, 413) }),
     async (c) => {
       const agent = c.get("agent");
+      if (agent.role !== "intake") {
+        await writeAudit({
+          actorId: agent.actorId,
+          action: "AGENT_IMPORT_REFUSED",
+          entity: "AgentGrant",
+          entityId: agent.grantId,
+          detail: `client=${agent.clientName} role=${agent.role}`,
+        });
+        return c.json({ error: ONLY_INTAKE_MESSAGE(agent.role) }, 403);
+      }
       const parsed = agentImportSchema.safeParse(await c.req.json().catch(() => null));
       if (!parsed.success) {
         // Paths and messages only: never echo row values back.
@@ -82,7 +118,9 @@ export const agentRoutes = new Hono<AgentEnv>()
       const batch = await createBatchFromAgentRows({
         rows: parsed.data.rows,
         note: parsed.data.note?.trim().slice(0, 200) || null,
-        agentName: agent.name,
+        actorId: agent.actorId,
+        grantId: agent.grantId,
+        clientName: agent.clientName,
       });
       return c.json(toStatus(batch), 201);
     },
@@ -90,9 +128,12 @@ export const agentRoutes = new Hono<AgentEnv>()
   .get("/imports/:id", async (c) => {
     const agent = c.get("agent");
     const id = c.req.param("id");
-    // An agent only sees batches it proposed under its own name.
-    const owned = await db.importBatch.findFirst({ where: { id, createdBy: agent.actorId }, select: { id: true } });
-    const batch = owned ? await getBatchSummary(id) : null;
+    // Only batches proposed by an agent connected to this same person.
+    const proposed = await db.importBatch.findFirst({ where: { id, source: "MCP" }, select: { agentGrantId: true } });
+    const owner = proposed?.agentGrantId
+      ? await db.agentGrant.findFirst({ where: { id: proposed.agentGrantId, userId: agent.userId }, select: { id: true } })
+      : null;
+    const batch = owner ? await getBatchSummary(id) : null;
     if (!batch) return c.json({ error: "Batch not found." }, 404);
     const status = toStatus(batch);
     await writeAudit({
@@ -100,7 +141,7 @@ export const agentRoutes = new Hono<AgentEnv>()
       action: "AGENT_IMPORT_STATUS_READ",
       entity: "ImportBatch",
       entityId: id,
-      detail: countsDetail(status),
+      detail: `client=${agent.clientName} ${countsDetail(status)}`,
     });
     return c.json(status);
   });

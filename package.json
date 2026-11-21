@@ -13,7 +13,9 @@
     "db:migrate": "npm run db:migrate -w @er/server",
     "seed": "npm run seed -w @er/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "test": "npm run test --workspaces --if-present"
+    "test": "npm run test --workspaces --if-present",
+    "video:render": "npm --prefix video/demo-2min run render",
+    "video:qa": "npm --prefix video/demo-2min run qa"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

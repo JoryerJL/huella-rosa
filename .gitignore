@@ -13,3 +13,11 @@ datos-reales/
 dev-dist/
 *.tsbuildinfo
 .atl/
+# Video renders and large media (video/README.md)
+video/**/renders/
+video/**/.hyperframes/
+video/**/assets/footage/
+video/**/*.mp4
+video/**/*.webm
+demo-videos/raw/*.webm
+demo-videos/raw/*.mp4

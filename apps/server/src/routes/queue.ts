@@ -18,7 +18,7 @@ export const queueRoutes = new Hono<SessionEnv>().get("/", requireRole(...CLINIC
       id: true,
       folio: true,
       createdAt: true,
-      patient: { select: { id: true, fullName: true, birthDate: true } },
+      patient: { select: { id: true, fullName: true, birthDate: true, formId: true } },
       steps: { select: stepSelect, orderBy: { role: "asc" } },
     },
     orderBy: [{ createdAt: "asc" }, { id: "asc" }],
@@ -30,6 +30,7 @@ export const queueRoutes = new Hono<SessionEnv>().get("/", requireRole(...CLINIC
     patientId: v.patient.id,
     fullName: v.patient.fullName,
     birthDate: v.patient.birthDate,
+    formId: v.patient.formId,
     registeredAt: v.createdAt.toISOString(),
     steps: v.steps.map(toStepView),
   }));

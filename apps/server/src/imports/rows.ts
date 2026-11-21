@@ -1,5 +1,6 @@
 import {
   IMPORT_FIELDS,
+  isEiraIdLike,
   scoreCandidate,
   type ImportColumn,
   type ImportField,
@@ -10,10 +11,17 @@ import {
 
 // Row validation for imports (SPEC 6.7): plain Spanish reasons, never guesses a value.
 
+export const FORM_ID_PROBLEM = "El ID del formato debe tener 4 letras y 6 números (por ejemplo RATL900105).";
+
 export const AFFILIATION_OPTIONS = ["INSABI", "IMSS", "ISSSTE", "SEDENA", "SEMAR", "Ninguno", "Otro"];
 
 /** Form "4. ID": 11 boxes on the paper form (plantillas/mamaria.json, longitud 11). */
 const FORM_ID_PATTERN = /^[A-Z0-9]{11}$/;
+
+/** EIRA ID rule (SPEC 6.1.1, 10 characters + optional 11th) or any 11 letters/digits as on paper. */
+function isValidFormId(formId: string): boolean {
+  return isEiraIdLike(formId) || FORM_ID_PATTERN.test(formId);
+}
 
 export type RowCheck =
   | { valid: true; data: ImportRowData }
@@ -99,7 +107,7 @@ export function validateRow(raw: ImportRowData, today = new Date()): RowCheck {
 
   if (data.formId) {
     const formId = data.formId.replace(/[\s-]+/g, "").toUpperCase();
-    if (!FORM_ID_PATTERN.test(formId)) problems.push("El ID del formato debe tener 11 letras o números.");
+    if (!isValidFormId(formId)) problems.push(FORM_ID_PROBLEM);
     else data.formId = formId;
   }
 

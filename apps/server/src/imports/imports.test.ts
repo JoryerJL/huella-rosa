@@ -75,7 +75,7 @@ describe("row validation", () => {
       {
         fullName: "Patricia Núñez Salazar",
         birthDate: "14/02/1981",
-        formId: "demo0000101",
+        formId: "nusp-810214",
         phone: "55-0000-0081",
         mobile: "+52 55 0000 0082",
         affiliation: "imss",
@@ -87,7 +87,7 @@ describe("row validation", () => {
       data: {
         fullName: "Patricia Núñez Salazar",
         birthDate: "1981-02-14",
-        formId: "DEMO0000101",
+        formId: "NUSP810214",
         phone: "5500000081",
         mobile: "5500000082",
         affiliation: "IMSS",
@@ -115,7 +115,7 @@ describe("row validation", () => {
     const reason = !check.valid ? check.reason : "";
     expect(reason).toContain("no puede ser correcta");
     expect(reason).toContain("El teléfono fijo solo puede tener números.");
-    expect(reason).toContain("El ID del formato debe tener 11 letras o números.");
+    expect(reason).toContain("El ID del formato debe tener 4 letras y 6 números (por ejemplo RATL900105).");
   });
 
   it("accepts ISO dates and rejects text", () => {

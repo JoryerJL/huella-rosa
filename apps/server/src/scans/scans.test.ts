@@ -25,7 +25,7 @@ describe("mock OCR", () => {
     expect(read.fullName).toEqual({ value: "Lucía Ramírez Torres", confidence: 0.96 });
     expect(read.birthDate?.value).toBe("1990-01-05");
     expect(read.mobile?.value).toBe("55-0000-0003");
-    expect(read.formId?.value).toMatch(/^DEMO/);
+    expect(read.formId?.value).toBe("RATL900105");
   });
 
   it("never proposes no_transcribir fields", async () => {

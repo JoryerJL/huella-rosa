@@ -54,8 +54,8 @@ describe("scoreCandidate", () => {
 
   it("same formId with a different name -> STRONG with SAME_FORM_ID", () => {
     const result = scoreCandidate(
-      { fullName: "Otra Persona Ficticia", birthDate: "2000-01-01", formId: "DEMO0000006" },
-      { fullName: "Rosa Flores Morales", birthDate: "1979-04-18", formId: "DEMO0000006" },
+      { fullName: "Otra Persona Ficticia", birthDate: "2000-01-01", formId: "FLMR790418" },
+      { fullName: "Rosa Flores Morales", birthDate: "1979-04-18", formId: "FLMR790418" },
     );
     expect(result.strength).toBe("STRONG");
     expect(result.reasons).toContain("SAME_FORM_ID");

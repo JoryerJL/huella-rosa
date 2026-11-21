@@ -1,31 +1,31 @@
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import { bodyLimit } from "hono/body-limit";
+import type { z } from "zod";
 import {
-  agentImportSchema,
+  analyzePhotoSchema,
+  analyzeSpreadsheetSchema,
+  applyImportSchema,
   IMPORT_FIELDS,
-  MAX_AGENT_IMPORT_ROWS,
   type AgentIdentityView,
-  type AgentImportStatus,
   type AgentImportTemplate,
-  type ImportBatchSummary,
   type ImportField,
 } from "@er/shared";
-import { db } from "../db";
 import { writeAudit } from "../audit";
 import { agentRateLimit, requireAgent, type AgentEnv } from "../agentGrants";
 import { TEMPLATE_HEADERS } from "../imports/columns";
 import { AFFILIATION_OPTIONS, FORM_ID_PROBLEM } from "../imports/rows";
-import { createBatchFromAgentRows, getBatchSummary, ImportError } from "../imports/service";
+import { ImportError, MAX_IMPORT_ROWS } from "../imports/service";
+import { analyzePhoto, analyzeSpreadsheet, applyPreview } from "../imports/agentPreview";
 
 // API for AI agents (SPEC 6.7), reached through the MCP server with an OAuth access token bound
-// to a staff account. The agent acts as that person with that person's role: it can read the
-// template, propose a batch (intake only) and read the counts of batches it proposed. It never
-// confirms, links, merges, deletes, searches patients or reads clinical data, and never sees rows
-// or candidates. Every call is audited as "agente de <name>" with the client name and counts only.
+// to a staff account. The agent acts AS that person with that person's role: it reads the
+// template, analyzes a spreadsheet or a form photo (intake only, nothing saved) and applies the
+// decisions the person confirmed (intake only). It never searches patients, merges records or
+// reads clinical data. Every call is audited with the agent's client name and ids/counts only.
 
 const FIELD_RULES: Record<ImportField, string> = {
   fullName: "Required. Full name as written; at least 3 characters with letters. Never used alone to match people.",
-  birthDate: "Required. YYYY-MM-DD (DD/MM/YYYY is also read). Must be a real date between 1900 and today.",
+  birthDate: "Required. DD/MM/YYYY or YYYY-MM-DD. Must be a real date between 1900 and today.",
   birthState: "Optional. Mexican state of birth as text.",
   formId: `Optional. ${FORM_ID_PROBLEM} Spaces and dashes are removed.`,
   phone: "Optional. Landline with 10 digits; separators and a +52 prefix are fine.",
@@ -35,7 +35,7 @@ const FIELD_RULES: Record<ImportField, string> = {
 };
 
 const TEMPLATE: AgentImportTemplate = {
-  maxRows: MAX_AGENT_IMPORT_ROWS,
+  maxRows: MAX_IMPORT_ROWS,
   columns: IMPORT_FIELDS.map((field) => ({
     field,
     label: TEMPLATE_HEADERS[field],
@@ -43,21 +43,12 @@ const TEMPLATE: AgentImportTemplate = {
     rule: FIELD_RULES[field],
   })),
   rules: [
-    "Send identification fields only. Never send clinical data (symptoms, results, notes).",
-    "Do not invent values: leave a field out when the source does not have it.",
-    "Each row is validated and matched against existing patients on the server.",
-    "Nothing is saved as a patient until an intake person reviews and confirms each row.",
-    "Agents cannot confirm, link, merge, delete or search patients.",
+    "Identification fields only. Never send or ask for clinical data.",
+    "Analyzing saves nothing. Show the plan to the person and ask for explicit confirmation before applying.",
+    "Never decide a match yourself: 'isHer' needs the patient the person chose among the candidates.",
+    "Only intake (Captura) accounts can analyze and apply imports.",
   ],
 };
-
-function toStatus(batch: ImportBatchSummary): AgentImportStatus {
-  const { new: fresh, possibleMatch, invalid, confirmed, discarded } = batch.counts;
-  return { batchId: batch.id, status: batch.status, counts: { new: fresh, possibleMatch, invalid, confirmed, discarded } };
-}
-
-const countsDetail = (s: AgentImportStatus) =>
-  `new=${s.counts.new} possible=${s.counts.possibleMatch} invalid=${s.counts.invalid} confirmed=${s.counts.confirmed} discarded=${s.counts.discarded}`;
 
 const ROLE_LABEL: Record<AgentIdentityView["role"], string> = {
   intake: "Captura",
@@ -68,7 +59,30 @@ const ROLE_LABEL: Record<AgentIdentityView["role"], string> = {
 };
 
 export const ONLY_INTAKE_MESSAGE = (role: AgentIdentityView["role"]) =>
-  `Solo una cuenta de Captura puede proponer pacientes. Esta cuenta es de ${ROLE_LABEL[role]}: pide a alguien de Captura que conecte el agente con su cuenta.`;
+  `Solo una cuenta de Captura puede importar pacientes. Esta cuenta es de ${ROLE_LABEL[role]}: pide a alguien de Captura que conecte el agente con su cuenta.`;
+
+/** Intake only; any other role gets a plain error and an audit entry. */
+async function refuseIfNotIntake(c: Context<AgentEnv>, what: string) {
+  const agent = c.get("agent");
+  if (agent.role === "intake") return null;
+  await writeAudit({
+    actorId: agent.actorId,
+    action: "AGENT_REFUSED",
+    entity: "AgentGrant",
+    entityId: agent.grantId,
+    detail: `client=${agent.clientName} role=${agent.role} tool=${what}`,
+  });
+  return c.json({ error: ONLY_INTAKE_MESSAGE(agent.role) }, 403);
+}
+
+/** Paths and messages only: never echo values back. */
+function invalidBody(c: Context, error: z.ZodError) {
+  const issues = error.issues.slice(0, 5).map((i) => `${i.path.join(".") || "body"}: ${i.message}`);
+  return c.json({ error: `Datos incompletos o con otro formato. ${issues.join("; ")}` }, 400);
+}
+
+const limit = (maxSize: number) =>
+  bodyLimit({ maxSize, onError: (c) => c.json({ error: "El archivo es demasiado grande." }, 413) });
 
 export const agentRoutes = new Hono<AgentEnv>()
   .use(requireAgent)
@@ -94,54 +108,24 @@ export const agentRoutes = new Hono<AgentEnv>()
     });
     return c.json(TEMPLATE);
   })
-  .post(
-    "/imports",
-    bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "Body too large: at most 1 MB." }, 413) }),
-    async (c) => {
-      const agent = c.get("agent");
-      if (agent.role !== "intake") {
-        await writeAudit({
-          actorId: agent.actorId,
-          action: "AGENT_IMPORT_REFUSED",
-          entity: "AgentGrant",
-          entityId: agent.grantId,
-          detail: `client=${agent.clientName} role=${agent.role}`,
-        });
-        return c.json({ error: ONLY_INTAKE_MESSAGE(agent.role) }, 403);
-      }
-      const parsed = agentImportSchema.safeParse(await c.req.json().catch(() => null));
-      if (!parsed.success) {
-        // Paths and messages only: never echo row values back.
-        const issues = parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".") || "body"}: ${i.message}`);
-        return c.json({ error: `Invalid batch (1 to ${MAX_AGENT_IMPORT_ROWS} rows). ${issues.join("; ")}` }, 400);
-      }
-      const batch = await createBatchFromAgentRows({
-        rows: parsed.data.rows,
-        note: parsed.data.note?.trim().slice(0, 200) || null,
-        actorId: agent.actorId,
-        grantId: agent.grantId,
-        clientName: agent.clientName,
-      });
-      return c.json(toStatus(batch), 201);
-    },
-  )
-  .get("/imports/:id", async (c) => {
-    const agent = c.get("agent");
-    const id = c.req.param("id");
-    // Only batches proposed by an agent connected to this same person.
-    const proposed = await db.importBatch.findFirst({ where: { id, source: "MCP" }, select: { agentGrantId: true } });
-    const owner = proposed?.agentGrantId
-      ? await db.agentGrant.findFirst({ where: { id: proposed.agentGrantId, userId: agent.userId }, select: { id: true } })
-      : null;
-    const batch = owner ? await getBatchSummary(id) : null;
-    if (!batch) return c.json({ error: "Batch not found." }, 404);
-    const status = toStatus(batch);
-    await writeAudit({
-      actorId: agent.actorId,
-      action: "AGENT_IMPORT_STATUS_READ",
-      entity: "ImportBatch",
-      entityId: id,
-      detail: `client=${agent.clientName} ${countsDetail(status)}`,
-    });
-    return c.json(status);
+  .post("/analyze/spreadsheet", limit(3_200_000), async (c) => {
+    const refused = await refuseIfNotIntake(c, "analyze_spreadsheet");
+    if (refused) return refused;
+    const parsed = analyzeSpreadsheetSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return invalidBody(c, parsed.error);
+    return c.json(await analyzeSpreadsheet(parsed.data, c.get("agent")));
+  })
+  .post("/analyze/photo", limit(15_000_000), async (c) => {
+    const refused = await refuseIfNotIntake(c, "analyze_form_photo");
+    if (refused) return refused;
+    const parsed = analyzePhotoSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return invalidBody(c, parsed.error);
+    return c.json(await analyzePhoto(parsed.data, c.get("agent")));
+  })
+  .post("/apply", limit(256 * 1024), async (c) => {
+    const refused = await refuseIfNotIntake(c, "apply_import");
+    if (refused) return refused;
+    const parsed = applyImportSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) return invalidBody(c, parsed.error);
+    return c.json(await applyPreview(parsed.data, c.get("agent")), 201);
   });

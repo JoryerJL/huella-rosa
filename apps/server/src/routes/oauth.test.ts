@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { afterAll, describe, expect, it, vi } from "vitest";
-import type { AgentGrantList, AgentImportStatus, AgentImportTemplate, ImportBatchList } from "@er/shared";
+import type { AgentApplyResult, AgentGrantList, AgentImportTemplate, AgentPreview, ImportBatchList } from "@er/shared";
 
 // AI agents connected through OAuth 2.1 + PKCE (SPEC 6.7), through the whole app so the real
 // session checks run on every other route. Valkey is replaced by an in-memory map.
@@ -8,7 +9,11 @@ const store = new Map<string, string>();
 vi.mock("../valkey", () => ({
   valkey: {
     get: async (k: string) => store.get(k) ?? null,
-    set: async (k: string, v: string) => void store.set(k, v),
+    set: async (k: string, v: string, ...args: unknown[]) => {
+      if (args.includes("NX") && store.has(k)) return null;
+      store.set(k, v);
+      return "OK";
+    },
     getdel: async (k: string) => {
       const v = store.get(k) ?? null;
       store.delete(k);
@@ -21,6 +26,8 @@ vi.mock("../valkey", () => ({
     },
     expire: async () => 1,
     del: async (...keys: string[]) => keys.filter((k) => store.delete(k)).length,
+    // Patient lock release (compare-and-delete script in sync.ts).
+    eval: async (_script: string, _n: number, key: string, value: string) => (store.get(key) === value ? Number(store.delete(key)) : 0),
     ping: async () => "PONG",
     publish: async () => 0,
   },
@@ -100,13 +107,18 @@ async function connect(username: string) {
 
 const bearer = (t: string) => ({ authorization: `Bearer ${t}` });
 
-function propose(accessToken: string, rows: unknown[]) {
-  return app.request("/api/agent/imports", {
+const demo = (path: string) => readFileSync(new URL(`../../../../datos-ficticios/${path}`, import.meta.url)).toString("base64");
+
+function post(accessToken: string, path: string, body: unknown) {
+  return app.request(`/api/agent${path}`, {
     method: "POST",
     headers: { ...bearer(accessToken), "content-type": "application/json" },
-    body: JSON.stringify({ rows, note: "prueba" }),
+    body: JSON.stringify(body),
   });
 }
+
+const analyzeExcel = (accessToken: string) =>
+  post(accessToken, "/analyze/spreadsheet", { fileBase64: demo("excel/plantilla-llena.xlsx"), fileName: "plantilla-llena.xlsx" });
 
 const batches: string[] = [];
 afterAll(async () => {
@@ -217,54 +229,121 @@ describe("agent API acting as the person", () => {
     expect(template.columns.filter((c) => c.required).map((c) => c.field)).toEqual(["fullName", "birthDate"]);
   });
 
-  it("intake proposes a batch attributed to 'agente de Laura Pérez Ortiz', creating no patient", async () => {
+  it("analyzes the demo Excel without saving anything", async () => {
     const t = await connect("lperez");
-    const before = await db.patient.count();
-    const res = await propose(t.access_token, [
-      { fullName: "Prueba Agente Uno", birthDate: "1991-02-01", mobile: "55-0000-0081" },
-      { fullName: "Prueba Agente Dos", birthDate: "1990-02-31" },
-      { fullName: "Juana Martinez Garcia", birthDate: "1972-07-30" },
-    ]);
-    expect(res.status).toBe(201);
-    const status = (await res.json()) as AgentImportStatus;
-    batches.push(status.batchId);
-    expect(status.counts).toEqual({ new: 1, possibleMatch: 1, invalid: 1, confirmed: 0, discarded: 0 });
-    expect(await db.patient.count()).toBe(before);
+    const patients = await db.patient.count();
+    const batchCount = await db.importBatch.count();
+    const res = await analyzeExcel(t.access_token);
+    expect(res.status).toBe(200);
+    const preview = (await res.json()) as AgentPreview;
+    expect(preview.counts).toEqual({ new: 3, possibleMatch: 1, invalid: 1 });
+    const juana = preview.rows.find((r) => r.status === "POSSIBLE_MATCH")!;
+    expect(juana.candidates[0].fullName).toBe("Juana Martínez García");
+    expect(preview.rows.find((r) => r.status === "INVALID")?.reason).toMatch(/no existe en el calendario/);
+    expect(await db.patient.count()).toBe(patients);
+    expect(await db.importBatch.count()).toBe(batchCount);
+    const audit = await db.auditLog.findFirst({ where: { entityId: preview.previewId, action: "AGENT_ANALYSIS" } });
+    expect(audit?.actorId).toBe("agente de Laura Pérez Ortiz");
+    expect(audit?.detail).toBe(
+      "Análisis por agente de Laura Pérez Ortiz (Claude Code de prueba) · kind=SPREADSHEET rows=5 new=3 possible=1 invalid=1",
+    );
+  });
 
-    const batch = await db.importBatch.findUniqueOrThrow({ where: { id: status.batchId } });
+  it("applies only the confirmed decisions, once, through the normal decision path", async () => {
+    const t = await connect("lperez");
+    const preview = (await (await analyzeExcel(t.access_token)).json()) as AgentPreview;
+    const fresh = preview.rows.filter((r) => r.status === "NEW").map((r) => r.row);
+    const juana = preview.rows.find((r) => r.status === "POSSIBLE_MATCH")!;
+    const juanaId = juana.candidates[0].patientId;
+
+    // Without the person's confirmation, or with a patient that was not offered: refused, nothing applied.
+    const unconfirmed = await post(t.access_token, "/apply", { previewId: preview.previewId, decisions: [{ row: fresh[0], action: "register" }] });
+    expect(unconfirmed.status).toBe(400);
+    const wrong = await post(t.access_token, "/apply", {
+      previewId: preview.previewId,
+      decisions: [{ row: juana.row, action: "isHer", patientId: "pat-otra" }],
+      confirmedByUser: true,
+      confirmationText: "sí",
+    });
+    expect(wrong.status).toBe(400);
+
+    const before = await db.patient.count();
+    const res = await post(t.access_token, "/apply", {
+      previewId: preview.previewId,
+      decisions: [...fresh.map((row) => ({ row, action: "register" })), { row: juana.row, action: "isHer", patientId: juanaId }],
+      confirmedByUser: true,
+      confirmationText: "Sí, registra las 3 nuevas y Juana es ella.",
+    });
+    expect(res.status).toBe(201);
+    const result = (await res.json()) as AgentApplyResult;
+    batches.push(result.batchId);
+    expect(result).toMatchObject({ registered: 3, linked: 1, skipped: 0, failed: [], pending: 1 });
+    expect(await db.patient.count()).toBe(before + 3);
+
+    const batch = await db.importBatch.findUniqueOrThrow({ where: { id: result.batchId }, include: { rows: true } });
     expect(batch.source).toBe("MCP");
     expect(batch.createdBy).toBe("agente de Laura Pérez Ortiz");
-    const audit = await db.auditLog.findFirst({ where: { entityId: batch.id, action: "IMPORT_PROPOSED_BY_AGENT" } });
-    expect(audit?.actorId).toBe("agente de Laura Pérez Ortiz");
-    expect(audit?.detail).toBe("client=Claude Code de prueba rows=3 new=1 possible=1 invalid=1");
+    expect(batch.rows.find((r) => r.rowNumber === juana.row)?.patientId).toBe(juanaId);
+    const audit = await db.auditLog.findFirst({ where: { entityId: result.batchId, action: "AGENT_IMPORT_CONFIRMED" } });
+    expect(audit?.actorId).toBe("usr-intake");
+    expect(audit?.detail).toMatch(/^Importación confirmada por Laura Pérez Ortiz vía agente \(Claude Code de prueba\) · preview=/);
+    const registeredAudits = await db.auditLog.count({
+      where: { action: "IMPORT_ROW_REGISTERED", detail: { startsWith: `batch=${result.batchId}` } },
+    });
+    expect(registeredAudits).toBe(3);
 
-    const read = await app.request(`/api/agent/imports/${status.batchId}`, { headers: bearer(t.access_token) });
-    expect(await read.json()).toEqual(status);
     const list = (await (await app.request("/api/imports", { headers: INTAKE })).json()) as ImportBatchList;
-    expect(list.batches.find((b) => b.id === status.batchId)?.agentName).toBe("agente de Laura Pérez Ortiz");
+    expect(list.batches.find((b) => b.id === result.batchId)?.agentName).toBe("agente de Laura Pérez Ortiz");
+
+    const again = await post(t.access_token, "/apply", {
+      previewId: preview.previewId,
+      decisions: [{ row: fresh[0], action: "register" }],
+      confirmedByUser: true,
+      confirmationText: "otra vez",
+    });
+    expect(again.status).toBe(404);
+    expect(await db.patient.count()).toBe(before + 3);
   });
 
-  it("a doctor's agent gets a plain error on propose and creates nothing", async () => {
-    const t = await connect("cruiz");
-    const res = await propose(t.access_token, [{ fullName: "Prueba Agente Tres", birthDate: "1980-01-01" }]);
-    expect(res.status).toBe(403);
-    expect(((await res.json()) as { error: string }).error).toMatch(/^Solo una cuenta de Captura puede proponer pacientes\. Esta cuenta es de Médico/);
-  });
-
-  it("an agent of another person cannot read the batch", async () => {
-    const mine = await connect("lperez");
-    const res = await propose(mine.access_token, [{ fullName: "Prueba Agente Cuatro", birthDate: "1980-01-01" }]);
-    const { batchId } = (await res.json()) as AgentImportStatus;
-    batches.push(batchId);
-    const other = await connect("cruiz");
-    expect((await app.request(`/api/agent/imports/${batchId}`, { headers: bearer(other.access_token) })).status).toBe(404);
-  });
-
-  it("refuses empty or oversized batches", async () => {
+  it("reads identification fields from a form photo and finds the existing patient", async () => {
     const t = await connect("lperez");
-    expect((await propose(t.access_token, [])).status).toBe(400);
-    const many = Array.from({ length: 501 }, () => ({ fullName: "Prueba", birthDate: "1980-01-01" }));
-    expect((await propose(t.access_token, many)).status).toBe(400);
+    const res = await post(t.access_token, "/analyze/photo", {
+      imageBase64: demo("formatos/formato-01.svg"),
+      mimeType: "image/svg+xml",
+      fileName: "formato-01.svg",
+    });
+    expect(res.status).toBe(200);
+    const preview = (await res.json()) as AgentPreview;
+    const [row] = preview.rows;
+    expect(row.fields.fullName).toBe("Lucía Ramírez Torres");
+    expect(row.fields.affiliation).toBe("Ninguno");
+    expect(row.candidates[0]).toMatchObject({ fullName: "Lucía Ramírez Torres", strength: "STRONG" });
+    // Clinical values read by the OCR never leave the server.
+    expect(JSON.stringify(preview)).not.toMatch(/118\/76|62\.5|bloodPressure|weight/);
+  });
+
+  it("a doctor's agent gets a plain error and nothing is analyzed", async () => {
+    const t = await connect("cruiz");
+    const res = await analyzeExcel(t.access_token);
+    expect(res.status).toBe(403);
+    expect(((await res.json()) as { error: string }).error).toMatch(
+      /^Solo una cuenta de Captura puede importar pacientes\. Esta cuenta es de Médico/,
+    );
+  });
+
+  it("another person's agent cannot apply a preview", async () => {
+    const mine = await connect("lperez");
+    const preview = (await (await analyzeExcel(mine.access_token)).json()) as AgentPreview;
+    const other = await db.user.update({ where: { id: "usr-nutritionist" }, data: { role: "intake" } });
+    const theirs = await connect(other.username);
+    const res = await post(theirs.access_token, "/apply", {
+      previewId: preview.previewId,
+      decisions: [{ row: 1, action: "skip" }],
+      confirmedByUser: true,
+      confirmationText: "sí",
+    });
+    expect(res.status).toBe(404);
+    await db.user.update({ where: { id: "usr-nutritionist" }, data: { role: "nutritionist" } });
   });
 
   it("limits each connected agent to 60 requests per minute", async () => {

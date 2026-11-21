@@ -66,7 +66,7 @@ Service        id, visitId, type [BREAST_REVIEW | ULTRASOUND | PAP | MAMMOGRAPHY
                templateId, data (JSON con los campos de la plantilla), formImageRef?,
                status [DRAFT | CONFIRMED], confirmedBy?, confirmedAt?, version
 
-Campaign       id, name, municipality, state, date, localityIds        ("jornada")
+Campaign       id, name, municipality, state, date (inicio), endDate, localityIds   ("jornada", puede durar varios días)
 Locality       id, name, municipality, hasSignal
 User           id, name, role [intake | clinician | admin]
 
@@ -94,7 +94,7 @@ AuditLog       id, at, actorId, deviceId, action, entity, entityId, detail
 
 ### 6.1 Preparar la jornada (con señal)
 
-1. Administración crea la jornada (municipio, fecha, localidades).
+1. Administración crea la jornada (municipio, fecha de inicio y de fin, localidades). Una jornada puede durar varios días.
 2. Cada dispositivo de captura descarga el **paquete de jornada**: índice mínimo de las pacientes de esas localidades (nombre, fecha de nacimiento, entidad de nacimiento, huella SHA-256 del teléfono normalizado, ID del formato) y su lista de visitas previas sin datos clínicos. Es lo que permite buscar coincidencias sin red. El teléfono viaja como huella: sirve para comparar si es el mismo número sin guardar el número en el dispositivo.
 
 ### 6.2 Identificar primero, registrar después (con o sin señal)
@@ -109,7 +109,7 @@ Regla de la pantalla de captura: **no existe un botón de "alta nueva" antes de 
    - Teléfono igual + fecha de nacimiento igual: fuerte.
    - Solo nombre similar: débil; nunca basta.
 4. Captura elige **"Es ella"** (nueva visita en su expediente, con sus datos ya llenos: solo se confirma o corrige lo que cambió) o **"Es otra persona"** (alta nueva). Ambas decisiones quedan en bitácora.
-5. La visita registra la jornada, el folio del formato y los servicios del día.
+5. La visita registra la jornada, el folio del formato y los servicios del día. **La jornada es la del paquete descargado** en la tableta: se muestra siempre en la barra superior y no se elige en el formulario (cambiarla exige descargar otro paquete). Si la fecha de la visita cae fuera del rango de la jornada, la tableta avisa antes de guardar.
 
 ### 6.3 Segunda visita con historial
 

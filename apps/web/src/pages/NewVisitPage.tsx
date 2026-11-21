@@ -15,7 +15,7 @@ import { Alert, Button, Card, Check, Pencil, buttonClass, inputClass } from "../
 import { opMeta, saveVisit } from "../data/patients";
 import { usePackageStatus } from "../data/hooks";
 import { isPackageExpired, type PackageMeta } from "../data/db";
-import { ensureFolioPrefix, reserveFolio } from "../data/folioPrefix";
+import { ensureFolioPrefix, peekFolio } from "../data/folioPrefix";
 import { usePatientRecord } from "../data/usePatientRecord";
 import { ageFrom, formatBirthDate, isIsoDate, todayIso } from "../lib/format";
 import { es } from "../i18n/es";
@@ -88,7 +88,8 @@ function VisitForm({ record }: { record: PatientRecord }) {
   const pkgStatus = usePackageStatus();
   const pkg = pkgStatus.meta && !isPackageExpired(pkgStatus.meta) ? pkgStatus.meta : null;
   const campaignId = pkg?.campaignId ?? "";
-  // undefined: still reserving; null: this tablet has no folio prefix yet (needs one online login).
+  // Preview of the next folio (taken only on save). undefined: loading; null: this tablet has no
+  // folio prefix yet (needs one online login).
   const [folio, setFolio] = useState<string | null | undefined>(undefined);
   const [services, setServices] = useState<ServiceType[]>([]);
   const [steps, setSteps] = useState<ClinicalRole[]>([]);
@@ -108,7 +109,7 @@ function VisitForm({ record }: { record: PatientRecord }) {
     let active = true;
     (async () => {
       if (navigator.onLine) await ensureFolioPrefix();
-      const next = await reserveFolio();
+      const next = await peekFolio();
       if (active) setFolio(next);
     })().catch(() => active && setFolio(null));
     return () => {
@@ -170,7 +171,8 @@ function VisitForm({ record }: { record: PatientRecord }) {
     setError(null);
     try {
       // Saved on this device and queued; the top bar shows it until the sync engine sends it.
-      await saveVisit(ops, pkg.campaign.name);
+      const stored = await saveVisit(ops, pkg.campaign.name);
+      if (stored) setFolio(stored);
       setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);

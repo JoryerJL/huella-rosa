@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SyncOp, VisitStepView } from "@er/shared";
 import { db, type LocalVisit } from "./db";
 import { buildStepOps, completedStepKeys, filterQueue, loadQueue, saveStep } from "./steps";
-import { enqueue, opMeta } from "./patients";
+import { enqueue, opMeta, saveVisit } from "./patients";
 import { pushOutbox, syncNow } from "./sync";
-import { ensureFolioPrefix, reserveFolio } from "./folioPrefix";
+import { ensureFolioPrefix, peekFolio, reserveFolio } from "./folioPrefix";
 import { folioCheckLetter, formatFolio, isValidFolio } from "../lib/folio";
 import { stepFieldsFor } from "../lib/stepFields";
 import { defaultSteps, isOutsideCampaign } from "../pages/NewVisitPage";
@@ -66,6 +66,34 @@ describe("folio", () => {
     expect(await reserveFolio()).toBe("B3-002-C");
     // Registering again keeps the counter.
     expect(await ensureFolioPrefix()).toEqual({ folioPrefix: "B3", nextSeq: 3 });
+  });
+
+  it("shows -001 on a new tablet even if the form renders twice, and only saving uses the number", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ deviceId: "d", folioPrefix: "A8" })));
+    await ensureFolioPrefix();
+    // StrictMode mounts the visit form twice: peeking never consumes a number.
+    expect(await peekFolio()).toBe("A8-001-B");
+    expect(await peekFolio()).toBe("A8-001-B");
+    const visitOp = (visitId: string) =>
+      ({
+        ...opMeta(),
+        kind: "CREATE_VISIT",
+        visitId,
+        patientId: "p-1",
+        campaignId: "c-1",
+        date: "2026-11-21",
+        folio: "A8-001-B",
+        confirmedMatch: false,
+        services: [{ serviceId: crypto.randomUUID(), type: "BREAST_REVIEW" }],
+        plannedSteps: ["doctor"],
+      }) as Extract<SyncOp, { kind: "CREATE_VISIT" }>;
+    expect(await saveVisit([visitOp("v-1")], "Jornada")).toBe("A8-001-B");
+    expect(await peekFolio()).toBe("A8-002-C");
+    // A second form opened before the first saved still gets its own number, never a repeat.
+    expect(await saveVisit([visitOp("v-2")], "Jornada")).toBe("A8-002-C");
+    expect((await db.visits.get("v-2"))?.folio).toBe("A8-002-C");
+    const queued = (await db.outbox.toArray()).map((o) => (o.op as { folio?: string }).folio);
+    expect(queued).toEqual(["A8-001-B", "A8-002-C"]);
   });
 
   it("returns null when the tablet cannot register (no signal)", async () => {

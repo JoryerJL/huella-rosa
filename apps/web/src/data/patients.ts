@@ -13,6 +13,7 @@ import {
 } from "@er/shared";
 import { db, getPackageMeta, isPackageExpired, type LocalPatient, type LocalVisit } from "./db";
 import { requestSync } from "./sync";
+import { reserveFolio } from "./folioPrefix";
 import { getDeviceId } from "../lib/device";
 import { ApiError, isNetworkError, request } from "../lib/http";
 import { hashPhone, phoneLast4 } from "../lib/phoneHash";
@@ -260,13 +261,27 @@ export async function createPatient(op: CreatePatientOp): Promise<void> {
   requestSync();
 }
 
-/** Saves a visit (and the identification corrections made on it) on the device. */
-export async function saveVisit(ops: (UpdatePatientOp | CreateVisitOp)[], campaignName: string): Promise<void> {
+/**
+ * Saves a visit (and the identification corrections made on it) on the device. The visit's folio
+ * is taken from this tablet's counter in the same transaction (the op's folio is only the preview
+ * shown on screen), and the folio actually stored is returned.
+ */
+export async function saveVisit(ops: (UpdatePatientOp | CreateVisitOp)[], campaignName: string): Promise<string | null> {
   const update = ops.find((o): o is UpdatePatientOp => o.kind === "UPDATE_PATIENT");
   const extraHashes = update ? await phoneHashesOf(update.changes.phone, update.changes.mobile) : [];
+  let savedFolio: string | null = null;
 
-  await db.transaction("rw", db.patients, db.visits, db.outbox, async () => {
-    for (const op of ops) {
+  await db.transaction("rw", [db.patients, db.visits, db.outbox, db.meta], async () => {
+    for (const draft of ops) {
+      let op = draft;
+      if (op.kind === "CREATE_VISIT") {
+        // Retry with the same opId (double tap): keep the folio it already got.
+        const queued = await db.outbox.where("opId").equals(op.opId).first();
+        const folio = queued ? (queued.op as CreateVisitOp).folio : await reserveFolio();
+        if (!folio) throw new Error(es.visit.folioMissing);
+        op = { ...op, folio };
+        savedFolio = folio;
+      }
       if (op.kind === "UPDATE_PATIENT") {
         const current = await db.patients.get(op.patientId);
         if (current) {
@@ -301,4 +316,5 @@ export async function saveVisit(ops: (UpdatePatientOp | CreateVisitOp)[], campai
     }
   });
   requestSync();
+  return savedFolio;
 }

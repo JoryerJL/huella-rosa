@@ -71,7 +71,7 @@ export interface ServiceView {
   id: string;
   type: ServiceType;
   status: ServiceStatus;
-  /** Template fields. Only present for role clinician; null for intake (SPEC 4). */
+  /** Template fields. Present for CLINICAL_ROLES; null for intake (SPEC 4). */
   data: Record<string, string> | null;
 }
 
@@ -82,6 +82,8 @@ export interface VisitView {
   campaignName: string;
   folio: string | null;
   services: ServiceView[];
+  /** Block 2b (additive): stations of this visit (SPEC 6.3.1). */
+  steps?: VisitStepView[];
 }
 
 /** GET /api/patients/:id */
@@ -261,9 +263,13 @@ export interface PackageVisit {
   date: string;
   folio: string | null;
   serviceTypes: ServiceType[];
+  /** Block 2b (additive): stations of this visit, so specialists build their queue offline. */
+  steps?: VisitStepView[];
+  /** Block 2b (additive): ISO time the visit reached the server ("hora de registro"). */
+  registeredAt?: string;
 }
 
-/** GET /api/campaigns/:id/package (intake). */
+/** GET /api/campaigns/:id/package (intake and CLINICAL_ROLES). */
 export interface CampaignPackage {
   campaign: CampaignView & { localityIds: string[] };
   campaigns: CampaignView[];
@@ -276,7 +282,7 @@ export interface CampaignPackage {
   cursor: string;
 }
 
-/** GET /api/sync/pull?campaignId=&cursor= (intake): changes made by anyone since the cursor. */
+/** GET /api/sync/pull?campaignId=&cursor= (intake and CLINICAL_ROLES): changes made by anyone since the cursor. */
 export interface PullResponse {
   patients: PackagePatient[];
   visits: PackageVisit[];

@@ -134,6 +134,20 @@ En la jornada, la paciente pasa por estaciones. Una visita puede pasar **hasta p
 5. El expediente y el tablero muestran en qué paso va cada visita y cuánto tardó cada estación.
 6. Todo cambio de paso queda en bitácora.
 
+**El folio une a las estaciones sin internet.** Sin red las tabletas no se comunican entre sí, y la visita de hoy nace en la tableta de captura (también para pacientes recurrentes). Por eso:
+
+1. Al registrar la visita, captura genera un **folio corto** y lo escribe en el formato en papel, que viaja con la paciente: `<prefijo de tableta>-<consecutivo>-<letra de control>`, por ejemplo `B3-017-K`.
+   - El servidor asigna a cada tableta un prefijo único la primera vez que entra con señal (contador en Valkey). Así dos tabletas sin señal nunca generan el mismo folio.
+   - La letra de control (módulo 23 sobre el consecutivo) detecta errores al teclear.
+   - El folio es único por jornada (`campaignId` + `folio`).
+2. El especialista **teclea el folio**:
+   - Si su tableta ya conoce la visita (hubo señal), ve a la paciente y sus pasos.
+   - Si no la conoce, ve "Esta visita aún no llega a esta tableta. Puedes registrar tu paso; se unirá al sincronizar". Puede buscar a la paciente por nombre y fecha para ver su historial si ya vino antes, y anota el nombre que confirma la paciente.
+3. Las operaciones del paso llevan `campaignId`, `folio` y el nombre confirmado. Al sincronizar, el servidor las une a la visita con ese folio:
+   - Si la visita todavía no llegó (captura no ha sincronizado), la operación responde `WAITING`; el dispositivo la conserva y la reintenta en cada sincronización. No se pierde ni se duplica.
+   - Si el nombre confirmado no coincide con el de la visita, se abre una revisión para administración en lugar de unirla en silencio.
+4. Mejora para un piloto: pasar la visita completa por QR entre tabletas (sin teclear).
+
 ### 6.4 Digitalizar un formato
 
 1. Captura toma foto del formato (o sube una imagen o PDF).

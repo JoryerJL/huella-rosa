@@ -67,7 +67,7 @@ export async function loadCampaignScope(campaignId: string): Promise<CampaignSco
     OR: [{ localityId: { in: localityIds } }, { visits: { some: { campaignId } } }],
   };
   return {
-    campaign: { id: row.id, name: row.name, date: row.date, localityIds },
+    campaign: { id: row.id, name: row.name, date: row.date, endDate: row.endDate, localityIds },
     where: { OR: [inScope, { linkedFrom: { some: inScope } }] },
   };
 }
@@ -200,7 +200,7 @@ export async function buildChangesSince(scope: CampaignScope, since: Date) {
 
 export async function listCampaigns(): Promise<CampaignView[]> {
   return db.campaign.findMany({
-    select: { id: true, name: true, date: true },
+    select: { id: true, name: true, date: true, endDate: true },
     orderBy: [{ date: "desc" }, { name: "asc" }],
   });
 }

@@ -26,7 +26,8 @@ model Campaign {
   name         String
   municipality String
   state        String
-  date         String // YYYY-MM-DD
+  date         String // YYYY-MM-DD, first day of the campaign
+  endDate      String // YYYY-MM-DD, last day (same as date for one-day campaigns)
   localityIds  String // JSON array of Locality ids
   visits       Visit[]
 }

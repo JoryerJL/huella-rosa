@@ -446,7 +446,7 @@ async function updatePatient(tx: Tx, op: OpOf<"UPDATE_PATIENT">, staff: StaffPro
 async function createVisit(tx: Tx, op: OpOf<"CREATE_VISIT">, staff: StaffProfile): Promise<OpResult> {
   const [patient, campaign, existingVisit] = await Promise.all([
     tx.patient.findUnique({ where: { id: op.patientId }, select: { id: true } }),
-    tx.campaign.findUnique({ where: { id: op.campaignId }, select: { id: true } }),
+    tx.campaign.findUnique({ where: { id: op.campaignId }, select: { id: true, date: true, endDate: true } }),
     tx.visit.findUnique({ where: { id: op.visitId }, select: { id: true } }),
   ]);
   if (!patient) throw new OpRejected("No encontramos el expediente de esta visita. Sincroniza primero su alta.");
@@ -509,6 +509,21 @@ async function createVisit(tx: Tx, op: OpOf<"CREATE_VISIT">, staff: StaffProfile
     },
     tx,
   );
+  // Offline reality: a visit dated outside the campaign range is still kept, but flagged for review.
+  // YYYY-MM-DD strings compare correctly as text.
+  if (op.date < campaign.date || op.date > campaign.endDate) {
+    await writeAudit(
+      {
+        actorId: staff.id,
+        action: "VISIT_OUTSIDE_CAMPAIGN_DATES",
+        deviceId: op.deviceId,
+        entity: "Visit",
+        entityId: op.visitId,
+        detail: `campaign=${op.campaignId}`,
+      },
+      tx,
+    );
+  }
   if (op.confirmedMatch) {
     await writeAudit(
       {

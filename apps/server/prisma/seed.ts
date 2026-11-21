@@ -18,8 +18,9 @@ const localities = [
 ];
 
 const campaigns = [
-  { id: "camp-2026-05", name: "Jornada mayo 2026", date: "2026-05-16" },
-  { id: "camp-2026-11", name: "Jornada noviembre 2026", date: "2026-11-21" },
+  { id: "camp-2026-05", name: "Jornada mayo 2026", date: "2026-05-16", endDate: "2026-05-16" },
+  // Multi-day campaign: the downloaded package covers all three days offline.
+  { id: "camp-2026-11", name: "Jornada noviembre 2026", date: "2026-11-21", endDate: "2026-11-23" },
 ].map((c) => ({
   ...c,
   municipality: "Municipio Ficticio",

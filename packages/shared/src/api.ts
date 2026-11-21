@@ -298,5 +298,8 @@ export interface SyncChangedEvent {
 export interface CampaignView {
   id: string;
   name: string;
+  /** First day, YYYY-MM-DD. */
   date: string;
+  /** Last day, YYYY-MM-DD (same as date for a one-day campaign). Additive: multi-day campaigns. */
+  endDate: string;
 }

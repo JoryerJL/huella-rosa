@@ -79,6 +79,18 @@ export interface DeviceMeta {
   nextSeq: number;
 }
 
+/** Block 3a: a compressed form photo waiting for signal (SPEC 6.4 item 3, 6.8 item 4). */
+export interface QueuedScan {
+  seq?: number;
+  blob: Blob;
+  /** Original name, kept so the demo reading can match its sample form. */
+  name: string;
+  visitId: string | null;
+  campaignId: string | null;
+  folio: string | null;
+  createdAt: string;
+}
+
 export interface MetaRow {
   key: "package" | "sync" | "device";
   value: PackageMeta | SyncMeta | DeviceMeta;
@@ -90,6 +102,7 @@ export const db = new Dexie("huella-rosa") as Dexie & {
   outbox: EntityTable<OutboxEntry, "seq">;
   credentials: EntityTable<Credential, "username">;
   meta: EntityTable<MetaRow, "key">;
+  scanQueue: EntityTable<QueuedScan, "seq">;
 };
 
 db.version(1).stores({
@@ -103,6 +116,11 @@ db.version(1).stores({
 // v2: visits looked up by the short folio typed at the specialist stations.
 db.version(2).stores({
   visits: "id, patientId, folio",
+});
+
+// v3 (block 3a): form photos queued on the device until there is signal.
+db.version(3).stores({
+  scanQueue: "++seq, visitId, folio",
 });
 
 export async function getPackageMeta(): Promise<PackageMeta | null> {

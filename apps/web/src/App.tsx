@@ -5,6 +5,8 @@ import { RequireRole } from "./components/RequireRole";
 import { Login } from "./pages/Login";
 import { Intake } from "./pages/Intake";
 import { Patients } from "./pages/Patients";
+import { PatientRecordPage } from "./pages/PatientRecordPage";
+import { NewVisitPage } from "./pages/NewVisitPage";
 import { AdminAudit } from "./pages/AdminAudit";
 
 function Home() {
@@ -32,6 +34,22 @@ export function App() {
             element={
               <RequireRole roles={["intake", "clinician"]}>
                 <Patients />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/patients/:id"
+            element={
+              <RequireRole roles={["intake", "clinician"]}>
+                <PatientRecordPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/patients/:id/visit"
+            element={
+              <RequireRole roles={["intake"]}>
+                <NewVisitPage />
               </RequireRole>
             }
           />

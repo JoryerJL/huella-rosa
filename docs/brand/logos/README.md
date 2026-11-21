@@ -1,23 +1,19 @@
 # Propuestas de logo · Huella Rosa
 
-Estas cuatro rutas son originales, planas y construidas como SVG sin tipografías externas ni imágenes rasterizadas. Los archivos `*-mark.svg` son símbolos a color, `*-mark-mono.svg` son su variante en Tinta (`#2E2E2E`) y `*-lockup.svg` integra el nombre mediante trazos vectoriales.
+## Ronda 2: una huella dactilar, un expediente
 
-## 1. Huella lazo
+La segunda ronda corrige la ambigüedad de las rutas anteriores: los tres símbolos son huellas dactilares legibles desde 48 px, sin cruces, corazones ni letras dentro del signo. Cada SVG es original, plano y no usa tipografías externas ni imágenes rasterizadas; las imágenes en `round2/explorations/` son referencias de ánimo, no activos de identidad.
 
-Los surcos de una huella se convierten en un lazo suave. Une identidad y continuidad con un gesto orgánico, sin caer en un ícono médico convencional.
+### A. Remolino de regreso — recomendada
 
-## 2. Vuelta H — recomendada
+Seis surcos Vino forman una huella clásica y el surco Frambuesa se prolonga suavemente para indicar el regreso. Es la opción recomendada: comunica de inmediato “huella”, conserva el significado de una paciente que vuelve y funciona también en una sola tinta.
 
-Una línea continua forma una **H** y vuelve al punto de partida. Es la traducción más clara del producto: la aplicación reconoce a la misma mujer cuando regresa, incluso sin señal. Su silueta es distintiva, funciona en una tinta y conserva una lectura limpia a tamaños pequeños.
+### B. Ícono de campo
 
-## 3. Estaciones
+Surcos blancos sobre un cuadrado Frambuesa redondeado, pensado para la app instalada. Es la alternativa más funcional como ícono, pero menos flexible fuera de pantalla por depender del contenedor.
 
-Una huella formada por puntos representa las estaciones de atención y las visitas que construyen una sola historia. Es la propuesta más comunitaria y modular.
+### C. Contorno que acompaña
 
-## 4. Archivo vivo
+La huella se mantiene como protagonista mientras el borde exterior se cierra con un gesto discreto en la base. Es una ruta más institucional y serena, aunque menos directa que A para expresar el retorno.
 
-Tres anillos abiertos acompañan un punto central: un expediente único que sigue disponible y se va enriqueciendo. Es una alternativa más abstracta, sobria y protectora.
-
-## Uso y revisión
-
-Abrir `index.html` en un navegador para revisar cada propuesta sobre Crema y Frambuesa a 512, 96 y 48 px. Antes de adopción, conviene validar la opción elegida con personal de campo y representantes de EIRA; estas propuestas no sustituyen una revisión de marca institucional.
+Abrir `index.html` para revisar los tres símbolos sobre Crema y Frambuesa a 512, 96 y 48 px. Las propuestas de la primera ronda permanecen disponibles como historial, pero no son la recomendación actual.

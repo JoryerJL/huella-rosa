@@ -152,6 +152,10 @@ export function Intake() {
           <Link to="/campaigns" className={buttonClass("outline", "mt-4 w-full")}>
             {es.package.navLink}
           </Link>
+          {/* Block 3b: Excel import */}
+          <Link to="/intake/import" className={buttonClass("outline", "mt-3 w-full")}>
+            {es.imports.navLink}
+          </Link>
         </aside>
       </div>
     </Page>

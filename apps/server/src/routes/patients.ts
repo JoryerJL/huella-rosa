@@ -29,7 +29,7 @@ const visitInclude = {
   steps: { select: stepSelect, orderBy: { role: "asc" } },
 } satisfies Prisma.VisitInclude;
 
-const summaryInclude = {
+export const summaryInclude = {
   locality: { select: { name: true } },
   visits: { select: { date: true, campaign: { select: { name: true } } } },
   linkedFrom: {
@@ -44,7 +44,7 @@ function phoneLast4(row: { phone: string | null; mobile: string | null }): strin
   return digits ? digits.slice(-4) : null;
 }
 
-function toSummary(row: SummaryRow): PatientSummary {
+export function toSummary(row: SummaryRow): PatientSummary {
   // A main record's history includes the visits of the records linked to it.
   const visits = [...row.visits, ...row.linkedFrom.flatMap((l) => l.visits)].sort((a, b) =>
     b.date.localeCompare(a.date),

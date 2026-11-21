@@ -60,6 +60,8 @@ const priorVisits: { n: number; services: { type: ServiceType; data: Record<stri
 
 async function main() {
   // Children first.
+  await db.importRow.deleteMany();
+  await db.importBatch.deleteMany();
   await db.service.deleteMany();
   await db.visitStep.deleteMany();
   await db.visit.deleteMany();

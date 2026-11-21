@@ -33,6 +33,7 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
+    // API_PROXY lets a second checkout run its server on another port.
     proxy: { "/api": process.env.API_PROXY ?? "http://localhost:3001" },
   },
 });

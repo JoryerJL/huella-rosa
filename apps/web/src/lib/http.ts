@@ -21,7 +21,7 @@ export async function request<T>(path: string, init: RequestInit = {}): Promise<
       credentials: "include",
       headers: {
         "x-device-id": getDeviceId(),
-        ...(init.body ? { "content-type": "application/json" } : {}),
+        ...(init.body && !(init.body instanceof FormData) ? { "content-type": "application/json" } : {}),
         ...init.headers,
       },
     });

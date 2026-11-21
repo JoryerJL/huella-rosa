@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import type { CampaignPackage } from "@er/shared";
+import { CLINICAL_ROLES, type CampaignPackage } from "@er/shared";
 import { writeAudit } from "../audit";
 import { requireRole, type SessionEnv } from "../session";
 import {
@@ -11,11 +11,11 @@ import {
 } from "../campaignPackage";
 
 export const campaignRoutes = new Hono<SessionEnv>()
-  .get("/", requireRole("intake", "clinician", "admin"), async (c) => {
+  .get("/", requireRole("intake", ...CLINICAL_ROLES, "admin"), async (c) => {
     return c.json(await listCampaigns());
   })
-  // Offline campaign package (SPEC 6.1, 6.8): what an intake device needs to work without signal.
-  .get("/:id/package", requireRole("intake"), async (c) => {
+  // Offline campaign package (SPEC 6.1, 6.8, 6.3.1): what intake and specialist devices need offline.
+  .get("/:id/package", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
     const staff = c.get("staff");
     const scope = await loadCampaignScope(c.req.param("id"));
     if (!scope) return c.json({ error: "No encontramos esta jornada." }, 404);

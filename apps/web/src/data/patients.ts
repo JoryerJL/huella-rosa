@@ -8,9 +8,10 @@ import {
   type SearchQuery,
   type SearchResponse,
   type SyncOp,
+  type VisitStepView,
   type VisitView,
 } from "@er/shared";
-import { db, getPackageMeta, isPackageExpired, type LocalPatient } from "./db";
+import { db, getPackageMeta, isPackageExpired, type LocalPatient, type LocalVisit } from "./db";
 import { requestSync } from "./sync";
 import { getDeviceId } from "../lib/device";
 import { ApiError, isNetworkError, request } from "../lib/http";
@@ -19,7 +20,7 @@ import { es } from "../i18n/es";
 
 // The only module pages use for patients, visits and campaigns. Local-first (CLAUDE.md, SPEC 6.8):
 // reads come from IndexedDB, writes go to IndexedDB plus the outbox, and the sync engine talks to
-// /api/sync. The server is used directly only for the clinician's full record when there is signal.
+// /api/sync. The server is used directly only for the clinical roles' full record when there is signal.
 
 export { ApiError } from "../lib/http";
 
@@ -87,7 +88,7 @@ async function searchServer(query: SearchQuery): Promise<SearchResponse> {
 
 /**
  * With a campaign package on this device, search runs locally (with or without signal) and an expired
- * package is refused. Without a package (clinician devices) the server is used when there is signal.
+ * package is refused. Without a package the server is used when there is signal.
  */
 export async function searchPatients(query: SearchQuery): Promise<SearchResponse> {
   const meta = await getPackageMeta();
@@ -101,8 +102,12 @@ export async function searchPatients(query: SearchQuery): Promise<SearchResponse
 
 // ---------- Record ----------
 
-function localVisitView(visit: PackageVisit): VisitView {
+/** Visit plus its specialist steps; the server may add `steps` to VisitView, local visits carry them. */
+export type VisitWithSteps = VisitView & { steps?: VisitStepView[] };
+
+function localVisitView(visit: LocalVisit): VisitWithSteps {
   return {
+    steps: visit.steps,
     id: visit.id,
     date: visit.date,
     campaignId: visit.campaignId,
@@ -136,14 +141,20 @@ async function localRecord(id: string): Promise<PatientRecord | null> {
   };
 }
 
-/** With signal: the server record (clinical data only for clinician), plus visits still in the outbox. */
+/** With signal: the server record (clinical data only for clinical roles), plus visits still in the outbox. */
 export async function getPatientRecord(id: string): Promise<PatientRecord> {
   if (navigator.onLine) {
     try {
       const record = await request<PatientRecord>(`/api/patients/${encodeURIComponent(id)}`);
+      const local = await db.visits.where("patientId").equals(id).toArray();
+      const localById = new Map(local.map((v) => [v.id, v]));
       const known = new Set(record.visits.map((v) => v.id));
-      const pending = (await db.visits.where("patientId").equals(id).toArray()).filter((v) => !known.has(v.id));
-      return pending.length ? { ...record, visits: [...record.visits, ...pending.map(localVisitView)] } : record;
+      const pending = local.filter((v) => !known.has(v.id));
+      // Server visits without steps get the step state this tablet knows.
+      const visits: VisitWithSteps[] = record.visits.map((v: VisitWithSteps) =>
+        v.steps ? v : { ...v, steps: localById.get(v.id)?.steps },
+      );
+      return { ...record, visits: [...visits, ...pending.map(localVisitView)] };
     } catch (err) {
       // No connection, or a patient registered here that the server has not received yet.
       const fallback = isNetworkError(err) || (err instanceof ApiError && err.status === 404);
@@ -172,7 +183,7 @@ export function opMeta() {
   return { opId: crypto.randomUUID(), deviceId: getDeviceId(), at: new Date().toISOString() };
 }
 
-async function enqueue(op: SyncOp): Promise<void> {
+export async function enqueue(op: SyncOp): Promise<void> {
   // Same opId twice (double tap, retry) is stored once: the server is idempotent on it too.
   if (await db.outbox.where("opId").equals(op.opId).count()) return;
   const now = new Date().toISOString();
@@ -242,6 +253,9 @@ export async function saveVisit(ops: (UpdatePatientOp | CreateVisitOp)[], campai
           date: op.date,
           folio: op.folio ?? null,
           serviceTypes: op.services.map((s) => s.type),
+          // Each planned specialist starts PENDING (SPEC 6.3.1 item 1).
+          steps: op.plannedSteps.map((role) => ({ role, status: "PENDING", completedBy: null, completedAt: null })),
+          registeredAt: op.at,
         });
       }
       await enqueue(op);

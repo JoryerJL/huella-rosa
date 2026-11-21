@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import type { Prisma } from "@prisma/client";
 import {
+  CLINICAL_ROLES,
+  isClinicalRole,
   normalizePhone,
   searchQuerySchema,
   type MatchCandidate,
@@ -16,6 +18,7 @@ import { writeAudit } from "../audit";
 import { valkey } from "../valkey";
 import { scoreMainCandidates } from "../matchCandidates";
 import { requireRole, type SessionEnv } from "../session";
+import { stepSelect, toStepView } from "../campaignPackage";
 
 const SEARCH_LIMIT_PER_MINUTE = 60;
 const MAX_CANDIDATES = 10;
@@ -23,6 +26,7 @@ const MAX_CANDIDATES = 10;
 const visitInclude = {
   campaign: { select: { name: true } },
   services: { orderBy: { type: "asc" } },
+  steps: { select: stepSelect, orderBy: { role: "asc" } },
 } satisfies Prisma.VisitInclude;
 
 const summaryInclude = {
@@ -69,7 +73,7 @@ async function withinSearchLimit(userId: string): Promise<boolean> {
 }
 
 export const patientRoutes = new Hono<SessionEnv>()
-  .get("/search", requireRole("intake", "clinician"), async (c) => {
+  .get("/search", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
     const staff = c.get("staff");
     const parsed = searchQuerySchema.safeParse(c.req.query());
     if (!parsed.success) {
@@ -109,7 +113,7 @@ export const patientRoutes = new Hono<SessionEnv>()
     const response: SearchResponse = { candidates };
     return c.json(response);
   })
-  .get("/:id", requireRole("intake", "clinician"), async (c) => {
+  .get("/:id", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
     const staff = c.get("staff");
     const id = c.req.param("id");
     const patient = await db.patient.findUnique({
@@ -122,8 +126,8 @@ export const patientRoutes = new Hono<SessionEnv>()
     });
     if (!patient) return c.json({ error: "No encontramos este expediente." }, 404);
 
-    // Clinical template data only for clinician (SPEC 4, rule 7): enforced here, not in the UI.
-    const canSeeClinical = staff.role === "clinician";
+    // Clinical template data only for CLINICAL_ROLES (SPEC 4, rule 7): enforced here, not in the UI.
+    const canSeeClinical = isClinicalRole(staff.role);
     const visits: VisitView[] = [...patient.visits, ...patient.linkedFrom.flatMap((l) => l.visits)]
       .sort((a, b) => b.date.localeCompare(a.date))
       .map((v) => ({
@@ -138,6 +142,7 @@ export const patientRoutes = new Hono<SessionEnv>()
           status: s.status as ServiceStatus,
           data: canSeeClinical ? parseData(s.data) : null,
         })),
+        steps: v.steps.map(toStepView),
       }));
 
     const record: PatientRecord = {

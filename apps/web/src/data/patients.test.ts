@@ -8,7 +8,7 @@ import { es } from "../i18n/es";
 const DAY = 24 * 60 * 60 * 1000;
 
 async function loadPackage(expiresInMs: number) {
-  const campaign = { id: "c-1", name: "Jornada Valle Ficticio", date: "2026-11-21" };
+  const campaign = { id: "c-1", name: "Jornada Valle Ficticio", date: "2026-11-21", endDate: "2026-11-21" };
   await db.meta.put({
     key: "package",
     value: {

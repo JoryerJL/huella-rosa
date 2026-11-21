@@ -7,6 +7,8 @@ import { auditRoutes } from "./routes/audit";
 import { campaignRoutes } from "./routes/campaigns";
 import { patientRoutes } from "./routes/patients";
 import { syncRoutes } from "./routes/sync";
+import { deviceRoutes } from "./routes/devices";
+import { queueRoutes } from "./routes/queue";
 
 export const app = new Hono()
   .use(logger())
@@ -21,7 +23,9 @@ export const app = new Hono()
   .route("/api/audit", auditRoutes)
   .route("/api/patients", patientRoutes)
   .route("/api/campaigns", campaignRoutes)
-  .route("/api/sync", syncRoutes);
+  .route("/api/sync", syncRoutes)
+  .route("/api/devices", deviceRoutes)
+  .route("/api/queue", queueRoutes);
 
 /** Type used by the web app's typed client (hono/client). */
 export type AppType = typeof app;

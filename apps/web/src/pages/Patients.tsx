@@ -8,7 +8,7 @@ import { Alert, buttonClass } from "../components/ui";
 import { searchPatients } from "../data/patients";
 import { es } from "../i18n/es";
 
-/** Record search for intake and clinician: results only open the record (no "Es ella" / register here). */
+/** Record search for intake and the clinical roles: results only open the record (no "Es ella" / register here). */
 export function Patients() {
   const [candidates, setCandidates] = useState<MatchCandidate[] | null>(null);
   const [busy, setBusy] = useState(false);

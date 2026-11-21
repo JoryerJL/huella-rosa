@@ -218,6 +218,25 @@ Una jornada puede pasar **hasta 3 días sin internet**. Por eso:
 7. **Respaldo:** el formato en papel sigue siendo el respaldo si un dispositivo se pierde antes de sincronizar. El indicador muestra cuántas operaciones y fotos faltan por sincronizar y desde cuándo.
 8. Las versiones por campo, no la hora del dispositivo, deciden los conflictos (el reloj de una tableta puede estar mal).
 
+### 6.9 Con señal y sin señal: qué cambia en cada pantalla
+
+Es un solo flujo; la app no tiene "modos". Siempre escribe primero en el dispositivo y envía en cuanto puede. Lo que cambia con señal:
+
+| Pantalla | Con señal | Sin señal |
+|---|---|---|
+| Entrar | Valida usuario y PIN en el servidor; guarda la sesión para 4 días | Solo quien ya entró antes en esta tableta, con su PIN |
+| Barra superior | "Con señal" · "Todo enviado · 13:05" o "N cambios por enviar" + "Enviar ahora" | "Sin señal" · "N cambios por enviar · desde 11:40" |
+| Identificar paciente | Busca en la tableta **y en el servidor** (encuentra también a quien no está en el paquete, por ejemplo de otro municipio) y une los resultados | Busca solo en el paquete de la jornada; si no la encuentra, avisa "Puede que esté registrada en otra jornada: confírmalo cuando haya señal" |
+| Identificar con foto | Visible | Oculto |
+| Adjuntar foto del formato | Se sube y se lee al momento | Se guarda y se sube al volver la señal |
+| Expediente | Historial completo; los especialistas ven los resultados clínicos | Historial de visitas sin resultados clínicos ("Disponible con señal") |
+| Pacientes esperándome | Se actualiza sola en cuanto otra tableta envía (aviso en vivo) | Muestra lo que hay en la tableta; el folio permite trabajar visitas que aún no llegan |
+| Mi paso | Se envía al guardar; casi nunca queda "esperando" | Se guarda en la tableta; puede quedar "Esperando a que llegue la visita" |
+| Jornada (paquete) | Descargar o actualizar | Usa el descargado; avisa si venció |
+| Importar Excel, administración (¿Es la misma persona?, Dos personas cambiaron el mismo dato, bitácora) | Disponibles | "Necesitas señal para esta pantalla" |
+
+Al volver la señal: la tableta envía todo lo pendiente, trae los cambios de las demás y lo dice en una sola línea ("Se enviaron 12 cambios" o "3 cambios necesitan revisión").
+
 ## 7. Pantallas
 
 | Ruta | Rol | Contenido |

@@ -2,9 +2,9 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SyncOp, VisitStepView } from "@er/shared";
 import { db, type LocalVisit } from "./db";
-import { buildStepOps, completedStepKeys, filterQueue, loadQueue, saveStep } from "./steps";
+import { buildStepOps, completedStepKeys, filterQueue, groupStepEntries, loadQueue, saveStep } from "./steps";
 import { enqueue, opMeta, saveVisit } from "./patients";
-import { pushOutbox, syncNow } from "./sync";
+import { pushOutbox, setSyncUser, syncNow } from "./sync";
 import { ensureFolioPrefix, peekFolio, reserveFolio } from "./folioPrefix";
 import { folioCheckLetter, formatFolio, isValidFolio } from "../lib/folio";
 import { stepFieldsFor } from "../lib/stepFields";
@@ -240,6 +240,7 @@ describe("nutritionist step save", () => {
 describe("single-flight sync", () => {
   it("runs one push at a time, schedules one follow-up for triggers mid-run, and drops no op", async () => {
     vi.stubGlobal("navigator", { onLine: true });
+    setSyncUser({ id: "usr-doctor", role: "doctor" });
     const op = (folio: string) =>
       ({ ...opMeta(), kind: "COMPLETE_STEP", campaignId: "c-1", folio, confirmedName: "Lucía", role: "doctor", status: "DONE" }) as SyncOp;
     const first = op("B3-001-B");
@@ -276,5 +277,60 @@ describe("single-flight sync", () => {
     expect(maxActive).toBe(1);
     expect(pushed).toEqual([[first.opId], [second.opId]]);
     expect((await db.outbox.toArray()).map((e) => e.status)).toEqual(["sent", "sent"]);
+  });
+});
+
+describe("steps that need attention", () => {
+  // Saving one step offline queues its fields and its "done": the bar showed "2 pasos esperando…"
+  // and the folio twice. People count steps, not changes.
+  async function saveOfflineStep(role: "nutritionist" | "doctor", folio: string, values: Record<string, string>) {
+    const ids = { fields: { BREAST_REVIEW: opMeta(), PAP: opMeta() }, done: opMeta(), skip: opMeta() };
+    const ops = buildStepOps({
+      kind: "DONE",
+      role,
+      fields: stepFieldsFor(role),
+      values,
+      base: { campaignId: "c-1", folio, confirmedName: "Lucía Ficticia" },
+      ids,
+    });
+    await saveStep(ops, "Martha");
+  }
+
+  async function markAllWaiting() {
+    await db.outbox.toCollection().modify({ resultStatus: "WAITING", message: es.sync.waiting });
+  }
+
+  it("counts and lists one offline step once, whatever the number of changes it is made of", async () => {
+    await saveOfflineStep("nutritionist", "C5-001-B", { height: "158", weight: "62.5", bloodPressure: "118/76" });
+    await markAllWaiting();
+    const waiting = await db.outbox.toArray();
+    expect(waiting).toHaveLength(2);
+
+    const steps = groupStepEntries(waiting);
+    expect(steps).toHaveLength(1);
+    expect(steps[0]).toMatchObject({ folio: "C5-001-B", role: "nutritionist", message: es.sync.waiting });
+    expect(es.sync.waitingCount(steps.length)).toBe("1 paso esperando a que llegue la visita");
+  });
+
+  it("keeps different folios and different stations apart", async () => {
+    await saveOfflineStep("nutritionist", "C5-001-B", { height: "158" });
+    await saveOfflineStep("nutritionist", "C5-002-C", { height: "160" });
+    await saveOfflineStep("doctor", "C5-001-B", { birads: "1" });
+    await markAllWaiting();
+
+    const steps = groupStepEntries(await db.outbox.orderBy("seq").toArray());
+    expect(steps.map((s) => `${s.folio} ${s.role}`)).toEqual(["C5-001-B nutritionist", "C5-002-C nutritionist", "C5-001-B doctor"]);
+    expect(es.sync.waitingCount(steps.length)).toBe("3 pasos esperando a que llegue la visita");
+  });
+
+  it("shows a final problem of any change of the step over the waiting message", async () => {
+    await saveOfflineStep("nutritionist", "C5-001-B", { height: "158" });
+    const [fields, done] = await db.outbox.orderBy("seq").toArray();
+    await db.outbox.update(fields!.seq!, { status: "failed", resultStatus: "CONFLICT", message: es.visit.status.CONFLICT });
+    await db.outbox.update(done!.seq!, { resultStatus: "WAITING", message: es.sync.waiting });
+
+    const steps = groupStepEntries(await db.outbox.orderBy("seq").toArray());
+    expect(steps).toHaveLength(1);
+    expect(steps[0]!.message).toBe(es.visit.status.CONFLICT);
   });
 });

@@ -2,6 +2,7 @@ import { useEffect, useState, useSyncExternalStore, type DependencyList } from "
 import { liveQuery } from "dexie";
 import { db, getPackageMeta, getSyncMeta, type OutboxEntry, type PackageMeta, type SyncMeta } from "./db";
 import { getSyncState, subscribeSyncState, type SyncState } from "./sync";
+import { groupStepEntries } from "./steps";
 
 /** Re-renders whenever the IndexedDB data read by `query` changes. */
 export function useLive<T>(query: () => Promise<T>, deps: DependencyList, initial: T): T {
@@ -21,6 +22,8 @@ export interface OutboxSummary {
   failed: OutboxEntry[];
   /** Pending ops whose visit has not reached the server yet (WAITING): still counted in `pending`. */
   waiting: OutboxEntry[];
+  /** Station steps among `waiting`: one step saved offline is several changes but counts once. */
+  waitingSteps: number;
   /** Block 3a: form photos saved on this device and not sent yet (also counted in `pending`). */
   photos: number;
 }
@@ -34,10 +37,10 @@ export function useOutboxSummary(): OutboxSummary {
       const photos = await db.scanQueue.count();
       const firstPhoto = await db.scanQueue.orderBy("seq").first();
       const oldest = [pending[0]?.createdAt, firstPhoto?.createdAt].filter((x): x is string => !!x).sort()[0] ?? null;
-      return { pending: pending.length + photos, oldestPendingAt: oldest, failed, waiting, photos };
+      return { pending: pending.length + photos, oldestPendingAt: oldest, failed, waiting, waitingSteps: groupStepEntries(waiting).length, photos };
     },
     [],
-    { pending: 0, oldestPendingAt: null, failed: [], waiting: [], photos: 0 },
+    { pending: 0, oldestPendingAt: null, failed: [], waiting: [], waitingSteps: 0, photos: 0 },
   );
 }
 

@@ -129,7 +129,7 @@ Ambas tabletas con señal. T1 = `lperez`, T2 = `jtorres`.
 5. Resultado esperado:
    - Título "¿Es alguna de ellas?" y debajo "Buscaste: …".
    - Una tarjeta "Lucía Ramírez Torres" con la etiqueta "Coincidencia fuerte".
-   - "Motivos de la coincidencia" con: "Misma fecha de nacimiento", "Nombre parecido", "Mismo teléfono".
+   - Los motivos de la coincidencia como etiquetas: "Misma fecha de nacimiento", "Nombre parecido", "Mismo teléfono". "Motivos de la coincidencia" no se ve en pantalla: es el nombre de esa lista para lectores de pantalla (`aria-label`).
    - "Nació …", "Tel. termina en 0003", "Última visita: … · Jornada mayo 2026".
    - Botones "Es ella" y "Ver expediente"; al final "¿Ninguna es ella?" con "Es otra persona — registrar nueva".
 6. T1: pulsa "Es ella". Resultado esperado: título "Visita de hoy · Lucía Ramírez Torres", subtítulo "Sus datos ya están llenos. Solo confirma o corrige lo que cambió.", sección "Sus datos".
@@ -177,7 +177,7 @@ T1 = `lperez`, T2 = `jtorres`, ambas preparadas (1.5) y ambas **sin señal**.
    - Si tecleas mal la última letra: "Revisa el folio: no coincide la última letra o le falta algo. Ejemplo: B3-017-T."
 5. Resultado esperado: título "Folio <folio>" y el aviso "Esta visita aún no llega a esta tableta. Puedes registrar tu paso; se unirá al enviar." En "Historial": "Esta visita aún no llega. Puedes buscar a la paciente por nombre y fecha para ver su historial."
 6. T2: en "Nombre que confirma la paciente" escribe `Rosa Flores Morales` (ayuda: "Pregúntale su nombre completo y compáralo con el formato."). Llena Talla `160`, Peso `65` y pulsa "Guardar y terminar".
-7. Resultado esperado en T2: la barra muestra "1 paso esperando a que llegue la visita". En "Pacientes esperándome" aparece "Pasos que necesitan atención" con "Folio <folio>" y "Esperando a que llegue la visita".
+7. Resultado esperado en T2: la barra muestra "1 paso esperando a que llegue la visita" (un paso cuenta una vez, aunque guarde sus campos y su "terminado" por separado). En "Pacientes esperándome" aparece "Pasos que necesitan atención" con "Folio <folio>" **una sola vez** y "Esperando a que llegue la visita".
 8. T2: devuelve la señal **primero en T2** (T1 sigue sin señal). Resultado esperado: T2 sigue con "1 paso esperando a que llegue la visita" (no se pierde ni se rechaza).
 9. T1: devuelve la señal. Resultado esperado: T1 pasa a "Todo enviado · HH:MM".
 10. T2: en segundos (a más tardar 30 s, o pulsa "Enviar ahora") desaparece "1 paso esperando a que llegue la visita".

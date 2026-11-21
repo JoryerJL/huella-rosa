@@ -2,7 +2,7 @@ import { es, roleLabel } from "../i18n/es";
 import { useOnline } from "../lib/useOnline";
 import { useSession } from "../lib/session";
 import { useOutboxSummary, usePackageStatus, useSyncState } from "../data/hooks";
-import { dismissSyncToast, syncNow } from "../data/sync";
+import { canSync, dismissSyncToast, syncNow } from "../data/sync";
 import { useEffect } from "react";
 
 function clock(iso: string): string {
@@ -55,14 +55,14 @@ export function TopBar() {
         <div className="text-base leading-tight" role="status" aria-live="polite">
           <strong className="block">{pendingLine}</strong>
           {sinceLine && <span className="text-muted">{sinceLine}</span>}
-          {outbox.waiting.length > 0 && (
-            <span className="block font-semibold text-warn">{es.sync.waitingCount(outbox.waiting.length)}</span>
+          {outbox.waitingSteps > 0 && (
+            <span className="block font-semibold text-warn">{es.sync.waitingCount(outbox.waitingSteps)}</span>
           )}
           {outbox.failed.length > 0 && <span className="block font-semibold text-warn">{es.sync.failed(outbox.failed.length)}</span>}
           {syncState.toast && <span className="block font-semibold text-ok">{syncState.toast}</span>}
           {syncState.error && <span className="block max-w-xs font-semibold text-danger">{syncState.error}</span>}
         </div>
-        {online && profile && (
+        {online && profile && canSync(profile.role) && (
           <button
             type="button"
             onClick={() => void syncNow()}

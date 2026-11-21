@@ -1,5 +1,5 @@
 import type { ClinicalRole, QueueItem, ServiceType, StepStatus, SyncOp, VisitStepView } from "@er/shared";
-import type { StepField } from "../lib/stepFields";
+import { ownerOfKey, type StepField } from "../lib/stepFields";
 import { db, getPackageMeta, mergeVisit, type LocalVisit, type OutboxEntry } from "./db";
 import { enqueue } from "./patients";
 import { requestSync } from "./sync";
@@ -179,4 +179,45 @@ export async function saveStep(ops: StepOp[], staffName: string): Promise<void> 
     }
   });
   requestSync();
+}
+
+// ---------- Steps that need attention: one line per station step, not per change ----------
+
+/** One station step (folio + role) with every outbox change it is made of. */
+export interface StepAttention {
+  key: string;
+  /** null for a change that is not part of a station step. */
+  folio: string | null;
+  role: string | null;
+  /** The message to show: a final problem (CONFLICT/REJECTED) wins over "waiting for the visit". */
+  message: string | null;
+  entries: OutboxEntry[];
+}
+
+function stepKeyOf(entry: OutboxEntry): { folio: string; role: string | null } | null {
+  const op = entry.op;
+  if (op.kind === "COMPLETE_STEP") return { folio: op.folio, role: op.role };
+  if (op.kind === "UPDATE_SERVICE_FIELDS") {
+    const firstKey = Object.keys(op.fields)[0];
+    return { folio: op.folio, role: (firstKey && ownerOfKey(op.serviceType, firstKey)) ?? null };
+  }
+  return null;
+}
+
+/**
+ * Saving a step offline queues its fields and its "done" as separate changes. People think in steps:
+ * group the changes by folio + station so one step shows once ("1 paso esperando…", folio listed once).
+ * Changes that are not part of a step stay one line each. Order follows the first change of each step.
+ */
+export function groupStepEntries(entries: OutboxEntry[]): StepAttention[] {
+  const groups = new Map<string, StepAttention>();
+  for (const entry of entries) {
+    const step = stepKeyOf(entry);
+    const key = step ? `${normalizeFolio(step.folio)}|${step.role ?? "?"}` : `op|${entry.opId}`;
+    const group = groups.get(key) ?? { key, folio: step?.folio ?? null, role: step?.role ?? null, message: null, entries: [] };
+    group.entries.push(entry);
+    if (entry.message && (group.message === null || entry.status === "failed")) group.message = entry.message;
+    groups.set(key, group);
+  }
+  return [...groups.values()];
 }

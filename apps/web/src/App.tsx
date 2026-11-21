@@ -35,8 +35,10 @@ function Home() {
 /** Runs the outbox/pull engine while someone is signed in. */
 function SyncEngine() {
   const { profile } = useSession();
-  const signedIn = profile !== null;
-  useEffect(() => (signedIn ? startSyncEngine() : undefined), [signedIn]);
+  const id = profile?.id ?? null;
+  const role = profile?.role ?? null;
+  // Restarts when the person changes, so the engine never runs with the previous person's role.
+  useEffect(() => (id && role ? startSyncEngine({ id, role }) : undefined), [id, role]);
   return null;
 }
 

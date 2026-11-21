@@ -1,4 +1,4 @@
-import type { OpResult, PullResponse, SyncPushResponse } from "@er/shared";
+import { CLINICAL_ROLES, type OpResult, type PullResponse, type Role, type SyncPushResponse } from "@er/shared";
 import { db, getPackageMeta, getSyncMeta, mergeVisit, setSyncMeta, type LocalPatient } from "./db";
 import { ApiError, request } from "../lib/http";
 import { es } from "../i18n/es";
@@ -20,6 +20,27 @@ export interface SyncState {
 
 let state: SyncState = { running: false, error: null, toast: null };
 const listeners = new Set<() => void>();
+
+/** Roles the server lets push, pull and listen for changes (apps/server/src/routes/sync.ts). */
+const SYNC_ROLES: readonly Role[] = ["intake", ...CLINICAL_ROLES];
+
+/** Administration works online against the server; its tablet never sends or receives the outbox. */
+export function canSync(role: Role | null | undefined): boolean {
+  return !!role && SYNC_ROLES.includes(role);
+}
+
+/** Who is signed in on this tablet, as far as the engine is concerned. */
+let syncUser: { id: string; role: Role } | null = null;
+
+/**
+ * Tells the engine who is signed in. When the person changes, the previous person's error and toast
+ * are cleared: a message about someone else's session must not show on the new one.
+ */
+export function setSyncUser(user: { id: string; role: Role } | null): void {
+  const changed = user?.id !== syncUser?.id || user?.role !== syncUser?.role;
+  syncUser = user ? { id: user.id, role: user.role } : null;
+  if (changed && (state.error || state.toast)) setState({ error: null, toast: null });
+}
 
 function setState(patch: Partial<SyncState>) {
   state = { ...state, ...patch };
@@ -160,6 +181,8 @@ async function runOnce(): Promise<void> {
  * after it (never more), so ops saved mid-run are not left waiting for the timer. Never throws.
  */
 export function syncNow(): Promise<void> {
+  // Nobody signed in, or a role without sync permission (admin): nothing to send or receive.
+  if (!canSync(syncUser?.role)) return Promise.resolve();
   if (inFlight) {
     followUp = true;
     return inFlight;
@@ -189,8 +212,13 @@ export function requestSync(): void {
   void syncNow();
 }
 
-/** Starts the background engine for a signed-in session; returns a stop function. */
-export function startSyncEngine(): () => void {
+/**
+ * Starts the background engine for a signed-in session; returns a stop function. For a role without
+ * sync permission (admin) it starts nothing: no push, no pull and no live change stream.
+ */
+export function startSyncEngine(user: { id: string; role: Role }): () => void {
+  setSyncUser(user);
+  if (!canSync(user.role)) return () => setSyncUser(null);
   let events: EventSource | null = null;
 
   const openEvents = () => {
@@ -219,5 +247,6 @@ export function startSyncEngine(): () => void {
     window.removeEventListener("offline", onOffline);
     window.clearInterval(timer);
     closeEvents();
+    setSyncUser(null);
   };
 }

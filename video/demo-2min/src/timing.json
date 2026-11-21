@@ -1,65 +1,46 @@
 {
-  "_note": "Composition seconds. Sections overlap 0.5 s for the crossfade/wipe. Demo beats map to footage scenes from demo-videos/raw/timeline.json; 'slice' is the fraction of that scene shown in the beat (S7 holds both the doctor and the audit log).",
+  "_note": "Composition seconds. Sections overlap 0.5 s for the crossfade/wipe. Demo beats map to footage scenes from demo-videos/raw/timeline.json (npm run demo:record): S1 admin, S2 package, S3 offline intake (Lucia recognized until mark lucia-visit = 0.304, her folio and save until lucia-saved = 0.405, then a new patient), S4 station by folio, S5 signal returns, S6 doctor and record, S7 audit log. 'slice' is the fraction of the scene shown in the beat.",
   "end": 120.0,
   "fps": 30,
   "sections": {
-    "p1": [0.0, 5.5],
-    "p2": [5.0, 11.0],
-    "p3": [10.5, 15.5],
-    "idea": [15.0, 25.5],
-    "demo": [25.0, 100.5],
-    "trust": [100.0, 112.5],
-    "close": [112.0, 120.0]
+    "p1": [
+      0.0,
+      5.5
+    ],
+    "p2": [
+      5.0,
+      11.0
+    ],
+    "p3": [
+      10.5,
+      15.5
+    ],
+    "idea": [
+      15.0,
+      25.5
+    ],
+    "demo": [
+      25.0,
+      100.5
+    ],
+    "trust": [
+      100.0,
+      112.5
+    ],
+    "close": [
+      112.0,
+      120.0
+    ]
   },
   "xfade": 0.5,
   "beats": [
-    {
-      "id": "b1", "start": 25.0, "dur": 9.0, "scene": "S1", "slice": [0, 1],
-      "signal": {"a": "online", "b": "online"},
-      "label": "Alta del personal y de la jornada",
-      "sub": "Administración da de alta a quien sale a campo y abre la jornada con sus servicios."
-    },
-    {
-      "id": "b2", "start": 34.0, "dur": 8.0, "scene": "S2", "slice": [0, 1],
-      "signal": {"a": "online", "b": "online"},
-      "label": "Cada tableta descarga su paquete",
-      "sub": "Pacientes, localidades y formatos quedan guardados en la tableta antes de salir."
-    },
-    {
-      "id": "b3", "start": 42.0, "dur": 12.0, "scene": "S3", "slice": [0, 1],
-      "signal": {"a": "offline", "b": "offline"},
-      "label": "Sin señal, Lucía regresa y la reconoce",
-      "sub": "Se escribe “Lucia Ramirez Torres”: misma fecha de nacimiento y nombre parecido. Una persona confirma “Es ella”."
-    },
-    {
-      "id": "b4", "start": 54.0, "dur": 8.0, "scene": "S4", "slice": [0, 1],
-      "signal": {"a": "offline", "b": "offline"},
-      "label": "Recibe su folio del día",
-      "sub": "El folio la acompaña a cada estación de la jornada."
-    },
-    {
-      "id": "b5", "start": 62.0, "dur": 10.0, "scene": "S5", "slice": [0, 1],
-      "signal": {"a": "offline", "b": "offline"},
-      "label": "La siguiente estación la encuentra por folio",
-      "sub": "Sin señal, otra tableta busca el folio y registra su paso."
-    },
-    {
-      "id": "b6", "start": 72.0, "dur": 11.0, "scene": "S6", "slice": [0, 1],
-      "signal": {"a": "online", "b": "online"},
-      "label": "Vuelve la señal: todo llega una sola vez",
-      "sub": "Las dos tabletas envían sus cambios y el expediente queda unido, sin registros repetidos."
-    },
-    {
-      "id": "b7", "start": 83.0, "dur": 9.0, "scene": "S7", "slice": [0, 0.6],
-      "signal": {"a": "online", "b": "online"},
-      "label": "El médico la atiende con señal",
-      "sub": "Ve su historial completo y lo que se registró en la jornada."
-    },
-    {
-      "id": "b8", "start": 92.0, "dur": 8.0, "scene": "S7", "slice": [0.6, 1],
-      "signal": {"a": "online", "b": "online"},
-      "label": "Todo queda en bitácora",
-      "sub": "Quién, qué, cuándo y desde qué tableta."
-    }
+    {"id": "b1", "start": 25.0, "dur": 13.0, "scene": "S1", "slice": [0, 1], "signal": {"a": "online", "b": "online"}, "label": "Alta del personal y de la jornada", "sub": "Administración da de alta a quien sale a campo y abre la jornada con sus servicios."},
+    {"id": "b2", "start": 38.0, "dur": 7.0, "scene": "S2", "slice": [0, 1], "signal": {"a": "online", "b": "online"}, "label": "Cada tableta descarga su paquete", "sub": "Pacientes, localidades y formatos quedan guardados en la tableta antes de salir."},
+    {"id": "b3", "start": 45.0, "dur": 8.0, "scene": "S3", "slice": [0, 0.304], "signal": {"a": "offline", "b": "offline"}, "label": "Sin señal, Lucía regresa y la reconoce", "sub": "Se escribe “Lucia Ramirez Torres”: misma fecha de nacimiento y nombre parecido. Una persona confirma “Es ella”."},
+    {"id": "b4", "start": 53.0, "dur": 5.0, "scene": "S3", "slice": [0.304, 0.405], "signal": {"a": "offline", "b": "offline"}, "label": "Recibe su folio del día", "sub": "El folio la acompaña a cada estación de la jornada."},
+    {"id": "b5", "start": 58.0, "dur": 8.0, "scene": "S4", "slice": [0, 1], "signal": {"a": "offline", "b": "offline"}, "label": "La siguiente estación la encuentra por folio", "sub": "Sin señal, otra tableta busca el folio y registra su paso."},
+    {"id": "b6", "start": 66.0, "dur": 6.0, "scene": "S5", "slice": [0, 1], "signal": {"a": "online", "b": "online"}, "label": "Vuelve la señal: todo llega una sola vez", "sub": "Las dos tabletas envían sus cambios y el expediente queda unido, sin registros repetidos."},
+    {"id": "b7", "start": 72.0, "dur": 15.0, "scene": "S6", "slice": [0, 1], "signal": {"a": "online", "b": "online"}, "label": "El médico la atiende con señal", "sub": "Ve su historial completo y lo que se registró en la jornada."},
+    {"id": "b8", "start": 87.0, "dur": 13.0, "scene": "S7", "slice": [0, 1], "signal": {"a": "online", "b": "online"}, "label": "Todo queda en bitácora", "sub": "Quién, qué, cuándo y desde qué tableta."}
   ]
 }

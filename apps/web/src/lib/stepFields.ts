@@ -90,6 +90,13 @@ export function ownerOf(field: TemplateField): string | undefined {
   return field.filledBy ?? FALLBACK_OWNER[field.clave];
 }
 
+/** The station that fills `key` of `serviceType`'s template, or undefined for an unknown field. */
+export function ownerOfKey(serviceType: ServiceType, key: string): string | undefined {
+  const template = (serviceType === "PAP" ? citologia : mamaria) as { campos: TemplateField[] };
+  const field = template.campos.find((f) => f.clave === key);
+  return field ? ownerOf(field) : undefined;
+}
+
 function fieldsOf(template: { campos: TemplateField[] }, role: ClinicalRole, serviceType: ServiceType): StepField[] {
   return template.campos
     .filter((f) => !f.no_transcribir && ownerOf(f) === role)

@@ -1,6 +1,6 @@
 # Guion de pruebas de punta a punta: Huella Rosa
 
-Guion paso a paso para probar Huella Rosa **con y sin internet**. Está escrito para que lo siga una persona o un agente que maneja un navegador real (computer use). Los textos entre comillas son **exactos**: salen de `apps/web/src/i18n/es.ts` y del servidor. Si lo que ves en pantalla no coincide letra por letra, anótalo como falla (ver sección 6).
+Guion paso a paso para probar Huella Rosa **con y sin internet**. Está escrito para que lo siga una persona o un agente que maneja un navegador real (computer use). Los textos entre comillas son **exactos**: salen de `apps/web/src/i18n/es.ts` y del servidor. Si lo que ves en pantalla no coincide letra por letra, anótalo como falla (ver sección 7).
 
 - App: http://localhost:5173 (servidor en :3001, Valkey en Docker).
 - Todos los datos son ficticios. Teléfonos `55-0000-00XX`, ID `DEMO…`.
@@ -129,7 +129,7 @@ Ambas tabletas con señal. T1 = `lperez`, T2 = `jtorres`.
 5. Resultado esperado:
    - Título "¿Es alguna de ellas?" y debajo "Buscaste: …".
    - Una tarjeta "Lucía Ramírez Torres" con la etiqueta "Coincidencia fuerte".
-   - "Motivos de la coincidencia" con: "Misma fecha de nacimiento", "Nombre parecido", "Mismo teléfono".
+   - Los motivos de la coincidencia como etiquetas: "Misma fecha de nacimiento", "Nombre parecido", "Mismo teléfono". "Motivos de la coincidencia" no se ve en pantalla: es el nombre de esa lista para lectores de pantalla (`aria-label`).
    - "Nació …", "Tel. termina en 0003", "Última visita: … · Jornada mayo 2026".
    - Botones "Es ella" y "Ver expediente"; al final "¿Ninguna es ella?" con "Es otra persona — registrar nueva".
 6. T1: pulsa "Es ella". Resultado esperado: título "Visita de hoy · Lucía Ramírez Torres", subtítulo "Sus datos ya están llenos. Solo confirma o corrige lo que cambió.", sección "Sus datos".
@@ -177,7 +177,7 @@ T1 = `lperez`, T2 = `jtorres`, ambas preparadas (1.5) y ambas **sin señal**.
    - Si tecleas mal la última letra: "Revisa el folio: no coincide la última letra o le falta algo. Ejemplo: B3-017-T."
 5. Resultado esperado: título "Folio <folio>" y el aviso "Esta visita aún no llega a esta tableta. Puedes registrar tu paso; se unirá al enviar." En "Historial": "Esta visita aún no llega. Puedes buscar a la paciente por nombre y fecha para ver su historial."
 6. T2: en "Nombre que confirma la paciente" escribe `Rosa Flores Morales` (ayuda: "Pregúntale su nombre completo y compáralo con el formato."). Llena Talla `160`, Peso `65` y pulsa "Guardar y terminar".
-7. Resultado esperado en T2: la barra muestra "1 paso esperando a que llegue la visita". En "Pacientes esperándome" aparece "Pasos que necesitan atención" con "Folio <folio>" y "Esperando a que llegue la visita".
+7. Resultado esperado en T2: la barra muestra "1 paso esperando a que llegue la visita" (un paso cuenta una vez, aunque guarde sus campos y su "terminado" por separado). En "Pacientes esperándome" aparece "Pasos que necesitan atención" con "Folio <folio>" **una sola vez** y "Esperando a que llegue la visita".
 8. T2: devuelve la señal **primero en T2** (T1 sigue sin señal). Resultado esperado: T2 sigue con "1 paso esperando a que llegue la visita" (no se pierde ni se rechaza).
 9. T1: devuelve la señal. Resultado esperado: T1 pasa a "Todo enviado · HH:MM".
 10. T2: en segundos (a más tardar 30 s, o pulsa "Enviar ahora") desaparece "1 paso esperando a que llegue la visita".
@@ -321,7 +321,17 @@ Marca cada renglón con OK, Falla o Nota (con la referencia de captura de pantal
 | Un Excel subido no crea ningún expediente hasta que captura confirma cada fila | I (paso 5) | |
 | Ninguna herramienta MCP puede confirmar, vincular ni leer datos clínicos; un token revocado responde 401 | Fuera de este guion (no se prueba en el navegador) | |
 
-## 6. Reglas para quien prueba (persona o agente)
+## 6. Grabación automática del recorrido completo
+
+`npm run demo:record` (con Valkey arriba: `docker compose up -d`) recorre todo el flujo desde cero con Playwright y lo graba. Sirve como prueba de punta a punta y como material para el video de la demo.
+
+- Crea una base nueva en una carpeta temporal (no toca `dev.db`), siembra los datos ficticios y levanta la versión construida con sus propios puertos: servidor en `:4301`, app en `:4302`.
+- Maneja dos tabletas (dos contextos del navegador, 1280×800, cada una con su almacenamiento) usando el Chrome instalado. Escribe y hace clic despacio, con un punto Frambuesa que sigue al cursor.
+- Escenas: S1 administración (da de alta a Ana Hernández Ruiz, Martha Campos Lara, Dr. Ricardo Gómez Peña y Dra. Elena Ríos Vidal; crea "Jornada San Ejemplo de la Sierra · noviembre 2026"), S2 entrar y descargar el paquete, S3 sin señal (Lucía con "Es ella" y una paciente nueva con su ID EIRA), S4 Nutrición por folio sin señal, S5 vuelve la señal, S6 Médico con señal y expediente, S7 bitácora.
+- Cada escena revisa los textos exactos de este guion; si uno no aparece, el comando termina con error y deja una captura `S#-FAIL-…png`.
+- Resultado en `demo-videos/raw/` (no se sube al repo): `tablet-a.webm`, `tablet-b.webm`, `timeline.json` (inicio y fin de cada escena en milisegundos) y `stills/` con una captura por escena.
+
+## 7. Reglas para quien prueba (persona o agente)
 
 1. **Nunca uses datos reales.** Usa solo los datos de este guion o inventa con las mismas reglas: nombres comunes combinados, teléfonos `55-0000-00XX`, ID `DEMO…`.
 2. **Nunca escribas fuera de la app**: ni en la consola de DevTools, ni en la barra de direcciones salvo las URL de este guion, ni en otras páginas o programas. DevTools se usa solo para cortar la señal (Network) y limpiar datos (Application).

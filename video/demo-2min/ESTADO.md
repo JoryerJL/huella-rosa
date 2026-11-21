@@ -15,19 +15,21 @@
 
 ## Beats del demo y tomas de la grabación
 
-`timeline.json` de la grabación trae las tomas S1-S7. Cada beat toma una fracción (`slice`) de su toma; S7 se
-reparte entre el médico y la bitácora. Si la grabación cambia, se ajusta `scene` y `slice` en `src/timing.json`.
+`timeline.json` de la grabación (`npm run demo:record`) trae las tomas S1-S7 y, dentro de algunas, marcas con
+nombre (`marks`, en ms). Cada beat toma una fracción (`slice`) de su toma. S3 se reparte con sus marcas: Lucía
+reconocida hasta `lucia-visit` (0.304), su folio y guardado hasta `lucia-saved` (0.405); el resto (paciente nueva)
+no entra en el corte de 2 minutos. Si la grabación cambia, se ajusta `scene` y `slice` en `src/timing.json`.
 
-| Beat | Inicio | Duración | Toma | Fracción | Señal A / B |
-|---|---|---|---|---|---|
-| Alta del personal y de la jornada | 25 s | 9 s | S1 | 0-1 | con / con |
-| Cada tableta descarga su paquete | 34 s | 8 s | S2 | 0-1 | con / con |
-| Sin señal, Lucía regresa y la reconoce | 42 s | 12 s | S3 | 0-1 | sin / sin |
-| Recibe su folio del día | 54 s | 8 s | S4 | 0-1 | sin / sin |
-| La siguiente estación la encuentra por folio | 62 s | 10 s | S5 | 0-1 | sin / sin |
-| Vuelve la señal: todo llega una sola vez | 72 s | 11 s | S6 | 0-1 | con / con |
-| El médico la atiende con señal | 83 s | 9 s | S7 | 0-0.6 | con / con |
-| Todo queda en bitácora | 92 s | 8 s | S7 | 0.6-1 | con / con |
+| Beat | Inicio | Duración | Toma | Fracción | Qué se ve | Señal A / B |
+|---|---|---|---|---|---|---|
+| Alta del personal y de la jornada | 25 s | 13 s | S1 | 0-1 | Administración da de alta a 4 personas y crea la jornada | con / con |
+| Cada tableta descarga su paquete | 38 s | 7 s | S2 | 0-1 | Captura y Nutrición entran y descargan el paquete | con / con |
+| Sin señal, Lucía regresa y la reconoce | 45 s | 8 s | S3 | 0-0.304 | Búsqueda sin acentos, coincidencia fuerte, "Es ella" | sin / sin |
+| Recibe su folio del día | 53 s | 5 s | S3 | 0.304-0.405 | Folio, Revisión mamaria, "Guardado ✓" | sin / sin |
+| La siguiente estación la encuentra por folio | 58 s | 8 s | S4 | 0-1 | Nutrición teclea el folio y guarda su paso | sin / sin |
+| Vuelve la señal: todo llega una sola vez | 66 s | 6 s | S5 | 0-1 | "1 paso esperando…" y luego "Todo enviado" en las dos | con / con |
+| El médico la atiende con señal | 72 s | 15 s | S6 | 0-1 | Médico llena BIRADS y abre el expediente con 2 visitas | con / con |
+| Todo queda en bitácora | 87 s | 13 s | S7 | 0-1 | Bitácora de Lucía en lenguaje sencillo | con / con |
 
 ## Volver a renderizar con la grabación real
 

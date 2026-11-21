@@ -6,7 +6,7 @@ import { StepChips } from "../components/StepChips";
 import { ClinicalConflictsLink } from "../components/ClinicalConflictsLink";
 import { Alert, Button, Card, EiraIdBadge, buttonClass, inputClass } from "../components/ui";
 import { useLive, useOutboxSummary, useSyncState } from "../data/hooks";
-import { loadQueue, refreshQueueFromServer, type QueueEntry } from "../data/steps";
+import { groupStepEntries, loadQueue, refreshQueueFromServer, type QueueEntry } from "../data/steps";
 import { useSession } from "../lib/session";
 import { isValidFolio, normalizeFolio } from "../lib/folio";
 import { es } from "../i18n/es";
@@ -29,8 +29,9 @@ export function QueuePage() {
     if (!syncState.running) void refreshQueueFromServer().catch(() => undefined);
   }, [syncState.running]);
 
-  const attention = [...outbox.waiting, ...outbox.failed].filter(
-    (e) => e.kind === "COMPLETE_STEP" || e.kind === "UPDATE_SERVICE_FIELDS",
+  // One line per station step (folio + role), not per change: a step saved offline is several changes.
+  const attention = groupStepEntries(
+    [...outbox.waiting, ...outbox.failed].filter((e) => e.kind === "COMPLETE_STEP" || e.kind === "UPDATE_SERVICE_FIELDS"),
   );
 
   return (
@@ -76,10 +77,10 @@ export function QueuePage() {
             <Card>
               <h2 className="text-xl font-bold">{es.queue.attentionTitle}</h2>
               <ul className="mt-3 space-y-2">
-                {attention.map((e) => (
-                  <li key={e.opId} className="text-lg">
-                    <strong>{e.op.kind === "COMPLETE_STEP" || e.op.kind === "UPDATE_SERVICE_FIELDS" ? es.record.folio(e.op.folio) : es.visit.opLabel[e.kind]}:</strong>{" "}
-                    {e.message ?? es.sync.waiting}
+                {attention.map((step) => (
+                  <li key={step.key} className="text-lg">
+                    <strong>{step.folio ? es.record.folio(step.folio) : es.visit.opLabel[step.entries[0]!.kind]}:</strong>{" "}
+                    {step.message ?? es.sync.waiting}
                   </li>
                 ))}
               </ul>

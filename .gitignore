@@ -13,6 +13,10 @@ datos-reales/
 dev-dist/
 *.tsbuildinfo
 .atl/
+
+# Demo footage (recorded by npm run demo:record; not committed)
+demo-videos/
+
 # Video renders and large media (video/README.md)
 video/**/renders/
 video/**/.hyperframes/

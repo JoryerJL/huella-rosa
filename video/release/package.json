@@ -1,0 +1,15 @@
+{
+  "name": "huella-rosa-release",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 build.py 16x9",
+    "build:9x16": "python3 build.py 9x16",
+    "dev": "python3 build.py ${FORMAT:-16x9} && npx --yes hyperframes@0.9.51 preview",
+    "check": "npx --yes hyperframes@0.9.51 lint && npx --yes hyperframes@0.9.51 check",
+    "render:16x9": "python3 build.py 16x9 && npx --yes hyperframes@0.9.51 render -q high -f 30 -o renders/huella-rosa-release-16x9.mp4",
+    "render:9x16": "python3 build.py 9x16 && npx --yes hyperframes@0.9.51 render -q high -f 30 -o renders/huella-rosa-release-9x16.mp4",
+    "render": "npm run render:16x9 && npm run render:9x16 && python3 build.py 16x9",
+    "qa": "python3 qa.py"
+  }
+}

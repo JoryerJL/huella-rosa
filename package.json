@@ -19,7 +19,9 @@
     "infra:deploy": "npm --prefix infra ci --no-audit --no-fund && npm --prefix infra run deploy",
     "infra:destroy": "npm --prefix infra ci --no-audit --no-fund && npm --prefix infra run destroy",
     "video:render": "npm --prefix video/demo-2min run render",
-    "video:qa": "npm --prefix video/demo-2min run qa"
+    "video:qa": "npm --prefix video/demo-2min run qa",
+    "video:release": "npm --prefix video/release run render",
+    "video:release:qa": "npm --prefix video/release run qa"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

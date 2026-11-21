@@ -47,7 +47,7 @@ Principio de diseño: **la tecnología hace el trabajo repetitivo; las personas 
 |---|---|---|
 | Captura | Buscar pacientes, dar de alta, registrar visitas y servicios, digitalizar formatos, trabajar sin conexión | Ver resultados clínicos de visitas anteriores; vincular expedientes; resolver conflictos |
 | Consulta clínica: **nutriólogo, médico, patólogo** | Ver el historial clínico completo; llenar y confirmar **solo los campos de su especialidad** (ver 6.3.1), incluidos los leídos de un formato; resolver conflictos en esos campos; ver su lista de "pacientes esperándome" | Llenar campos de otra especialidad; vincular expedientes; administrar usuarios |
-| Administración | Revisar posibles duplicados y vincular, resolver conflictos en campos no clínicos, consultar la bitácora, crear jornadas | Ver o editar datos clínicos |
+| Administración | Dar de alta y desactivar al personal (captura, nutriólogo, médico, patólogo, administración); crear y editar jornadas; revisar posibles duplicados y vincular; resolver conflictos en campos no clínicos; consultar la bitácora y el tablero | Ver o editar datos clínicos |
 
 En el prototipo el personal entra con usuarios de demostración sembrados. En un piloto: Amazon Cognito con MFA.
 
@@ -91,6 +91,12 @@ AuditLog       id, at, actorId, deviceId, action, entity, entityId, detail
 - `linkedToId`: al vincular, el registro duplicado apunta al expediente principal. El historial se muestra unido; ningún dato se borra.
 
 ## 6. Flujos
+
+### 6.0 Alta del personal y de las jornadas (administración, con señal)
+
+1. **Personal:** administración da de alta a cada persona con nombre, usuario, rol (captura, nutriólogo, médico, patólogo o administración) y un PIN inicial que le comunica en persona. Puede desactivar a alguien: deja de poder entrar con señal y, al sincronizar, el servidor rechaza sus cambios. Nunca se borra (la bitácora conserva quién hizo qué).
+2. **Jornadas:** administración crea la jornada con un **nombre libre** que puede incluir el lugar (por ejemplo "Jornada San Ejemplo de la Sierra · noviembre 2026"; la pantalla lo propone a partir del lugar y el mes y se puede editar), el lugar (municipio y estado), las localidades que atiende y las fechas de inicio y de fin. Puede editarla mientras no haya terminado.
+3. Las pantallas de alta siguen la regla de lenguaje sencillo y solo funcionan con señal.
 
 ### 6.1 Preparar la jornada (con señal)
 
@@ -286,7 +292,7 @@ POST /mcp (apps/mcp, FastMCP)        agente      servidor MCP (token de agente);
 
 Toda ruta valida rol en el servidor y escribe en bitácora.
 
-Altas y cambios de pacientes, visitas y servicios entran **solo** por `/api/sync/push`, con o sin señal. Un solo camino de escritura evita que el modo en línea y el modo sin conexión se comporten distinto. Los usuarios del personal se siembran (demo); su administración queda fuera del prototipo.
+Altas y cambios de pacientes, visitas y servicios entran **solo** por `/api/sync/push`, con o sin señal. Un solo camino de escritura evita que el modo en línea y el modo sin conexión se comporten distinto. El personal y las jornadas los da de alta administración (6.0); la semilla solo crea una cuenta de administración inicial más datos de demostración.
 
 ## 9. Arquitectura y tecnología
 

@@ -175,6 +175,7 @@ export const es = {
   },
   affiliationOptions: ["INSABI", "IMSS", "ISSSTE", "SEDENA", "SEMAR", "Ninguno", "Otro"],
   record: {
+    sectionTitle: { nutritionist: "Somatometría", doctor: "Consulta", pathologist: "Patología" } as Record<string, string>,
     idLine: (formId: string) => `ID EIRA ${formId}`,
     noFormId: "Sin ID EIRA",
     newVisit: "Registrar visita de hoy",

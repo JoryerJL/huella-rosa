@@ -104,3 +104,45 @@ export function stepFieldsFor(role: ClinicalRole): StepField[] {
     ...fieldsOf(citologia as { campos: TemplateField[] }, role, "PAP"),
   ];
 }
+
+// ---------- Patient record: clinical values with their form labels ----------
+
+export interface RecordItem {
+  key: string;
+  label: string;
+  value: string;
+}
+
+export interface RecordSection {
+  role: ClinicalRole;
+  items: RecordItem[];
+}
+
+const SECTION_ORDER: ClinicalRole[] = ["nutritionist", "doctor", "pathologist"];
+
+/** Visible text of a stored value: option label, "Código N" for coded choices without labels, else the value. */
+export function displayValue(field: TemplateField, value: string): string {
+  if (field.tipo !== "casilla") return value;
+  const label = field.opciones?.[value];
+  if (label) return label;
+  return /^\d+$/.test(value) ? `Código ${value}` : value;
+}
+
+/**
+ * Stored service data grouped by the step that fills it (Somatometría, Consulta, Patología), in form
+ * order, with the template labels. Keys not in the template are never shown as raw keys.
+ */
+export function recordSections(serviceType: ServiceType, data: Record<string, string>, omit: string[] = []): RecordSection[] {
+  const template = (serviceType === "PAP" ? citologia : mamaria) as { campos: TemplateField[] };
+  const byRole = new Map<ClinicalRole, RecordItem[]>();
+  for (const field of template.campos) {
+    const value = data[field.clave];
+    if (value === undefined || value === "" || omit.includes(field.clave)) continue;
+    const role = ownerOf(field) as ClinicalRole | undefined;
+    if (!role || !SECTION_ORDER.includes(role)) continue;
+    const items = byRole.get(role) ?? [];
+    items.push({ key: field.clave, label: field.etiqueta, value: displayValue(field, value) });
+    byRole.set(role, items);
+  }
+  return SECTION_ORDER.filter((r) => byRole.has(r)).map((role) => ({ role, items: byRole.get(role)! }));
+}

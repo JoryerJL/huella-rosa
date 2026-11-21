@@ -8,6 +8,7 @@ import { StepChips } from "../components/StepChips";
 import { useSession } from "../lib/session";
 import { ageFrom, formatBirthDate, formatShortDate, todayIso } from "../lib/format";
 import { es } from "../i18n/es";
+import { recordSections } from "../lib/stepFields";
 
 export function BackButton() {
   const navigate = useNavigate();
@@ -174,11 +175,11 @@ function VisitItem({ visit, first }: { visit: VisitWithSteps; first: boolean }) 
 }
 
 function ServiceResult({ service, data }: { service: ServiceView; data: Record<string, string> }) {
-  const entries = Object.entries(data).filter(([, v]) => v !== "");
-  const { birads, nextStep, ...rest } = data;
+  const { birads, nextStep } = data;
   const isBreast = service.type === "BREAST_REVIEW" && (birads !== undefined || nextStep !== undefined);
+  const sections = recordSections(service.type, data, isBreast ? ["birads", "nextStep"] : []);
 
-  if (entries.length === 0) {
+  if (!isBreast && sections.length === 0) {
     return (
       <p className="rounded-xl bg-blush px-4 py-3 text-base">
         {es.services[service.type]}: {es.record.noResults}
@@ -187,7 +188,7 @@ function ServiceResult({ service, data }: { service: ServiceView; data: Record<s
   }
 
   return (
-    <div className="rounded-xl bg-blush px-4 py-3">
+    <div className="space-y-2 rounded-xl bg-blush px-4 py-3">
       {isBreast ? (
         <>
           {birads !== undefined && (
@@ -199,29 +200,23 @@ function ServiceResult({ service, data }: { service: ServiceView; data: Record<s
           {nextStep !== undefined && (
             <p className="text-base">{es.record.nextStep(es.nextStepLabel[nextStep] ?? nextStep)}</p>
           )}
-          <KeyValues data={rest} />
         </>
       ) : (
-        <>
-          <p className="font-bold">{es.services[service.type]}</p>
-          <KeyValues data={data} />
-        </>
+        <p className="font-bold">{es.services[service.type]}</p>
       )}
-    </div>
-  );
-}
-
-function KeyValues({ data }: { data: Record<string, string> }) {
-  const entries = Object.entries(data).filter(([, v]) => v !== "");
-  if (entries.length === 0) return null;
-  return (
-    <dl className="mt-1 text-base">
-      {entries.map(([k, v]) => (
-        <div key={k}>
-          <dt className="inline font-semibold">{k}: </dt>
-          <dd className="inline">{v}</dd>
-        </div>
+      {sections.map((section) => (
+        <section key={section.role}>
+          <h4 className="text-base font-bold text-brand-strong">{es.record.sectionTitle[section.role]}</h4>
+          <dl className="text-base">
+            {section.items.map((item) => (
+              <div key={item.key}>
+                <dt className="inline font-semibold">{item.label}: </dt>
+                <dd className="inline">{item.value}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
       ))}
-    </dl>
+    </div>
   );
 }

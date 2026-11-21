@@ -128,9 +128,9 @@ export function Intake() {
         ) : (
           <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-lg">{es.matches.emptyBody}</p>
-            <Button variant="outline" onClick={() => setStep("register")}>
+            <Button variant="outline" className="shrink-0" onClick={() => setStep("register")}>
               <Plus />
-              {es.matches.emptyRegister}
+              <span>{es.matches.emptyRegister}</span>
             </Button>
           </Card>
         )}

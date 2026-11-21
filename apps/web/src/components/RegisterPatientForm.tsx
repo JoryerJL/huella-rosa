@@ -79,8 +79,7 @@ export function RegisterPatientForm({
 
   return (
     <Card>
-      <h2 className="text-2xl font-bold">{es.register.title}</h2>
-      <p className="mt-1 text-muted">{es.register.subtitle}</p>
+      <p className="text-lg text-muted">{es.register.subtitle}</p>
       <form onSubmit={onSubmit} className="mt-6 space-y-5" noValidate>
         <TextField label={es.fields.fullName} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
         <div className="grid grid-cols-[1fr_1fr_1.8fr] gap-4">

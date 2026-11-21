@@ -154,7 +154,7 @@ En la jornada, la paciente pasa por estaciones. Una visita puede pasar **hasta p
 2. **Con señal:** la imagen sube al almacenamiento y se lee con el modo configurado en `OCR_MODE`:
    - `mock`: lee `datos-ficticios/formatos/*.json` (demo sin red).
    - `textract`: AWS Textract (formularios y casillas).
-3. **Sin señal:** la foto queda en la cola del dispositivo y se lee al sincronizar.
+3. **Sin señal:** se oculta "Identificar con foto" (la lectura corre en AWS y la paciente debe quedar identificada en ese momento; captura teclea sus datos). Sigue visible "Adjuntar foto del formato": la imagen se guarda comprimida en el dispositivo, ligada a la visita, y se sube y se lee al sincronizar; cada especialista confirma después sus campos viendo la imagen. No se usa OCR dentro del dispositivo (lee mal la letra a mano y pesa varios MB).
 4. Pantalla de confirmación: imagen original a un lado, campos propuestos al otro. Los campos con baja confianza se marcan en amarillo. Nada se guarda sin confirmar.
 5. **Captura confirma solo los campos de identificación** (los que alimentan la búsqueda). Con ellos se ejecuta la búsqueda de coincidencias (6.2).
 6. Los campos marcados para `clinician` en la plantilla (signos vitales, factores de riesgo, BIRADS, referencia) no se muestran a captura: quedan pendientes y **consulta clínica los confirma** desde el expediente, viendo la imagen.

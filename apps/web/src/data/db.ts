@@ -91,9 +91,15 @@ export interface QueuedScan {
   createdAt: string;
 }
 
+/** The campaign this tablet chose on the package page, and its localities (to pick a default later). */
+export interface CampaignChoice {
+  campaignId: string;
+  localityIds: string[];
+}
+
 export interface MetaRow {
-  key: "package" | "sync" | "device";
-  value: PackageMeta | SyncMeta | DeviceMeta;
+  key: "package" | "sync" | "device" | "campaignChoice";
+  value: PackageMeta | SyncMeta | DeviceMeta | CampaignChoice;
 }
 
 export const db = new Dexie("huella-rosa") as Dexie & {

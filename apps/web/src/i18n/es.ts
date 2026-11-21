@@ -82,6 +82,11 @@ export const es = {
     noCampaign: "No hay jornadas disponibles. Pide a administración que cree una.",
     failedTitle: "Cambios que necesitan revisión",
     failedBody: "No se perdió nada; administración los revisa.",
+    chooseTitle: "¿Qué jornada vas a descargar?",
+    chooseHint: "Hay más de una jornada en curso o próxima. Elige la tuya; la tableta la recuerda.",
+    chosen: "✓ Elegida",
+    choiceStatus: { ACTIVE: "En curso", UPCOMING: "Próxima", FINISHED: "Terminada" },
+    localities: (names: string) => `Localidades: ${names}`,
   },
   common: {
     back: "Regresar",

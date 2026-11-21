@@ -8,6 +8,20 @@ HyperFrames por pieza en `video/<slug>/`, con su `ESTADO.md` (dónde quedó y qu
 |---|---|---|
 | `demo-2min` | Demo del producto, 2 min, 16:9 1920x1080, 30 fps, en español, sin voz (guion listo) | v1 renderizada con marcadores de lugar para las tabletas; ver `demo-2min/ESTADO.md` |
 | `release` | Video de lanzamiento, 47 s, dos cortes del mismo guion: 16:9 1920x1080 y 9:16 1080x1920, 30 fps, sin voz ni música | v1 renderizada con la grabación real y zooms de cámara; ver `release/ESTADO.md` |
+| `features` | Un video corto por función (16), 1920x1080, 30 fps, sin voz: tarjeta de título (3 s), la grabación en la tableta con una frase, cierre (2 s) | Ver "Videos por función" abajo |
+
+## Videos por función (`features/`)
+
+Usa las grabaciones de `npm run demo:features` (desde la raíz; deja los cortes en `demo-videos/features/clips/`, fuera de git) y los textos de `scripts/demo/features.json`, la misma lista que alimenta los GIF del `README.md`.
+
+```sh
+npm run demo:features                 # graba y genera GIF, imágenes fijas y cortes (desde la raíz)
+cd video/features
+python3 build.py 5                    # genera index.html para la función 5 (para npm run dev / check)
+python3 render_all.py                 # renderiza todas a renders/NN-slug.mp4 (o: python3 render_all.py 5 12)
+```
+
+`index.html` se genera por función y no se versiona; `renders/` y `assets/footage/` tampoco.
 
 ## Requisitos
 

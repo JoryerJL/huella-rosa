@@ -6,17 +6,132 @@ Hecho para EIRA Movimiento Rosa A.C.
 
 **Una paciente, un expediente**, aunque se registre en jornadas distintas y **aunque no haya señal**.
 
+Hoy, en cada jornada, el personal llena formatos en papel, como el de revisión mamaria, y el mismo día los vuelve a capturar en Google Forms o Excel: trabajo doble y errores. Como a la paciente se le reconoce por su nombre, una mujer que viene cuatro veces en un año puede quedar registrada cuatro veces y su historial se parte. Y las jornadas son en comunidades sin señal estable. Huella Rosa reconoce a quien regresa, junta sus visitas en un solo expediente, funciona sin internet en la tableta y pasa el formato en papel al expediente con una foto, siempre con una persona que confirma.
+
 Prototipo de código abierto para [EIRA Movimiento Rosa A.C.](https://www.eiraac.org), construido en el Nerdearla Vibeathon México 2026 (reto 1: expediente digital único y registro de pacientes, aun con conectividad intermitente).
 
 > **Pruébalo en línea:** https://huella-rosa.jjjl.dev · usuarios, PIN y recorridos guiados (con y sin señal, foto del formato, Excel) en **[docs/JURADO.md](docs/JURADO.md)**.
 
 > **Prototipo con datos ficticios.** No está autorizado para usarse con pacientes reales. Cualquier función clínica o uso con datos personales requiere revisión de EIRA.
 
-## El problema
+## Cómo se ve
 
-En cada jornada el personal llena formatos en papel, como el formato de revisión mamaria, y el mismo día los vuelve a capturar en Google Forms o Excel: trabajo doble y errores. La paciente se identifica por su nombre completo, así que una mujer que acude cuatro veces en un año puede quedar registrada cuatro veces y su historial se parte. Además, las jornadas ocurren en comunidades sin señal estable, justo donde un sistema en línea deja de funcionar.
+Dos tabletas sin señal: la de captura registra la visita y la estación de nutrición abre la misma visita con el folio del formato. Cuando vuelve la señal, todo se une solo.
 
-## Qué hace
+![Estación por folio y unión al volver la señal](docs/media/gifs/10-estacion-por-folio.gif)
+
+<img src="docs/media/posters/05-identificar-primero.png" alt="Identificar primero: coincidencia fuerte con sus motivos" width="49%" /> <img src="docs/media/posters/12-foto-del-formato.png" alt="Identificar con foto del formato" width="49%" />
+
+## Qué puede hacer Huella Rosa
+
+Cada animación es una grabación real de la app, con datos ficticios. Donde se ven dos tabletas, la de la izquierda es la de captura.
+
+### Administración
+
+**1. Entrar con usuario y PIN.** Cada persona entra con su usuario y un PIN corto; sin señal solo entra quien ya entró antes en esa tableta.
+
+![Entrar con usuario y PIN](docs/media/gifs/01-entrar-con-pin.gif)
+
+**2. Dar de alta al personal.** Administración da de alta a quien sale a campo, con su rol y un PIN inicial.
+
+![Dar de alta al personal](docs/media/gifs/02-personal.gif)
+
+**3. Crear una jornada.** Se elige el municipio, las localidades y las fechas, y la app propone el nombre de la jornada.
+
+![Crear una jornada](docs/media/gifs/03-crear-jornada.gif)
+
+### Antes de la jornada
+
+**4. Descargar el paquete de jornada.** Antes de salir, cada tableta elige su jornada y guarda las pacientes y formatos para trabajar sin internet.
+
+![Descargar el paquete de jornada](docs/media/gifs/04-paquete-de-jornada.gif)
+
+### Durante la jornada
+
+**5. Identificar primero.** Antes de registrar, se busca a la paciente; si ya vino, la app muestra por qué se parece y una persona confirma "Es ella".
+
+![Identificar primero](docs/media/gifs/05-identificar-primero.gif)
+
+**6. Registrar a una paciente nueva.** Si no está, se registra con su nombre por partes y el ID EIRA se calcula solo con sus iniciales y fecha.
+
+![Registrar a una paciente nueva](docs/media/gifs/06-registrar-paciente-nueva.gif)
+
+**7. Nueva visita con folio.** Se marcan los servicios del día, la app dice con quién pasará y entrega el folio que se escribe en el formato.
+
+![Nueva visita con folio](docs/media/gifs/07-nueva-visita.gif)
+
+### Especialistas
+
+**8. Pacientes esperándome y mi paso.** Cada especialista ve quién le toca y llena solo los campos de su paso.
+
+![Pacientes esperándome y mi paso](docs/media/gifs/08-pacientes-esperandome.gif)
+
+**11. Expediente con historial.** El expediente junta todas las visitas y los resultados de cada estación; captura no ve los resultados clínicos (izquierda: captura, derecha: médico).
+
+![Expediente con historial](docs/media/gifs/11-expediente.gif)
+
+### Sin señal
+
+**9. Sin señal, todo se guarda.** Sin internet la visita se guarda en la tableta y la barra de arriba cuenta los cambios por enviar.
+
+![Sin señal, todo se guarda](docs/media/gifs/09-cambios-por-enviar.gif)
+
+**10. Estación por folio y unión al volver la señal.** Una estación sin señal abre la visita con el folio; cuando vuelve la señal, su paso se une solo a la visita (izquierda: captura, derecha: estación).
+
+![Estación por folio y unión al volver la señal](docs/media/gifs/10-estacion-por-folio.gif)
+
+### Digitalización
+
+**12. Identificar con foto del formato.** Con una foto del formato en papel se llenan los datos para buscarla; lo que se lee con duda se marca para revisar.
+
+![Identificar con foto del formato](docs/media/gifs/12-foto-del-formato.gif)
+
+**13. Importar una lista de Excel.** La lista de una brigada se revisa renglón por renglón: nuevas, posibles coincidencias y datos por corregir.
+
+![Importar una lista de Excel](docs/media/gifs/13-importar-excel.gif)
+
+### Revisión y bitácora
+
+**14. ¿Es la misma persona?** Si dos registros se parecen, administración los compara y decide; unirlos conserva los dos.
+
+![¿Es la misma persona?](docs/media/gifs/14-misma-persona.gif)
+
+**15. Dos personas cambiaron el mismo dato.** Si dos tabletas sin señal cambian el mismo dato, nada se pisa: administración elige cuál se queda.
+
+![Dos personas cambiaron el mismo dato](docs/media/gifs/15-mismo-dato.gif)
+
+**16. Tablero y bitácora.** El tablero muestra cómo va la jornada y la bitácora cuenta en frases sencillas quién hizo qué y cuándo.
+
+![Tablero y bitácora](docs/media/gifs/16-bitacora-y-tablero.gif)
+
+Hay una imagen fija por función en [`docs/media/posters/`](docs/media/posters/) y un video corto de presentación por función (ver [`video/README.md`](video/README.md)).
+
+
+## Con y sin señal
+
+- **Antes de salir**, con señal, cada tableta descarga el paquete de su jornada: las pacientes que puede encontrar y los formatos.
+- **En la jornada**, sin señal, se busca, se registra y se guardan las visitas en la tableta. La barra de arriba siempre dice si hay señal y cuántos cambios faltan por enviar. Aguanta hasta 3 días sin internet.
+- **Cada estación** abre la visita con el folio escrito en el formato, aunque la visita todavía no haya llegado a su tableta.
+- **Al volver la señal**, los cambios se envían solos y no se repiten. Si dos personas cambiaron el mismo dato, no se pisa ninguno: administración elige cuál se queda.
+
+## Privacidad y confianza
+
+- **La tecnología propone, una persona decide.** Huella Rosa nunca une expedientes por su cuenta: muestra por qué se parecen y alguien confirma. Unir conserva los dos registros; nada se borra.
+- **Cada quien ve solo lo que le toca.** Captura no ve resultados clínicos; cada especialista llena solo los campos de su paso. Los permisos se revisan en el servidor, no solo en la pantalla.
+- **La foto del formato no interpreta.** Solo propone los datos de identificación definidos en la plantilla; lo que se lee con duda se marca para revisarlo y nada se guarda sin confirmar. Lo escrito a mano en la parte clínica no se transcribe: se guarda la foto.
+- **La tableta lleva lo mínimo** para reconocer a quien regresa, sin resultados clínicos de visitas anteriores.
+- **Todo queda en la bitácora:** quién, qué, cuándo y desde qué tableta.
+- **Solo datos ficticios** en este prototipo.
+
+## Para el jurado
+
+La app está en línea en https://huella-rosa.jjjl.dev. Los usuarios, el PIN y recorridos de 5 minutos (con y sin señal, foto del formato, Excel) están en **[docs/JURADO.md](docs/JURADO.md)**.
+
+---
+
+**Parte técnica.** Lo que sigue es para quien desarrolla o despliega Huella Rosa.
+
+## Qué hace, en términos técnicos
 
 1. **Una paciente, un expediente.** Cada paciente recibe un identificador interno estable, creado en el dispositivo aun sin red. Visitas y servicios se registran por separado.
 2. **Reconoce a quien regresa.** Busca por varios atributos (nombre, fecha de nacimiento, entidad de nacimiento, teléfono, localidad, ID del formato) y muestra candidatas con puntaje y motivos. **Una persona decide**: "Es ella" o "Es otra persona". Nunca se fusiona en automático.
@@ -187,6 +302,16 @@ Datos mínimos: captura no ve resultados clínicos de visitas anteriores; solo c
 - Cifrado de datos locales con PIN y autenticación con Cognito.
 - Otras plantillas de formato (citología, ultrasonido, mastografía).
 - El mismo expediente permite entregar resultados de forma segura (reto 4).
+
+## Despliegue
+
+La app en línea corre en AWS (EC2 + S3 + Textract) detrás de Cloudflare Tunnel, definida con AWS CDK. Pasos, prueba de humo y cómo apagarlo: [`docs/DEPLOY.md`](docs/DEPLOY.md).
+
+## Grabaciones y videos
+
+- `npm run demo:record`: recorrido completo en dos tabletas (también es prueba de punta a punta).
+- `npm run demo:features`: un corte por función, los GIF de `docs/media/gifs/` y las imágenes de `docs/media/posters/` (base de datos nueva, versión de producción; necesita Valkey y ffmpeg). Los textos salen de `scripts/demo/features.json`.
+- Videos de presentación: [`video/README.md`](video/README.md).
 
 ## Licencia
 

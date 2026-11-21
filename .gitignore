@@ -26,3 +26,5 @@ video/**/*.webm
 demo-videos/raw/*.webm
 demo-videos/raw/*.mp4
 __pycache__/
+# Generated per feature by video/features/build.py
+video/features/index.html

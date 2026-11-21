@@ -21,7 +21,9 @@
     "video:render": "npm --prefix video/demo-2min run render",
     "video:qa": "npm --prefix video/demo-2min run qa",
     "video:release": "npm --prefix video/release run render",
-    "video:release:qa": "npm --prefix video/release run qa"
+    "video:release:qa": "npm --prefix video/release run qa",
+    "demo:features": "tsx scripts/demo/features.ts && tsx scripts/demo/features-media.ts",
+    "demo:features:media": "tsx scripts/demo/features-media.ts"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

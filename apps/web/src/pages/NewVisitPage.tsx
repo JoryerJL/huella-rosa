@@ -1,16 +1,21 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import {
+  CLINICAL_ROLES,
+  DEFAULT_STEPS_BY_SERVICE,
   SERVICE_TYPES,
-  type CampaignView,
+  type ClinicalRole,
   type PatientFields,
   type PatientRecord,
   type ServiceType,
   type SyncOp,
 } from "@er/shared";
 import { Page } from "../components/Page";
-import { Alert, Button, Card, Check, Pencil, inputClass } from "../components/ui";
-import { listCampaigns, opMeta, saveVisit } from "../data/patients";
+import { Alert, Button, Card, Check, Pencil, buttonClass, inputClass } from "../components/ui";
+import { opMeta, saveVisit } from "../data/patients";
+import { usePackageStatus } from "../data/hooks";
+import { isPackageExpired, type PackageMeta } from "../data/db";
+import { ensureFolioPrefix, reserveFolio } from "../data/folioPrefix";
 import { usePatientRecord } from "../data/usePatientRecord";
 import { ageFrom, formatBirthDate, isIsoDate, todayIso } from "../lib/format";
 import { es } from "../i18n/es";
@@ -20,6 +25,18 @@ import { BackButton } from "./PatientRecordPage";
 const REVIEW_FIELDS = ["fullName", "birthDate", "formId", "birthState", "mobile", "phone", "residence", "affiliation"] as const;
 type ReviewField = (typeof REVIEW_FIELDS)[number];
 type FieldState = "pending" | "confirmed" | "editing" | "corrected";
+
+/** The campaign's last day; the server adds `endDate` to CampaignView (falls back to its single date). */
+export function isOutsideCampaign(meta: PackageMeta, date: string): boolean {
+  const { date: start, endDate } = meta.campaign as PackageMeta["campaign"] & { endDate?: string };
+  return date < start || date > (endDate ?? start);
+}
+
+/** Specialists proposed from the services of the day (SPEC 6.3.1 item 1), in a stable order. */
+export function defaultSteps(services: ServiceType[]): ClinicalRole[] {
+  const wanted = new Set(services.flatMap((t) => DEFAULT_STEPS_BY_SERVICE[t]));
+  return CLINICAL_ROLES.filter((r) => wanted.has(r));
+}
 
 function originalValue(record: PatientRecord, key: ReviewField): string {
   return record[key] ?? "";
@@ -61,10 +78,16 @@ function VisitForm({ record }: { record: PatientRecord }) {
     () => Object.fromEntries(REVIEW_FIELDS.map((k) => [k, "pending"])) as Record<ReviewField, FieldState>,
   );
 
-  const [campaigns, setCampaigns] = useState<CampaignView[] | null>(null);
-  const [campaignId, setCampaignId] = useState("");
-  const [folio, setFolio] = useState("");
+  // The visit's campaign is the one of the downloaded package (SPEC 6.2 item 5).
+  const pkgStatus = usePackageStatus();
+  const pkg = pkgStatus.meta && !isPackageExpired(pkgStatus.meta) ? pkgStatus.meta : null;
+  const campaignId = pkg?.campaignId ?? "";
+  // undefined: still reserving; null: this tablet has no folio prefix yet (needs one online login).
+  const [folio, setFolio] = useState<string | null | undefined>(undefined);
   const [services, setServices] = useState<ServiceType[]>([]);
+  const [steps, setSteps] = useState<ClinicalRole[]>([]);
+  const [stepsTouched, setStepsTouched] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Stable ids: saving twice stores the ops once, and the server is idempotent on the same opId.
@@ -76,21 +99,28 @@ function VisitForm({ record }: { record: PatientRecord }) {
   }));
 
   useEffect(() => {
-    listCampaigns()
-      .then((list) => {
-        const sorted = [...list].sort((a, b) => b.date.localeCompare(a.date));
-        setCampaigns(sorted);
-        if (sorted[0]) setCampaignId(sorted[0].id);
-      })
-      .catch((err: unknown) => {
-        setCampaigns([]);
-        setError(err instanceof Error ? err.message : es.errors.generic);
-      });
+    let active = true;
+    (async () => {
+      if (navigator.onLine) await ensureFolioPrefix();
+      const next = await reserveFolio();
+      if (active) setFolio(next);
+    })().catch(() => active && setFolio(null));
+    return () => {
+      active = false;
+    };
   }, []);
 
   const setState = (key: ReviewField, state: FieldState) => setStates((s) => ({ ...s, [key]: state }));
-  const toggleService = (t: ServiceType) =>
-    setServices((list) => (list.includes(t) ? list.filter((x) => x !== t) : [...list, t]));
+  const toggleService = (t: ServiceType) => {
+    const next = services.includes(t) ? services.filter((x) => x !== t) : [...services, t];
+    setServices(next);
+    // Proposed from the services until intake changes the steps by hand.
+    if (!stepsTouched) setSteps(defaultSteps(next));
+  };
+  const toggleStep = (role: ClinicalRole) => {
+    setStepsTouched(true);
+    setSteps((list) => (list.includes(role) ? list.filter((x) => x !== role) : CLINICAL_ROLES.filter((r) => r === role || list.includes(r))));
+  };
 
   function changedFields(): Partial<PatientFields> {
     const changes: Record<string, string | null> = {};
@@ -103,8 +133,10 @@ function VisitForm({ record }: { record: PatientRecord }) {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!campaignId) return setError(es.visit.errorCampaign);
+    if (!pkg) return setError(es.visit.noPackage);
+    if (!folio) return setError(es.visit.folioMissing);
     if (services.length === 0) return setError(es.visit.errorServices);
+    if (steps.length === 0) return setError(es.visit.errorSteps);
     const changes = changedFields();
     if ("fullName" in changes && (changes.fullName ?? "").length < 2) return setError(es.visit.errorName);
     if ("birthDate" in changes && !isIsoDate(changes.birthDate ?? "")) return setError(es.visit.errorDate);
@@ -121,9 +153,10 @@ function VisitForm({ record }: { record: PatientRecord }) {
         patientId: record.id,
         campaignId,
         date: todayIso(),
-        folio: folio.trim() || null,
+        folio,
         confirmedMatch,
         services: services.map((type) => ({ serviceId: ids.serviceIds[type], type })),
+        plannedSteps: steps,
       });
     }
 
@@ -131,9 +164,8 @@ function VisitForm({ record }: { record: PatientRecord }) {
     setError(null);
     try {
       // Saved on this device and queued; the top bar shows it until the sync engine sends it.
-      const campaignName = campaigns?.find((c) => c.id === campaignId)?.name ?? "";
-      await saveVisit(ops, campaignName);
-      navigate(`/patients/${record.id}`);
+      await saveVisit(ops, pkg.campaign.name);
+      setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
     } finally {
@@ -142,6 +174,23 @@ function VisitForm({ record }: { record: PatientRecord }) {
   }
 
   const age = ageFrom(record.birthDate);
+
+  if (saved && folio) {
+    return (
+      <Page title={es.visit.title(record.fullName)} leading={<BackButton />}>
+        <Card className="max-w-2xl space-y-4">
+          <p className="text-3xl font-bold text-ok" role="status">
+            {es.visit.savedTitle}
+          </p>
+          <p className="text-lg">{es.visit.savedFolio(folio)}</p>
+          <p className="text-5xl font-bold tracking-wider text-brand-strong">{folio}</p>
+          <Button onClick={() => navigate(`/patients/${record.id}`)} className="w-full text-xl">
+            {es.visit.goToRecord}
+          </Button>
+        </Card>
+      </Page>
+    );
+  }
 
   return (
     <Page title={es.visit.title(record.fullName)} subtitle={es.visit.subtitle} leading={<BackButton />}>
@@ -172,23 +221,36 @@ function VisitForm({ record }: { record: PatientRecord }) {
         </Card>
 
         <div className="space-y-6">
-          <label className="block">
-            <span className="text-base font-semibold">{es.visit.campaign}</span>
-            <select className={inputClass} value={campaignId} onChange={(e) => setCampaignId(e.target.value)} disabled={!campaigns}>
-              {!campaigns && <option value="">{es.common.loading}</option>}
-              {campaigns?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name} · {formatBirthDate(c.date)}
-                </option>
-              ))}
-            </select>
-            {campaigns && campaigns.length === 0 && <span className="mt-2 block text-base text-danger">{es.visit.noCampaigns}</span>}
-          </label>
+          {folio === undefined ? (
+            <p className="text-muted" role="status">{es.visit.folioLoading}</p>
+          ) : folio === null ? (
+            <Alert tone="warn">{es.visit.folioMissing}</Alert>
+          ) : (
+            <div className="rounded-2xl border-2 border-brand bg-blush px-5 py-4" aria-live="polite">
+              <p className="text-lg font-semibold">{es.visit.folioWrite}</p>
+              <p className="text-5xl font-bold tracking-wider text-brand-strong">{folio}</p>
+              <p className="mt-1 text-base text-muted">{es.visit.folioHint}</p>
+            </div>
+          )}
 
-          <label className="block">
-            <span className="text-base font-semibold">{es.visit.folio}</span>
-            <input className={inputClass} value={folio} onChange={(e) => setFolio(e.target.value)} placeholder="F-000000" autoComplete="off" />
-          </label>
+          <div>
+            <p className="text-base font-semibold">{es.visit.campaign}</p>
+            {pkg ? (
+              <p className="mt-1 text-xl font-bold">
+                {pkg.campaign.name} · {formatBirthDate(pkg.campaign.date)}
+              </p>
+            ) : (
+              pkgStatus.loaded && (
+                <div className="mt-2 space-y-3">
+                  <Alert tone="warn">{es.visit.noPackage}</Alert>
+                  <Link to="/campaigns" className={buttonClass("outline")}>
+                    {es.package.navLink}
+                  </Link>
+                </div>
+              )
+            )}
+          </div>
+
 
           <fieldset>
             <legend className="text-base font-semibold">{es.visit.services}</legend>
@@ -220,9 +282,36 @@ function VisitForm({ record }: { record: PatientRecord }) {
             </div>
           </fieldset>
 
+          <fieldset>
+            <legend className="text-base font-semibold">{es.visit.stepsLegend}</legend>
+            <div className="mt-2 grid grid-cols-3 gap-3">
+              {CLINICAL_ROLES.map((role) => {
+                const on = steps.includes(role);
+                return (
+                  <button
+                    key={role}
+                    type="button"
+                    role="checkbox"
+                    aria-checked={on}
+                    onClick={() => toggleStep(role)}
+                    className={`min-h-20 rounded-2xl border-2 p-3 text-left ${on ? "border-brand bg-blush" : "border-field bg-white"}`}
+                  >
+                    <span className="flex items-center gap-2 text-xl font-bold">
+                      {on && <Check />}
+                      {es.stepRole[role]}
+                    </span>
+                    <span className="mt-1 block text-base text-muted">{on ? es.visit.stepOn : es.visit.stepOff}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          {pkg && isOutsideCampaign(pkg, todayIso()) && <Alert tone="warn">{es.visit.outsideCampaign}</Alert>}
+
           {error && <Alert>{error}</Alert>}
 
-          <Button type="submit" disabled={busy || !campaigns} className="w-full text-xl">
+          <Button type="submit" disabled={busy || !pkg || !folio} className="w-full text-xl">
             <Check />
             {busy ? es.common.saving : es.visit.submit}
           </Button>

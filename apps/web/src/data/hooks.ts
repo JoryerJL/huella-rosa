@@ -19,6 +19,8 @@ export interface OutboxSummary {
   /** createdAt of the oldest pending op. */
   oldestPendingAt: string | null;
   failed: OutboxEntry[];
+  /** Pending ops whose visit has not reached the server yet (WAITING): still counted in `pending`. */
+  waiting: OutboxEntry[];
 }
 
 export function useOutboxSummary(): OutboxSummary {
@@ -26,10 +28,11 @@ export function useOutboxSummary(): OutboxSummary {
     async () => {
       const pending = await db.outbox.where("status").equals("pending").sortBy("seq");
       const failed = await db.outbox.where("status").equals("failed").sortBy("seq");
-      return { pending: pending.length, oldestPendingAt: pending[0]?.createdAt ?? null, failed };
+      const waiting = pending.filter((e) => e.resultStatus === "WAITING");
+      return { pending: pending.length, oldestPendingAt: pending[0]?.createdAt ?? null, failed, waiting };
     },
     [],
-    { pending: 0, oldestPendingAt: null, failed: [] },
+    { pending: 0, oldestPendingAt: null, failed: [], waiting: [] },
   );
 }
 

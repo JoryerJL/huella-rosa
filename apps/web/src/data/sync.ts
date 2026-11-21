@@ -1,5 +1,5 @@
 import type { OpResult, PullResponse, SyncPushResponse } from "@er/shared";
-import { db, getPackageMeta, getSyncMeta, setSyncMeta, type LocalPatient } from "./db";
+import { db, getPackageMeta, getSyncMeta, mergeVisit, setSyncMeta, type LocalPatient } from "./db";
 import { ApiError, request } from "../lib/http";
 import { es } from "../i18n/es";
 
@@ -32,9 +32,13 @@ export function getSyncState(): SyncState {
   return state;
 }
 
-function settle(result: OpResult | undefined) {
+export function settle(result: OpResult | undefined) {
   if (!result) return null; // Not answered: stays pending and goes again next time.
   const now = new Date().toISOString();
+  if (result.status === "WAITING") {
+    // The visit (folio) has not reached the server yet: keep the op and retry on every sync.
+    return { status: "pending" as const, resultStatus: result.status, message: es.sync.waiting, updatedAt: now };
+  }
   if (result.status === "APPLIED" || result.status === "DUPLICATE") {
     return { status: "sent" as const, resultStatus: result.status, message: undefined, updatedAt: now };
   }
@@ -47,15 +51,18 @@ function settle(result: OpResult | undefined) {
   };
 }
 
-async function pushOutbox(): Promise<void> {
+export async function pushOutbox(): Promise<void> {
+  // WAITING ops stay pending; send each op at most once per pass so they do not loop.
+  const sentThisPass = new Set<string>();
   for (;;) {
     const batch = await db.outbox.where("status").equals("pending").sortBy("seq");
-    const slice = batch.slice(0, PUSH_BATCH_SIZE);
+    const slice = batch.filter((e) => !sentThisPass.has(e.opId)).slice(0, PUSH_BATCH_SIZE);
     if (slice.length === 0) return;
     const res = await request<SyncPushResponse>("/api/sync/push", {
       method: "POST",
       body: JSON.stringify({ ops: slice.map((e) => e.op) }),
     });
+    for (const entry of slice) sentThisPass.add(entry.opId);
     const byId = new Map(res.results.map((r) => [r.opId, r]));
     let answered = 0;
     await db.transaction("rw", db.outbox, async () => {
@@ -73,7 +80,7 @@ async function pushOutbox(): Promise<void> {
 
 async function pull(): Promise<void> {
   const pkg = await getPackageMeta();
-  if (!pkg) return; // Devices without a campaign package (clinician) read from the server directly.
+  if (!pkg) return; // Devices without a campaign package read from the server directly.
   const { cursor } = await getSyncMeta();
   const params = new URLSearchParams({ campaignId: pkg.campaignId });
   if (cursor) params.set("cursor", cursor);
@@ -89,7 +96,9 @@ async function pull(): Promise<void> {
       };
       await db.patients.put(merged);
     }
-    if (res.visits.length) await db.visits.bulkPut(res.visits);
+    for (const incoming of res.visits) {
+      await db.visits.put(mergeVisit(incoming, await db.visits.get(incoming.id)));
+    }
   });
   await setSyncMeta({ cursor: res.cursor });
 }

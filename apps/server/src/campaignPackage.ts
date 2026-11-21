@@ -6,6 +6,7 @@ import {
   type PackagePatient,
   type PackageVisit,
   type ServiceType,
+  type VisitStepView,
 } from "@er/shared";
 import { db } from "./db";
 
@@ -66,7 +67,7 @@ export async function loadCampaignScope(campaignId: string): Promise<CampaignSco
     OR: [{ localityId: { in: localityIds } }, { visits: { some: { campaignId } } }],
   };
   return {
-    campaign: { id: row.id, name: row.name, date: row.date, localityIds },
+    campaign: { id: row.id, name: row.name, date: row.date, endDate: row.endDate, localityIds },
     where: { OR: [inScope, { linkedFrom: { some: inScope } }] },
   };
 }
@@ -85,6 +86,24 @@ const patientSelect = {
   linkedToId: true,
 } satisfies Prisma.PatientSelect;
 
+export const stepSelect = {
+  role: true,
+  status: true,
+  completedBy: true,
+  completedAt: true,
+} satisfies Prisma.VisitStepSelect;
+
+type StepRow = Prisma.VisitStepGetPayload<{ select: typeof stepSelect }>;
+
+export function toStepView(row: StepRow): VisitStepView {
+  return {
+    role: row.role as VisitStepView["role"],
+    status: row.status as VisitStepView["status"],
+    completedBy: row.completedBy,
+    completedAt: row.completedAt?.toISOString() ?? null,
+  };
+}
+
 const visitSelect = {
   id: true,
   patientId: true,
@@ -92,8 +111,11 @@ const visitSelect = {
   campaign: { select: { name: true } },
   date: true,
   folio: true,
+  createdAt: true,
   // Service types only: template data is clinical and never leaves the server here.
   services: { select: { type: true }, orderBy: { type: "asc" } },
+  // Station status only (no clinical values), so specialists build their queue offline.
+  steps: { select: stepSelect, orderBy: { role: "asc" } },
 } satisfies Prisma.VisitSelect;
 
 type PatientRow = Prisma.PatientGetPayload<{ select: typeof patientSelect }>;
@@ -126,6 +148,8 @@ function toPackageVisit(row: VisitRow): PackageVisit {
     date: row.date,
     folio: row.folio,
     serviceTypes: row.services.map((s) => s.type as ServiceType),
+    steps: row.steps.map(toStepView),
+    registeredAt: row.createdAt.toISOString(),
   };
 }
 
@@ -176,7 +200,7 @@ export async function buildChangesSince(scope: CampaignScope, since: Date) {
 
 export async function listCampaigns(): Promise<CampaignView[]> {
   return db.campaign.findMany({
-    select: { id: true, name: true, date: true },
+    select: { id: true, name: true, date: true, endDate: true },
     orderBy: [{ date: "desc" }, { name: "asc" }],
   });
 }

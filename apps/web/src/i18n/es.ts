@@ -199,6 +199,8 @@ export const es = {
     title: (name: string) => `Visita de hoy · ${name}`,
     subtitle: "Sus datos ya están llenos. Solo confirma o corrige lo que cambió.",
     yourData: "Sus datos",
+    newSubtitle: "Sus datos quedaron registrados. Elige los servicios de hoy.",
+    fixData: "Corregir datos",
     confirm: "Confirmar",
     confirmed: "Confirmado",
     correct: "Corregir",

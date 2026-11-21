@@ -69,7 +69,8 @@ export function RegisterPatientForm({
     try {
       // Saved on this device and queued; the sync engine sends it when there is signal.
       await createPatient(op);
-      navigate(`/patients/${patientId}/visit`);
+      // "new=1": she was just registered here, so the visit shows her data as a summary, not field by field.
+      navigate(`/patients/${patientId}/visit?new=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
     } finally {

@@ -303,3 +303,116 @@ export interface CampaignView {
   /** Last day, YYYY-MM-DD (same as date for a one-day campaign). Additive: multi-day campaigns. */
   endDate: string;
 }
+
+// ---------- Block 3b: Excel/CSV import (SPEC 6.7) ----------
+
+/** Identification fields an import row can carry, in template column order. Never clinical. */
+export const IMPORT_FIELDS = [
+  "fullName",
+  "birthDate",
+  "birthState",
+  "formId",
+  "phone",
+  "mobile",
+  "residence",
+  "affiliation",
+] as const;
+export type ImportField = (typeof IMPORT_FIELDS)[number];
+
+export type ImportSource = "TEMPLATE" | "EXCEL" | "MCP";
+export type ImportBatchStatus = "OPEN" | "DONE";
+export type ImportRowStatus = "NEW" | "POSSIBLE_MATCH" | "INVALID" | "CONFIRMED" | "DISCARDED";
+export type ImportRowDecision = "REGISTERED" | "IS_HER" | "DISCARDED";
+
+/** One row's identification values. birthDate is YYYY-MM-DD when valid, else the text as typed. */
+export type ImportRowData = Partial<Record<ImportField, string>>;
+
+/** One column of the uploaded file and the field it feeds (null = not imported). */
+export interface ImportColumn {
+  index: number;
+  header: string;
+  field: ImportField | null;
+  /** Field proposed automatically from the header text; the person confirms or changes it. */
+  suggested: ImportField | null;
+}
+
+export interface ImportColumnMapping {
+  confirmed: boolean;
+  columns: ImportColumn[];
+}
+
+/** An earlier row of the same file that looks like the same person. */
+export interface ImportSameAsRow {
+  rowNumber: number;
+  reasons: MatchReason[];
+}
+
+export interface ImportRowView {
+  id: string;
+  rowNumber: number;
+  status: ImportRowStatus;
+  data: ImportRowData;
+  /** Plain Spanish reason when INVALID. */
+  reason: string | null;
+  /** Existing patients that may be her (same rules as search, SPEC 6.2). */
+  candidates: MatchCandidate[];
+  sameAsRows: ImportSameAsRow[];
+  decision: ImportRowDecision | null;
+  patientId: string | null;
+  decidedAt: string | null;
+}
+
+export interface ImportBatchCounts {
+  total: number;
+  new: number;
+  possibleMatch: number;
+  invalid: number;
+  confirmed: number;
+  discarded: number;
+}
+
+export interface ImportBatchSummary {
+  id: string;
+  source: ImportSource;
+  fileName: string | null;
+  status: ImportBatchStatus;
+  createdAt: string;
+  /** True while the column mapping waits for a person (rows are not evaluated yet). */
+  needsMapping: boolean;
+  counts: ImportBatchCounts;
+}
+
+/** GET /api/imports/:id */
+export interface ImportBatchView extends ImportBatchSummary {
+  mapping: ImportColumnMapping;
+  rows: ImportRowView[];
+}
+
+/** GET /api/imports */
+export interface ImportBatchList {
+  batches: ImportBatchSummary[];
+}
+
+/** POST /api/imports/:id/mapping body: field per column index (null = do not import). */
+export const importMappingSchema = z.object({
+  columns: z
+    .array(z.object({ index: z.number().int().min(0), field: z.enum(IMPORT_FIELDS).nullable() }))
+    .min(1)
+    .max(100),
+});
+export type ImportMappingInput = z.infer<typeof importMappingSchema>;
+
+/** POST /api/imports/:id/rows/:rowId body. */
+export const importRowDecisionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("register") }),
+  z.object({ action: z.literal("isHer"), patientId: z.string().min(1) }),
+  z.object({ action: z.literal("discard") }),
+]);
+export type ImportRowDecisionInput = z.infer<typeof importRowDecisionSchema>;
+
+/** POST /api/imports/:id/register-new response. */
+export interface ImportRegisterNewResponse {
+  registered: number;
+  failed: number;
+  batch: ImportBatchView;
+}

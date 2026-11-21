@@ -6,8 +6,6 @@ import {
   type ClinicalRole,
   type PatientRecord,
   type ScanView,
-  type ServiceType,
-  type SyncOp,
 } from "@er/shared";
 import { Page } from "../components/Page";
 import { StepChips } from "../components/StepChips";
@@ -15,7 +13,7 @@ import { Alert, Button, Card, Check, Warn, buttonClass, inputClass } from "../co
 import { BackButton } from "./PatientRecordPage";
 import { getPackageMeta, type LocalVisit } from "../data/db";
 import { getPatientRecord, listCampaigns, opMeta } from "../data/patients";
-import { findVisitByFolio, knownPatientName, saveStep } from "../data/steps";
+import { buildStepOps, findVisitByFolio, knownPatientName, saveStep } from "../data/steps";
 import { useSession } from "../lib/session";
 import { isValidFolio, normalizeFolio } from "../lib/folio";
 import { formatShortDate } from "../lib/format";
@@ -23,8 +21,6 @@ import { stepFieldsFor, type StepField } from "../lib/stepFields";
 import { es } from "../i18n/es";
 // Block 3a: form photo
 import { confirmScan, listScans } from "../data/scans";
-
-type StepOp = Extract<SyncOp, { kind: "UPDATE_SERVICE_FIELDS" | "COMPLETE_STEP" }>;
 
 interface Loaded {
   visit: LocalVisit | null;
@@ -133,22 +129,7 @@ function StepForm({ folio, role, staffName, loaded }: { folio: string; role: Cli
     if (kind === "DONE" && hasSuggestions && !reviewed) return setError(es.scan.stepConfirmError);
 
     const base = { campaignId: loaded.campaignId, folio, confirmedName: name };
-    const ops: StepOp[] = [];
-    if (kind === "DONE") {
-      const byService = new Map<ServiceType, Record<string, string>>();
-      for (const f of fields) {
-        const v = (values[f.key] ?? "").trim();
-        if (!v) continue;
-        byService.set(f.serviceType, { ...(byService.get(f.serviceType) ?? {}), [f.key]: v });
-      }
-      for (const [serviceType, data] of byService) {
-        const meta = serviceType === "PAP" ? ids.fields.PAP : ids.fields.BREAST_REVIEW;
-        ops.push({ ...meta, ...base, kind: "UPDATE_SERVICE_FIELDS", serviceType, fields: data });
-      }
-      ops.push({ ...ids.done, ...base, kind: "COMPLETE_STEP", role, status: "DONE" });
-    } else {
-      ops.push({ ...ids.skip, ...base, kind: "COMPLETE_STEP", role, status: "SKIPPED", reason: reason.trim() });
-    }
+    const ops = buildStepOps({ kind, role, fields, values, base, ids, reason });
 
     setBusy(true);
     setError(null);

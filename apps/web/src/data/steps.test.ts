@@ -2,7 +2,7 @@ import "fake-indexeddb/auto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SyncOp, VisitStepView } from "@er/shared";
 import { db, type LocalVisit } from "./db";
-import { completedStepKeys, filterQueue, loadQueue, saveStep } from "./steps";
+import { buildStepOps, completedStepKeys, filterQueue, loadQueue, saveStep } from "./steps";
 import { opMeta } from "./patients";
 import { pushOutbox } from "./sync";
 import { ensureFolioPrefix, reserveFolio } from "./folioPrefix";
@@ -184,5 +184,27 @@ describe("sync WAITING", () => {
     const entry = (await db.outbox.toArray())[0]!;
     expect(entry.status).toBe("failed");
     expect(entry.message).toBe(es.visit.status.CONFLICT);
+  });
+});
+
+describe("nutritionist step save", () => {
+  it("queues UPDATE_SERVICE_FIELDS for BREAST_REVIEW with Talla, Peso, PA and GLC before COMPLETE_STEP", async () => {
+    const ids = { fields: { BREAST_REVIEW: opMeta(), PAP: opMeta() }, done: opMeta(), skip: opMeta() };
+    const values = { height: "158", weight: "62.5", bloodPressure: "120/80", capillaryGlucose: "95" };
+    const ops = buildStepOps({
+      kind: "DONE",
+      role: "nutritionist",
+      fields: stepFieldsFor("nutritionist"),
+      values,
+      base: { campaignId: "c-1", folio: "A1-001-B", confirmedName: "Ana Ficticia" },
+      ids,
+    });
+    await saveStep(ops, "Jorge");
+    const outbox = await db.outbox.orderBy("seq").toArray();
+    expect(outbox.map((e) => e.kind)).toEqual(["UPDATE_SERVICE_FIELDS", "COMPLETE_STEP"]);
+    const fieldsOp = outbox[0]!.op as Extract<SyncOp, { kind: "UPDATE_SERVICE_FIELDS" }>;
+    expect(fieldsOp.serviceType).toBe("BREAST_REVIEW");
+    expect(fieldsOp.fields).toEqual(values);
+    expect((outbox[1]!.op as Extract<SyncOp, { kind: "COMPLETE_STEP" }>).role).toBe("nutritionist");
   });
 });

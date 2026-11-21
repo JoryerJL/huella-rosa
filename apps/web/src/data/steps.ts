@@ -1,4 +1,5 @@
-import type { ClinicalRole, QueueItem, StepStatus, SyncOp, VisitStepView } from "@er/shared";
+import type { ClinicalRole, QueueItem, ServiceType, StepStatus, SyncOp, VisitStepView } from "@er/shared";
+import type { StepField } from "../lib/stepFields";
 import { db, getPackageMeta, mergeVisit, type LocalVisit, type OutboxEntry } from "./db";
 import { enqueue } from "./patients";
 import { requestSync } from "./sync";
@@ -109,6 +110,46 @@ export function applyLocalStep(steps: VisitStepView[], role: ClinicalRole, statu
     ? steps.map((s) => (s.role === role ? { ...s, status, completedBy: by, completedAt: at } : s))
     : [...steps, { role, status, completedBy: by, completedAt: at }];
   return next;
+}
+
+type OpIds = { opId: string; deviceId: string; at: string };
+
+export interface StepOpIds {
+  fields: Record<"BREAST_REVIEW" | "PAP", OpIds>;
+  done: OpIds;
+  skip: OpIds;
+}
+
+/**
+ * Ops for "Guardar y terminar" / "Se retiró": one UPDATE_SERVICE_FIELDS per service with the typed
+ * fields (BREAST_REVIEW for mamaria.json, PAP for citologia.json), then COMPLETE_STEP.
+ */
+export function buildStepOps(input: {
+  kind: "DONE" | "SKIPPED";
+  role: ClinicalRole;
+  fields: Pick<StepField, "key" | "serviceType">[];
+  values: Record<string, string>;
+  base: { campaignId: string; folio: string; confirmedName: string };
+  ids: StepOpIds;
+  reason?: string;
+}): StepOp[] {
+  const { kind, role, base, ids } = input;
+  if (kind === "SKIPPED") {
+    return [{ ...ids.skip, ...base, kind: "COMPLETE_STEP", role, status: "SKIPPED", reason: (input.reason ?? "").trim() }];
+  }
+  const byService = new Map<ServiceType, Record<string, string>>();
+  for (const f of input.fields) {
+    const v = (input.values[f.key] ?? "").trim();
+    if (!v) continue;
+    byService.set(f.serviceType, { ...(byService.get(f.serviceType) ?? {}), [f.key]: v });
+  }
+  const ops: StepOp[] = [];
+  for (const [serviceType, data] of byService) {
+    const meta = serviceType === "PAP" ? ids.fields.PAP : ids.fields.BREAST_REVIEW;
+    ops.push({ ...meta, ...base, kind: "UPDATE_SERVICE_FIELDS", serviceType, fields: data });
+  }
+  ops.push({ ...ids.done, ...base, kind: "COMPLETE_STEP", role, status: "DONE" });
+  return ops;
 }
 
 /** Queues the step ops and marks the step on this tablet right away. */

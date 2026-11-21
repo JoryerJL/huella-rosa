@@ -130,6 +130,35 @@ describe("role checks", () => {
   });
 });
 
+describe("nutritionist step", () => {
+  it("stores Talla, Peso, PA and GLC in the BREAST_REVIEW service data", async () => {
+    const nutritionist: StaffProfile = { id: "usr-nutritionist", name: "Jorge Torres Navarro", role: "nutritionist" };
+    const visit = await db.visit.findUniqueOrThrow({ where: { id: "visit-prior-1" }, include: { patient: true } });
+    const base = {
+      deviceId: "tablet-n",
+      at: new Date().toISOString(),
+      campaignId: visit.campaignId,
+      folio: visit.folio!,
+      confirmedName: visit.patient.fullName,
+    };
+    const fields = { height: "157", weight: "61.5", bloodPressure: "118/76", capillaryGlucose: "93" };
+    const update = await applySyncOp(
+      { ...base, opId: randomUUID(), kind: "UPDATE_SERVICE_FIELDS", serviceType: "BREAST_REVIEW", fields } as SyncOp,
+      nutritionist,
+    );
+    expect(update.status).toBe("APPLIED");
+    const complete = await applySyncOp(
+      { ...base, opId: randomUUID(), kind: "COMPLETE_STEP", role: "nutritionist", status: "DONE" } as SyncOp,
+      nutritionist,
+    );
+    expect(complete.status).toBe("APPLIED");
+    const service = await db.service.findFirstOrThrow({ where: { visitId: visit.id, type: "BREAST_REVIEW" }, orderBy: { id: "asc" } });
+    expect(JSON.parse(service.data)).toMatchObject(fields);
+    const audit = await db.auditLog.findFirst({ where: { action: "SERVICE_FIELDS_UPDATED", entityId: service.id, actorId: nutritionist.id } });
+    expect(audit?.detail).toContain("height");
+  });
+});
+
 async function login(username: string): Promise<string> {
   const res = await app.request("/api/auth/login", {
     method: "POST",

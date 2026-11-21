@@ -129,7 +129,7 @@ https://www.figma.com/design/4wgHGSiieY7oiIIFnGAjru
 
 ### Presentación
 
-Presentación de 13 diapositivas en Figma Slides (portada, problema, qué es, identificar primero, expediente, estaciones, sin señal, digitalización, administración, privacidad, arquitectura, lo que viene y cierre con QR a la app):
+Presentación para EIRA en Figma Slides (17 diapositivas, contada como historia: "un día de jornada con Lucía" con capturas reales de la app; antes de salir, reconocimiento sin acentos, folio, estaciones sin señal, expediente completo, lo que gana EIRA, cuidado de las pacientes, cómo empezar un piloto y QR a la app; anexo técnico opcional al final):
 
 ```
 https://www.figma.com/slides/nbtf2sijbXGQunfgwprzd7

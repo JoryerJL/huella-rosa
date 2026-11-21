@@ -442,6 +442,8 @@ export interface ImportBatchSummary {
   /** True while the column mapping waits for a person (rows are not evaluated yet). */
   needsMapping: boolean;
   counts: ImportBatchCounts;
+  /** Name of the AI agent token that proposed the batch (source MCP), else null. */
+  agentName: string | null;
 }
 
 /** GET /api/imports/:id */
@@ -477,6 +479,76 @@ export interface ImportRegisterNewResponse {
   registered: number;
   failed: number;
   batch: ImportBatchView;
+}
+
+// ---------- Block 4b: AI agents through MCP (SPEC 5, 6.7) ----------
+
+/** Plain agent tokens look like hr_agent_<43 base64url chars>. */
+export const AGENT_TOKEN_PREFIX = "hr_agent_";
+
+/** GET /api/agent-tokens item. Never carries the token or its hash. */
+export interface AgentTokenView {
+  id: string;
+  name: string;
+  createdAt: string;
+  revokedAt: string | null;
+}
+
+/** POST /api/agent-tokens body. */
+export const createAgentTokenSchema = z.object({ name: z.string().trim().min(2).max(60) });
+export type CreateAgentTokenInput = z.infer<typeof createAgentTokenSchema>;
+
+/** POST /api/agent-tokens response: the plain token is returned only here, once. */
+export interface CreatedAgentToken {
+  agentToken: AgentTokenView;
+  token: string;
+}
+
+export const MAX_AGENT_IMPORT_ROWS = 500;
+
+const agentText = (max: number) => z.string().max(max);
+
+/** One normalized row an agent proposes: identification fields only, never clinical data. */
+export const agentImportRowSchema = z.object({
+  fullName: agentText(200).describe("Full name as written (given names and surnames)."),
+  birthDate: agentText(20).describe("Birth date as YYYY-MM-DD."),
+  birthState: agentText(80).optional().describe("Mexican state of birth, e.g. Oaxaca."),
+  formId: agentText(20).optional().describe("Paper form ID: 4 letters + 6 digits (+ optional 11th character)."),
+  phone: agentText(30).optional().describe("Landline, 10 digits."),
+  mobile: agentText(30).optional().describe("Mobile phone, 10 digits."),
+  residence: agentText(200).optional().describe("Usual residence (town or community)."),
+  affiliation: agentText(40).optional().describe("Health affiliation: INSABI, IMSS, ISSSTE, SEDENA, SEMAR, Ninguno or Otro."),
+});
+export type AgentImportRow = z.infer<typeof agentImportRowSchema>;
+
+/** POST /api/agent/imports body. */
+export const agentImportSchema = z.object({
+  rows: z.array(agentImportRowSchema).min(1).max(MAX_AGENT_IMPORT_ROWS),
+  note: z.string().max(200).optional().describe("Short note for the reviewer, e.g. the source spreadsheet name."),
+});
+export type AgentImportInput = z.infer<typeof agentImportSchema>;
+
+/** Counts an agent may see about its batch: never patient data or match candidates. */
+export interface AgentImportCounts {
+  new: number;
+  possibleMatch: number;
+  invalid: number;
+  confirmed: number;
+  discarded: number;
+}
+
+/** POST /api/agent/imports and GET /api/agent/imports/:id response. */
+export interface AgentImportStatus {
+  batchId: string;
+  status: ImportBatchStatus;
+  counts: AgentImportCounts;
+}
+
+/** GET /api/agent/import-template response. */
+export interface AgentImportTemplate {
+  maxRows: number;
+  columns: { field: ImportField; label: string; required: boolean; rule: string }[];
+  rules: string[];
 }
 
 // ---------- Block 4a: administration (SPEC 6.5, 6.6) ----------

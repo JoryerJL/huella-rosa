@@ -241,3 +241,15 @@ model ImportRow {
 
   @@unique([batchId, rowNumber])
 }
+
+// Block 4b: tokens for AI agents that propose import batches through MCP (SPEC 5, 6.7).
+// Only the SHA-256 of the token is stored; the plain token is shown once on creation.
+model AgentToken {
+  id        String    @id @default(uuid())
+  name      String
+  tokenHash String    @unique
+  role      String    @default("intake") // always intake
+  createdBy String
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+}

@@ -185,6 +185,49 @@ export async function confirmMapping(
   return getBatchView(batchId);
 }
 
+/**
+ * Creates a batch from rows an AI agent already normalized (source MCP, SPEC 6.7). Same
+ * validation and matching as a spreadsheet; nothing becomes a patient until a person decides.
+ * Row numbers start at 1 in the order the agent sent them. The audit entry carries counts only.
+ */
+export async function createBatchFromAgentRows(input: {
+  rows: ImportRowData[];
+  note: string | null;
+  agentName: string;
+}): Promise<ImportBatchSummary> {
+  if (input.rows.length === 0) throw new ImportError("El lote no tiene filas.");
+  const actorId = `${AGENT_ACTOR_PREFIX}${input.agentName}`;
+  const batch = await db.importBatch.create({
+    data: {
+      source: "MCP",
+      fileName: input.note,
+      columnMapping: JSON.stringify({ confirmed: true, columns: [] } satisfies ImportColumnMapping),
+      createdBy: actorId,
+    },
+  });
+  const items = input.rows.map((row, i) => ({ rowNumber: i + 1, data: cleanAgentRow(row) }));
+  const counts = await evaluateRows(batch.id, items);
+  await writeAudit({
+    actorId,
+    action: "IMPORT_PROPOSED_BY_AGENT",
+    deviceId: null,
+    entity: "ImportBatch",
+    entityId: batch.id,
+    detail: countsDetail(counts),
+  });
+  return (await getBatchSummary(batch.id))!;
+}
+
+/** Keeps only identification fields, trimmed, empty values left out (like rowValues). */
+function cleanAgentRow(row: ImportRowData): ImportRowData {
+  const data: ImportRowData = {};
+  for (const field of IMPORT_FIELDS) {
+    const value = row[field]?.replace(/\s+/g, " ").trim();
+    if (value) data[field] = value;
+  }
+  return data;
+}
+
 /** Best score per main record over each of the row's phones (same lookup as search). */
 async function candidatesFor(data: ImportRowData): Promise<MatchCandidate[]> {
   const best = new Map<string, MatchScore>();
@@ -268,7 +311,15 @@ function toSummaryView(batch: BatchRecord, statuses: ImportRowStatus[]): ImportB
     counts: mapping.confirmed
       ? countRows(statuses)
       : { ...countRows([]), total: parseJson<PendingRow[]>(batch.pendingRows, []).length },
+    agentName: agentNameOf(batch.createdBy),
   };
+}
+
+/** Agent batches are created by "agent:<token name>" (SPEC 6.7). */
+export const AGENT_ACTOR_PREFIX = "agent:";
+
+function agentNameOf(createdBy: string): string | null {
+  return createdBy.startsWith(AGENT_ACTOR_PREFIX) ? createdBy.slice(AGENT_ACTOR_PREFIX.length) : null;
 }
 
 export async function listBatches(limit = 20): Promise<ImportBatchSummary[]> {
@@ -283,6 +334,14 @@ export async function listBatches(limit = 20): Promise<ImportBatchSummary[]> {
       rows.filter((r) => r.batchId === batch.id).map((r) => r.status as ImportRowStatus),
     ),
   );
+}
+
+/** One batch's summary (counts only), or null when it does not exist. */
+export async function getBatchSummary(batchId: string): Promise<ImportBatchSummary | null> {
+  const batch = await db.importBatch.findUnique({ where: { id: batchId } });
+  if (!batch) return null;
+  const rows = await db.importRow.findMany({ where: { batchId }, select: { status: true } });
+  return toSummaryView(batch, rows.map((r) => r.status as ImportRowStatus));
 }
 
 export async function getBatchView(batchId: string): Promise<ImportBatchView> {

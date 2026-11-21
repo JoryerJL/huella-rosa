@@ -7,6 +7,7 @@ HyperFrames por pieza en `video/<slug>/`, con su `ESTADO.md` (dónde quedó y qu
 | Slug | Qué es | Estado |
 |---|---|---|
 | `demo-2min` | Demo del producto, 2 min, 16:9 1920x1080, 30 fps, en español, sin voz (guion listo) | v1 renderizada con marcadores de lugar para las tabletas; ver `demo-2min/ESTADO.md` |
+| `release` | Video de lanzamiento, 47 s, dos cortes del mismo guion: 16:9 1920x1080 y 9:16 1080x1920, 30 fps, sin voz ni música | v1 renderizada con la grabación real y zooms de cámara; ver `release/ESTADO.md` |
 
 ## Requisitos
 
@@ -39,4 +40,4 @@ npm run render   # build + render a renders/huella-rosa-demo-v1.mp4
 npm run qa       # revisa el MP4 y saca stills a renders/stills/
 ```
 
-Desde la raíz del repo: `npm run video:render` y `npm run video:qa` (usan `VERSION`, por omisión `v1`).
+Desde la raíz del repo: `npm run video:render` y `npm run video:qa` (usan `VERSION`, por omisión `v1`); para el video de lanzamiento, `npm run video:release` y `npm run video:release:qa`.

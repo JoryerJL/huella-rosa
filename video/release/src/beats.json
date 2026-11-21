@@ -1,0 +1,73 @@
+{
+  "note": "Story of the release video. Times in seconds. Each shot cuts tablet-<tablet>.webm from `from` to `to` (seconds into the recording, see demo-videos/raw/timeline.json). `focus` is the box the camera centers on and `rings` the boxes it outlines, both as [x, y, w, h] in the 1280x800 tablet frame. `zoom` is the camera scale at rest on the focus.",
+  "fps": 30,
+  "xfade": 0.4,
+  "hook": { "dur": 4.6 },
+  "end": { "dur": 7.0 },
+  "beats": [
+    {
+      "id": "match",
+      "title": "La reconoce aunque escriban sin acentos",
+      "sub": "Buscaron “Lucia Ramirez” y apareció Lucía Ramírez, con sus motivos a la vista.",
+      "dur": 6.2,
+      "shots": [
+        { "tablet": "a", "from": 84.9, "to": 86.8, "focus": [40, 296, 790, 150], "zoom": 1.65,
+          "rings": [[594, 304, 220, 42], [48, 396, 672, 46]] }
+      ]
+    },
+    {
+      "id": "offline",
+      "title": "Funciona sin señal",
+      "sub": "Se captura igual. Lo pendiente se cuenta y se envía después.",
+      "dur": 4.8,
+      "shots": [
+        { "tablet": "a", "from": 121.8, "to": 125.2, "focus": [20, 62, 345, 58], "zoom": 2.4,
+          "rings": [[16, 60, 346, 62]] }
+      ]
+    },
+    {
+      "id": "folio",
+      "title": "El folio une las estaciones",
+      "sub": "Captura da el folio; Nutrición lo teclea aunque la visita no haya llegado.",
+      "dur": 7.0,
+      "shots": [
+        { "tablet": "a", "from": 89.4, "to": 90.8, "focus": [40, 290, 330, 190], "zoom": 2.0,
+          "rings": [[44, 392, 290, 74]] },
+        { "tablet": "b", "from": 115.2, "to": 116.9, "focus": [28, 160, 798, 180], "zoom": 1.5,
+          "rings": [[26, 280, 802, 54]] }
+      ]
+    },
+    {
+      "id": "online",
+      "title": "Vuelve la señal: todo llega una sola vez",
+      "sub": "Cada tableta envía lo suyo y nada se repite.",
+      "dur": 6.4,
+      "shots": [
+        { "tablet": "a", "from": 125.7, "to": 129.0, "focus": [20, 62, 360, 58], "zoom": 2.4,
+          "rings": [[16, 60, 216, 62]] },
+        { "tablet": "b", "from": 125.2, "to": 127.9, "focus": [20, 62, 360, 58], "zoom": 2.4,
+          "rings": [[16, 60, 216, 62]] }
+      ]
+    },
+    {
+      "id": "step",
+      "title": "Cada especialista, solo lo suyo",
+      "sub": "Nutrición llena talla y peso. Lo demás lo llenan las otras estaciones.",
+      "dur": 5.2,
+      "shots": [
+        { "tablet": "b", "from": 118.4, "to": 120.8, "focus": [28, 130, 796, 320], "zoom": 1.5,
+          "rings": [[40, 140, 770, 300]] }
+      ]
+    },
+    {
+      "id": "never-alone",
+      "title": "Nunca fusiona sola",
+      "sub": "Una persona confirma que es ella, y queda escrito quién, cuándo y en qué tableta.",
+      "dur": 5.8,
+      "shots": [
+        { "tablet": "a", "from": 172.0, "to": 174.6, "focus": [44, 330, 840, 180], "zoom": 1.5,
+          "rings": [[44, 402, 840, 42]] }
+      ]
+    }
+  ]
+}

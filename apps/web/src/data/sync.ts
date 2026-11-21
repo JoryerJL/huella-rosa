@@ -2,6 +2,7 @@ import type { OpResult, PullResponse, SyncPushResponse } from "@er/shared";
 import { db, getPackageMeta, getSyncMeta, mergeVisit, setSyncMeta, type LocalPatient } from "./db";
 import { ApiError, request } from "../lib/http";
 import { es } from "../i18n/es";
+import { pushScanQueue } from "./scans";
 
 // Sync engine (SPEC 6.5, 6.8): push the outbox in order, then pull changes since the stored cursor.
 // Runs when the app opens, on the `online` event, every 30 s and on an SSE "changed" event.
@@ -113,6 +114,8 @@ export function syncNow(): Promise<void> {
     setState({ running: true });
     try {
       await pushOutbox();
+      // Block 3a: queued form photos go after the ops, so their visit usually exists already.
+      await pushScanQueue();
       await pull();
       await setSyncMeta({ lastSyncAt: new Date().toISOString() });
       setState({ error: null });

@@ -303,3 +303,36 @@ export interface CampaignView {
   /** Last day, YYYY-MM-DD (same as date for a one-day campaign). Additive: multi-day campaigns. */
   endDate: string;
 }
+
+// ---------- Block 3a: form photo (SPEC 6.4) ----------
+
+/** Below this confidence a read value is highlighted in amber with "Revisa este dato". */
+export const LOW_CONFIDENCE = 0.8;
+
+/** One value proposed by the form reading. Never saved until a person confirms it. */
+export interface ScanFieldValue {
+  value: string;
+  /** 0-1. */
+  confidence: number;
+}
+
+/** A form photo and the values read from it, filtered by the caller's role. */
+export interface ScanView {
+  id: string;
+  templateId: string;
+  /** QUEUED | READ | CONFIRMED | FAILED */
+  status: string;
+  visitId: string | null;
+  campaignId: string | null;
+  folio: string | null;
+  createdAt: string;
+  /** Needs a staff session; never public. */
+  imageUrl: string;
+  /** Intake: identification fields only. Specialists: their own fields plus identification. */
+  fields: Record<string, ScanFieldValue>;
+  confirmedRoles: string[];
+}
+
+/** POST /api/scans/:id/confirm body: the keys the caller checked against the photo. */
+export const scanConfirmSchema = z.object({ fields: z.array(z.string()).default([]) });
+export type ScanConfirmInput = z.infer<typeof scanConfirmSchema>;

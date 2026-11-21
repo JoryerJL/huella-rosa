@@ -13,6 +13,8 @@ import { CampaignsPage } from "./pages/CampaignsPage";
 import { QueuePage } from "./pages/QueuePage";
 import { StepPage } from "./pages/StepPage";
 import { startSyncEngine } from "./data/sync";
+// Block 3a: form photo
+import { ScanIdentifyPage } from "./pages/ScanIdentifyPage";
 
 const CLINICAL: Role[] = [...CLINICAL_ROLES];
 
@@ -98,6 +100,15 @@ export function App() {
             element={
               <RequireRole roles={["admin"]}>
                 <AdminAudit />
+              </RequireRole>
+            }
+          />
+          {/* Block 3a: form photo */}
+          <Route
+            path="/intake/scan"
+            element={
+              <RequireRole roles={["intake"]}>
+                <ScanIdentifyPage />
               </RequireRole>
             }
           />

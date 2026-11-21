@@ -2,25 +2,29 @@ import { createContext, useCallback, useContext, useEffect, useState, type React
 import { isRole, type StaffProfile } from "@er/shared";
 import { api } from "./api";
 
-// The profile is cached on the device so the app keeps working without internet.
-// The server stays the authority: every API call re-checks the role (SPEC 6.8).
+// The profile is cached on the device so the app keeps working without internet, for up to
+// 4 days (SPEC 6.8). The server stays the authority: every API call and sync re-checks the role.
 
 const PROFILE_KEY = "er.profile";
+const SESSION_MAX_MS = 4 * 24 * 60 * 60 * 1000;
 
 function loadProfile(): StaffProfile | null {
   try {
     const raw = localStorage.getItem(PROFILE_KEY);
     if (!raw) return null;
-    const profile = JSON.parse(raw) as StaffProfile;
-    return isRole(profile.role) ? profile : null;
+    const saved = JSON.parse(raw) as { profile?: StaffProfile; savedAt?: string };
+    const profile = saved.profile;
+    if (!profile || !isRole(profile.role) || !saved.savedAt) return null;
+    if (Date.now() - new Date(saved.savedAt).getTime() > SESSION_MAX_MS) return null;
+    return profile;
   } catch {
     return null;
   }
 }
 
-function saveProfile(profile: StaffProfile | null) {
+function saveProfile(profile: StaffProfile | null, savedAt = new Date().toISOString()) {
   try {
-    if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+    if (profile) localStorage.setItem(PROFILE_KEY, JSON.stringify({ profile, savedAt }));
     else localStorage.removeItem(PROFILE_KEY);
   } catch {
     // Storage unavailable: the session still works for this tab.
@@ -29,7 +33,8 @@ function saveProfile(profile: StaffProfile | null) {
 
 interface SessionValue {
   profile: StaffProfile | null;
-  signIn: (profile: StaffProfile) => void;
+  /** `savedAt`: when the server last validated this person (offline unlock keeps the online time). */
+  signIn: (profile: StaffProfile, savedAt?: string) => void;
   signOut: () => Promise<void>;
 }
 
@@ -54,8 +59,8 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       });
   }, [profile]);
 
-  const signIn = useCallback((next: StaffProfile) => {
-    saveProfile(next);
+  const signIn = useCallback((next: StaffProfile, savedAt?: string) => {
+    saveProfile(next, savedAt);
     setProfile(next);
   }, []);
 

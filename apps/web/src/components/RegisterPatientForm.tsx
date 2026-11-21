@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 import type { PatientFields } from "@er/shared";
 import { es } from "../i18n/es";
-import { opMeta, pushOps } from "../data/patients";
+import { createPatient, opMeta } from "../data/patients";
 import { isoFromParts } from "../lib/format";
 import type { SearchDraft } from "./PatientSearchForm";
 import { Alert, Button, Card, TextField, inputClass } from "./ui";
@@ -67,13 +67,9 @@ export function RegisterPatientForm({
     setBusy(true);
     setError(null);
     try {
-      const { results } = await pushOps([op]);
-      const result = results.find((r) => r.opId === op.opId);
-      if (result && (result.status === "APPLIED" || result.status === "DUPLICATE")) {
-        navigate(`/patients/${patientId}/visit`);
-        return;
-      }
-      setError(result?.message ?? es.visit.status.REJECTED);
+      // Saved on this device and queued; the sync engine sends it when there is signal.
+      await createPatient(op);
+      navigate(`/patients/${patientId}/visit`);
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
     } finally {

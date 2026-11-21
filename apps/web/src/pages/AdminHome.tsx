@@ -6,6 +6,7 @@ import { Alert, Card, buttonClass, inputClass } from "../components/ui";
 import { fetchDashboard } from "../data/admin";
 import { listCampaigns } from "../data/patients";
 import { useOnline } from "../lib/useOnline";
+import { EiraCoBrand } from "../components/EiraCoBrand";
 import { es, roleLabel } from "../i18n/es";
 
 const t = es.admin.home;
@@ -122,6 +123,9 @@ export function AdminHome() {
             </Card>
           </>
         )}
+        <footer className="border-t border-line pt-4">
+          <EiraCoBrand />
+        </footer>
       </div>
     </AdminPage>
   );

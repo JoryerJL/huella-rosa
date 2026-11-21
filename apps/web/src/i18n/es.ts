@@ -15,6 +15,10 @@ export const es = {
   online: "Con señal",
   offline: "Sin señal",
   logout: "Salir",
+  brand: {
+    eiraAlt: "EIRA Movimiento Rosa A.C.",
+    madeFor: "Hecho para EIRA Movimiento Rosa A.C.",
+  },
   login: {
     title: "Entrar",
     subtitle: "Escribe tu usuario y tu PIN.",

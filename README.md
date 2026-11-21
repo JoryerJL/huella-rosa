@@ -238,7 +238,7 @@ Servidor Hono sobre Node (rutas API con validación de rol y bitácora)
 | Imagen compartida con EIRA (logo de EIRA junto a Huella Rosa) | **Implementado** |
 | App instalable que abre sin señal (`npm run demo`) | **Implementado** |
 | Roles validados en el servidor y bitácora | **Implementado** en todas las acciones construidas |
-| Servidor MCP para que agentes de IA (Devin, Claude) propongan lotes de altas | En construcción |
+| Servidor MCP: un agente de IA (Devin, Claude) entra con la cuenta de la persona, analiza una foto o un Excel, muestra el plan y lo aplica solo con su confirmación | **Implementado** (local; ver `apps/mcp/README.md`) |
 | Digitalización de formatos con AWS Textract real | **Implementado** en el despliegue (`OCR_MODE=textract`, fotos en S3); en local sigue `mock` |
 | Despliegue en AWS (EC2 + S3 + Textract) detrás de Cloudflare Tunnel, con AWS CDK | **Implementado**: https://huella-rosa.jjjl.dev (ver `docs/DEPLOY.md`) |
 | Usuarios del personal | **Simulado** (usuarios de demostración) |

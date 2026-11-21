@@ -68,7 +68,7 @@ Elegimos el **Reto 1: expediente digital único y registro de pacientes**.
 - **Plantillas JSON:** los campos de cada formato viven en `plantillas/*.json`; agregar un formato es agregar un archivo.
 - **Diseño:** todas las pantallas se diseñaron primero en Figma con la paleta de EIRA, con texto de 18 px o más, un paso por pantalla y lenguaje sin términos de sistema ("3 cambios por enviar", "Dos personas cambiaron el mismo dato").
 - **AWS (Textract y S3):** el código tiene modos `OCR_MODE=mock|textract` y `STORAGE_MODE=local|s3`. [En el demo corre en `mock` y `local`; Textract y S3 reales: en construcción.]
-- **Agentes de código:** construido en la jornada con [Devin, Claude Code y Codex — ajustar a los que realmente usaste], trabajando por bloques chicos y revisando cada uno en el navegador.
+- **Agentes de código:** la idea se validó con **Devin**; la construcción se hizo con **Claude Code** como orquestador y trabajadores en paralelo (Orca) y **Codex** para logos e imágenes de prueba, en bloques chicos probados en el navegador antes de integrarse.
 
 ## Implementado y simulado
 
@@ -113,7 +113,7 @@ Solo lo que ya está en `main`:
 react, vite, typescript, tailwindcss, hono, node.js, prisma, sqlite, valkey, dexie, indexeddb, pwa, workbox, zod, figma
 ```
 
-Agregar solo si se usaron de verdad en la jornada: `devin`, `claude-code`, `codex`.
+Herramientas de IA usadas en la jornada: `devin` (validación de la idea), `claude-code`, `codex`.
 
 Agregar solo si llegan a `main` y se usan en el demo: `aws-textract`, `amazon-s3`, `amazon-ec2`, `fastmcp`.
 

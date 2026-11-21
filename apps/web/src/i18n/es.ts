@@ -98,6 +98,11 @@ export const es = {
     sessionExpired: "Tu sesión terminó. Sal y vuelve a entrar con tu PIN.",
     generic: "Algo no salió bien. Intenta de nuevo en un momento.",
   },
+  dateFields: {
+    day: "Día",
+    month: "Mes",
+    year: "Año",
+  },
   search: {
     fullName: "Nombre completo",
     day: "Nacimiento: día",
@@ -537,6 +542,9 @@ export const es = {
       removeLocality: "Quitar",
       date: "Fecha de inicio",
       endDate: "Fecha de fin",
+      errorDate: "Escribe la fecha de inicio completa: día, mes y año. Por ejemplo 21 11 2026.",
+      errorEndDate: "Escribe la fecha de fin completa: día, mes y año. Por ejemplo 22 11 2026.",
+      errorEndBeforeStart: "La fecha de fin no puede ser antes de la fecha de inicio.",
       name: "Nombre de la jornada",
       nameHint: "Lo proponemos con el lugar y el mes. Puedes cambiarlo.",
       create: "Crear jornada",

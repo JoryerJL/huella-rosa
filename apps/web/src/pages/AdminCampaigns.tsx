@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { defaultCampaignName, type CampaignListItem, type CampaignStatus, type LocalityView } from "@er/shared";
 import { AdminPage } from "../components/AdminPage";
 import { Alert, Button, Card, TextField } from "../components/ui";
+import { DateFields, isoFromDateParts, partsFromIso, type DateParts } from "../components/DateFields";
 import { createCampaign, fetchAdminCampaigns, fetchLocalities, updateCampaign } from "../data/admin";
 import { ApiError } from "../lib/http";
 import { formatShortDate } from "../lib/format";
@@ -49,6 +50,16 @@ function YesNo({ value, onChange }: { value: boolean; onChange: (v: boolean) => 
   );
 }
 
+/** Plain-language problem with the start/end boxes, or null when both are real dates in order. */
+export function campaignDatesError(start: DateParts, end: DateParts): string | null {
+  const date = isoFromDateParts(start);
+  if (!date) return t.errorDate;
+  const endDate = isoFromDateParts(end);
+  if (!endDate) return t.errorEndDate;
+  if (endDate < date) return t.errorEndBeforeStart;
+  return null;
+}
+
 function CampaignForm({
   localities,
   editing,
@@ -64,8 +75,10 @@ function CampaignForm({
   const [state, setState] = useState(editing?.state ?? "");
   const [selected, setSelected] = useState<string[]>(editing?.localityIds ?? []);
   const [newLocalities, setNewLocalities] = useState<NewLocality[]>([]);
-  const [date, setDate] = useState(editing?.date ?? "");
-  const [endDate, setEndDate] = useState(editing?.endDate ?? "");
+  const [start, setStart] = useState<DateParts>(partsFromIso(editing?.date));
+  const [end, setEnd] = useState<DateParts>(partsFromIso(editing?.endDate));
+  const date = isoFromDateParts(start) ?? "";
+  const endDate = isoFromDateParts(end) ?? "";
   // The name follows the place and month until the admin types their own.
   const [name, setName] = useState(editing?.name ?? "");
   const [nameTouched, setNameTouched] = useState(editing !== null);
@@ -81,6 +94,8 @@ function CampaignForm({
 
   async function submit(e: FormEvent) {
     e.preventDefault();
+    const dateError = campaignDatesError(start, end);
+    if (dateError) return setError(dateError);
     setBusy(true);
     setError(null);
     const body = {
@@ -157,10 +172,14 @@ function CampaignForm({
             {t.addLocality}
           </Button>
         </fieldset>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <TextField label={t.date} type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
-          <TextField label={t.endDate} type="date" value={endDate} min={date || undefined} onChange={(e) => setEndDate(e.target.value)} required />
-        </div>
+        <fieldset>
+          <legend className="text-base font-semibold">{t.date}</legend>
+          <DateFields value={start} onChange={setStart} />
+        </fieldset>
+        <fieldset>
+          <legend className="text-base font-semibold">{t.endDate}</legend>
+          <DateFields value={end} onChange={setEnd} />
+        </fieldset>
         <div>
           <TextField
             label={t.name}

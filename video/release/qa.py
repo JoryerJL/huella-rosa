@@ -40,18 +40,21 @@ class Text(HTMLParser):
 
 
 def stills(p):
-    """Six hero frames: hook, the camera landed on four proofs, end card."""
+    """Six hero frames: the camera landed on five proofs, then the end card."""
     beats = {b['id']: b for b in p['beats']}
-    shot = lambda bid, j=0: beats[bid]['shots'][j]['start'] + 2.4
-    return {'1-hook': 2.6, '2-coincidencia': shot('match'), '3-sin-senal': shot('offline'),
-            '4-folio-llega-despues': shot('folio', 1), '5-vuelve-la-senal': shot('online', 1), '6-cierre': p['end'][0] + 4.0}
+    shot = lambda bid, j, d: beats[bid]['shots'][j]['start'] + d
+    return {'1-antes-paquete-guardado': shot('antes', 1, 1.0), '2-busca-motivos': shot('busca', 1, 1.6),
+            '3-sin-senal-folio': shot('senal', 2, 1.0), '4-vuelve-la-senal': shot('vuelve', 0, 4.5),
+            '5-expediente-resultados': shot('proxima', 3, 4.9), '6-cierre': p['end'][0] + 4.0}
 
 
 def copy_text():
     parser = Text()
     parser.feed((ROOT / 'src' / 'index.tpl').read_text())
     beats = json.loads((ROOT / 'src' / 'beats.json').read_text())['beats']
-    words = parser.parts + [b['title'] + ' ' + b['sub'] for b in beats] + ['Tableta de captura', 'Tableta de estaciones']
+    words = parser.parts + ['Tableta de captura', 'Tableta de estaciones']
+    for b in beats:
+        words += [b['question'], b['title']] + [txt for _, txt in b['steps']] + ([b['stamp'][1]] if b.get('stamp') else [])
     return ' '.join(words).lower()
 
 

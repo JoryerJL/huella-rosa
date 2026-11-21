@@ -58,9 +58,30 @@
       .shot { position: absolute; inset: 0; opacity: 0; overflow: hidden; background: var(--crema); }
       .cam { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transform-origin: 0 0; will-change: transform; }
       .cam video { position: absolute; left: 0; top: 0; width: 100%; height: 100%; object-fit: fill; }
-      .ring { position: absolute; left: calc(var(--x) * var(--s) * 1px); top: calc(var(--y) * var(--s) * 1px);
-              width: calc(var(--w) * var(--s) * 1px); height: calc(var(--h) * var(--s) * 1px);
-              border: 3px solid var(--frambuesa); border-radius: 10px; box-shadow: 0 0 0 4px rgba(255, 169, 184, .55); }
+      /* Spotlight: outlines the element in focus and dims the rest of the tablet. */
+      .spot { position: absolute; left: calc(var(--x) * var(--s) * 1px); top: calc(var(--y) * var(--s) * 1px);
+              width: calc(var(--w) * var(--s) * 1px); height: calc(var(--h) * var(--s) * 1px); opacity: 0;
+              border: 3px solid var(--frambuesa); border-radius: 10px;
+              box-shadow: 0 0 0 4px rgba(255, 169, 184, .6), 0 0 0 3000px rgba(46, 18, 36, .34); }
+      .duo .strip { position: relative; width: 100%; height: 50%; overflow: hidden; }
+      .duo .strip + .strip { border-top: 6px solid var(--tinta); }
+      .duo .cam { height: 200%; }
+      .stamp { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 60; white-space: nowrap;
+               font-size: 46px; font-weight: 800; color: var(--crema); background: var(--frambuesa); border-radius: 999px;
+               padding: 22px 48px; box-shadow: 0 20px 50px rgba(20, 6, 16, .45); opacity: 0; }
+      .ask { font-size: 30px; font-weight: 700; color: var(--rosa); line-height: 1.25; }
+      .steps { list-style: none; position: relative; min-height: 150px; }
+      .step { position: absolute; left: 0; top: 0; width: 100%; display: flex; gap: 18px; align-items: flex-start; opacity: 0;
+              font-weight: 700; color: var(--crema); line-height: 1.25; }
+      .step i { flex: none; width: 22px; height: 22px; margin-top: .3em; border-radius: 50%; background: var(--rosa); }
+      .dots { display: flex; gap: 10px; }
+      .dots i { width: 40px; height: 8px; border-radius: 4px; background: rgba(255, 215, 222, .28); }
+      /* Question cards between beats */
+      .qcard { z-index: 8; background: var(--crema); color: var(--vino); }
+      .qcard .scene-content { gap: 30px; padding: 120px; }
+      .qcard .count { color: var(--frambuesa); }
+      .qcard .count b { color: var(--vino); }
+      .qcard h2 { font-size: 112px; font-weight: 800; letter-spacing: -.025em; line-height: 1.04; color: var(--vino); max-width: 1500px; }
       .who { position: absolute; right: 16px; bottom: 16px; font-size: 22px; font-weight: 700; color: var(--crema);
              background: rgba(46, 46, 46, .82); border-radius: 999px; padding: 8px 20px; }
       .flash { position: absolute; inset: 0; background: var(--crema); opacity: 0; pointer-events: none; z-index: 50; }
@@ -78,8 +99,9 @@
       /* ===== 16:9 ===== */
       .f169 .glow { width: 1400px; height: 1400px; left: 600px; top: -160px; }
       .f169 .copy { left: 0; top: 0; width: 790px; height: 1080px; padding: 120px 40px 120px 110px; }
-      .f169 .copy h2 { font-size: 78px; }
-      .f169 .copy p { font-size: 34px; }
+      .f169 .copy h2 { font-size: 64px; }
+      .f169 .step { font-size: 38px; }
+      .f169 .steps { min-height: 200px; }
       .f169 .tablet { left: 794px; top: 197px; }
       .f169 #hook .tagline, .f169 #end .tagline { max-width: 1500px; }
 
@@ -87,8 +109,11 @@
       .f916 .glow { width: 1500px; height: 1500px; left: -210px; top: 700px; }
       .f916 .copy { left: 0; top: 0; width: 1080px; height: 830px; padding: 190px 80px 40px; }
       .f916 .copy-in { justify-content: flex-end; }
-      .f916 .copy h2 { font-size: 92px; }
-      .f916 .copy p { font-size: 40px; }
+      .f916 .copy h2 { font-size: 72px; }
+      .f916 .step { font-size: 42px; }
+      .f916 .ask { font-size: 34px; }
+      .f916 .qcard h2 { font-size: 104px; }
+      .f916 .stamp { font-size: 40px; }
       .f916 .tablet { left: 54px; top: 900px; }
       .f916 #hook h1 { font-size: 118px; }
       .f916 #end .scene-content { padding: 220px 80px; }
@@ -115,8 +140,11 @@
           @@SHOTS@@
           <i class="flash" id="flash"></i>
           </div>
+          @@STAMPS@@
         </div>
       </div>
+
+      @@CARDS@@
 
       <section id="end" class="scene clip" @@W_end@@ data-track-index="2">
         <div class="scene-content">

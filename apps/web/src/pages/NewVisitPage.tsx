@@ -20,6 +20,8 @@ import { usePatientRecord } from "../data/usePatientRecord";
 import { ageFrom, formatBirthDate, isIsoDate, todayIso } from "../lib/format";
 import { es } from "../i18n/es";
 import { BackButton } from "./PatientRecordPage";
+// Block 3a: form photo
+import { AttachScanButton } from "../components/AttachScanButton";
 
 /** Identification fields intake can confirm or correct on a visit (SPEC 6.2 step 4, 6.3 step 2). */
 const REVIEW_FIELDS = ["fullName", "birthDate", "formId", "birthState", "mobile", "phone", "residence", "affiliation"] as const;
@@ -184,6 +186,7 @@ function VisitForm({ record }: { record: PatientRecord }) {
           </p>
           <p className="text-lg">{es.visit.savedFolio(folio)}</p>
           <p className="text-5xl font-bold tracking-wider text-brand-strong">{folio}</p>
+          <AttachScanButton link={{ visitId: ids.visitId, campaignId, folio }} />
           <Button onClick={() => navigate(`/patients/${record.id}`)} className="w-full text-xl">
             {es.visit.goToRecord}
           </Button>

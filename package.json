@@ -12,11 +12,13 @@
     "demo": "npm run build -w @er/web && node apps/web/scripts/check-precache.mjs && concurrently -k -n server,web -c magenta,cyan \"npm run start -w @er/server\" \"npm run preview -w @er/web\"",
     "db:migrate": "npm run db:migrate -w @er/server",
     "seed": "npm run seed -w @er/server",
+    "demo:record": "tsx scripts/demo/record.ts",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
+    "playwright": "^1.65.1",
     "typescript": "^5.9.3"
   }
 }

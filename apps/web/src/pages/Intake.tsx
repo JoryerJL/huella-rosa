@@ -18,6 +18,7 @@ export function Intake() {
   const [draft, setDraft] = useState<SearchDraft>(emptyDraft);
   const [query, setQuery] = useState<SearchQuery | null>(null);
   const [candidates, setCandidates] = useState<MatchCandidate[]>([]);
+  const [maybeElsewhere, setMaybeElsewhere] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,6 +30,7 @@ export function Intake() {
       const res = await searchPatients(q);
       setQuery(q);
       setCandidates(res.candidates);
+      setMaybeElsewhere(res.maybeElsewhere === true);
       setStep("results");
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
@@ -68,7 +70,12 @@ export function Intake() {
           </Button>
         }
       >
-
+        {/* Block 4a: offline hint (SPEC 6.9). */}
+        {maybeElsewhere && (
+          <div className="mb-6">
+            <Alert tone="warn">{es.searchHints.maybeElsewhere}</Alert>
+          </div>
+        )}
         {candidates.length > 0 ? (
           <>
             <ul className="space-y-4">

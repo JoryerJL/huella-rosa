@@ -2,7 +2,8 @@ import { es, roleLabel } from "../i18n/es";
 import { useOnline } from "../lib/useOnline";
 import { useSession } from "../lib/session";
 import { useOutboxSummary, usePackageStatus, useSyncState } from "../data/hooks";
-import { syncNow } from "../data/sync";
+import { dismissSyncToast, syncNow } from "../data/sync";
+import { useEffect } from "react";
 
 function clock(iso: string): string {
   const d = new Date(iso);
@@ -16,6 +17,13 @@ export function TopBar() {
   const outbox = useOutboxSummary();
   const { sync, meta } = usePackageStatus();
   const syncState = useSyncState();
+
+  // Block 4a: one toast line after changes were sent; it fades after a few seconds.
+  useEffect(() => {
+    if (!syncState.toast) return;
+    const timer = window.setTimeout(dismissSyncToast, 6000);
+    return () => window.clearTimeout(timer);
+  }, [syncState.toast]);
 
   // WAITING ops stay pending: they are counted here and named below.
   const pendingLine =
@@ -51,6 +59,7 @@ export function TopBar() {
             <span className="block font-semibold text-warn">{es.sync.waitingCount(outbox.waiting.length)}</span>
           )}
           {outbox.failed.length > 0 && <span className="block font-semibold text-warn">{es.sync.failed(outbox.failed.length)}</span>}
+          {syncState.toast && <span className="block font-semibold text-ok">{syncState.toast}</span>}
           {syncState.error && <span className="block max-w-xs font-semibold text-danger">{syncState.error}</span>}
         </div>
         {online && profile && (

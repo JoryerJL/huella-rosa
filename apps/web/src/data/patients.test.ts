@@ -1,7 +1,8 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
 import { db } from "./db";
-import { createPatient, opMeta, searchPatients } from "./patients";
+import { createPatient, mergeSearchResults, opMeta, searchPatients } from "./patients";
+import { toastFor } from "./sync";
 import { hashPhone } from "../lib/phoneHash";
 import { es } from "../i18n/es";
 
@@ -89,5 +90,44 @@ describe("createPatient", () => {
     const outbox = await db.outbox.toArray();
     expect(outbox).toHaveLength(1);
     expect(outbox[0]).toMatchObject({ opId: op.opId, status: "pending", kind: "CREATE_PATIENT" });
+  });
+});
+
+describe("mergeSearchResults (online search, SPEC 6.9)", () => {
+  const summary = (id: string, visitCount: number) => ({
+    id,
+    fullName: "Lucía Ramírez Torres",
+    birthDate: "1978-03-12",
+    birthState: "Puebla",
+    localityName: null,
+    formId: null,
+    phoneLast4: null,
+    lastVisitDate: null,
+    lastCampaignName: null,
+    visitCount,
+  });
+  const candidate = (id: string, score: number, visitCount = 0) => ({
+    patient: summary(id, visitCount),
+    score,
+    strength: (score >= 60 ? "STRONG" : "WEAK") as "STRONG" | "WEAK",
+    reasons: ["SIMILAR_NAME" as const],
+  });
+
+  it("dedupes by patient id, keeps the server summary and the higher score", () => {
+    const merged = mergeSearchResults(
+      [candidate("a", 90, 1), candidate("b", 40)],
+      [candidate("a", 70, 3), candidate("c", 80, 2)],
+    );
+    expect(merged.map((c) => c.patient.id)).toEqual(["a", "c", "b"]);
+    expect(merged[0]!.score).toBe(90);
+    expect(merged[0]!.patient.visitCount).toBe(3);
+  });
+});
+
+describe("toastFor (signal returns)", () => {
+  it("says how many were sent, or how many need review", () => {
+    expect(toastFor({ sent: 3, review: 0 })).toBe("Se enviaron 3 cambios");
+    expect(toastFor({ sent: 2, review: 1 })).toBe("1 cambio necesita revisión");
+    expect(toastFor({ sent: 0, review: 0 })).toBeNull();
   });
 });

@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router";
 import { isClinicalRole } from "@er/shared";
 import { Page } from "../components/Page";
 import { StepChips } from "../components/StepChips";
+import { ClinicalConflictsLink } from "../components/ClinicalConflictsLink";
 import { Alert, Button, Card, buttonClass, inputClass } from "../components/ui";
 import { useLive, useOutboxSummary, useSyncState } from "../data/hooks";
 import { loadQueue, refreshQueueFromServer, type QueueEntry } from "../data/steps";
@@ -44,6 +45,7 @@ export function QueuePage() {
     >
       <div className="grid gap-6 lg:grid-cols-[1fr_400px]">
         <div className="space-y-4">
+          <ClinicalConflictsLink />
           {queue.length === 0 ? (
             <Card>
               <p className="text-lg text-muted">{es.queue.empty}</p>

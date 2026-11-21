@@ -1,0 +1,12 @@
+{
+  "name": "huella-rosa-demo-2min",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "python3 build.py",
+    "dev": "python3 build.py && npx --yes hyperframes@0.9.51 preview",
+    "check": "npx --yes hyperframes@0.9.51 lint && npx --yes hyperframes@0.9.51 check",
+    "render": "python3 build.py && npx --yes hyperframes@0.9.51 render -q delivery -f 30 -o renders/huella-rosa-demo-${VERSION:-v1}.mp4",
+    "qa": "python3 qa.py renders/huella-rosa-demo-${VERSION:-v1}.mp4"
+  }
+}

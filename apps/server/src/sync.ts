@@ -1,8 +1,9 @@
 import { Prisma } from "@prisma/client";
-import type { OpResult, PatientFields, StaffProfile, SyncOp } from "@er/shared";
+import type { MatchScore, OpResult, PatientFields, StaffProfile, SyncOp } from "@er/shared";
 import { db } from "./db";
 import { writeAudit } from "./audit";
 import { valkey } from "./valkey";
+import { scoreMainCandidates } from "./matchCandidates";
 
 // Single write path (SPEC 8): every create/update of patients and visits goes through here,
 // online or offline. Each op is applied once (Valkey fast path + AppliedOp table) under a
@@ -209,7 +210,75 @@ async function createPatient(tx: Tx, op: OpOf<"CREATE_PATIENT">, staff: StaffPro
       tx,
     );
   }
+  await openMatchReviews(tx, op, staff, fields);
   return { opId: op.opId, status: "APPLIED" };
+}
+
+/**
+ * Duplicate detection on sync (SPEC 6.5.5): a patient registered offline is scored against
+ * existing records with the same rules as search. Every STRONG candidate the person did not
+ * reject ("Es otra persona") opens a MatchReview for a human to decide. Never merges by itself.
+ */
+async function openMatchReviews(
+  tx: Tx,
+  op: OpOf<"CREATE_PATIENT">,
+  staff: StaffProfile,
+  fields: PatientFields,
+) {
+  const rejected = new Set(op.rejectedCandidateIds);
+  // The matcher compares one query phone against both candidate phones: try each of ours.
+  const phones = [...new Set([fields.mobile, fields.phone].filter((p): p is string => !!p))];
+  const best = new Map<string, MatchScore>();
+  for (const phone of phones.length > 0 ? phones : [undefined]) {
+    const scores = await scoreMainCandidates(
+      {
+        fullName: fields.fullName,
+        birthDate: fields.birthDate,
+        phone,
+        formId: fields.formId ?? undefined,
+        birthState: fields.birthState ?? undefined,
+      },
+      { client: tx, excludeIds: [op.patientId] },
+    );
+    for (const [id, score] of scores) {
+      const current = best.get(id);
+      if (!current || score.score > current.score) best.set(id, score);
+    }
+  }
+
+  for (const [candidateId, score] of best) {
+    if (score.strength !== "STRONG" || rejected.has(candidateId)) continue;
+    const existing = await tx.matchReview.findFirst({
+      where: {
+        OR: [
+          { patientAId: candidateId, patientBId: op.patientId },
+          { patientAId: op.patientId, patientBId: candidateId },
+        ],
+      },
+      select: { id: true },
+    });
+    if (existing) continue;
+    const review = await tx.matchReview.create({
+      data: {
+        patientAId: candidateId,
+        patientBId: op.patientId,
+        score: score.score,
+        reasons: JSON.stringify(score.reasons),
+      },
+    });
+    // Opaque ids, score and reason codes only; never names, dates or phones.
+    await writeAudit(
+      {
+        actorId: staff.id,
+        action: "MATCH_REVIEW_OPENED",
+        deviceId: op.deviceId,
+        entity: "MatchReview",
+        entityId: review.id,
+        detail: `patients=${candidateId},${op.patientId} score=${score.score} reasons=${score.reasons.join(",")}`,
+      },
+      tx,
+    );
+  }
 }
 
 async function updatePatient(tx: Tx, op: OpOf<"UPDATE_PATIENT">, staff: StaffProfile): Promise<OpResult> {

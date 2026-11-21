@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { db } from "./db";
 
 export interface AuditEntry {
@@ -6,13 +7,16 @@ export interface AuditEntry {
   deviceId?: string | null;
   entity?: string | null;
   entityId?: string | null;
-  /** Short text. Never put clinical values here. */
+  /** Short text. Never put clinical values or personal data (names, dates, phones) here. */
   detail?: string | null;
 }
 
-/** Records who did what, when, from which device and on which entity (rule 6 in CLAUDE.md). */
-export function writeAudit(entry: AuditEntry) {
-  return db.auditLog.create({
+/**
+ * Records who did what, when, from which device and on which entity (rule 6 in CLAUDE.md).
+ * Pass a transaction client to write the entry atomically with the change it describes.
+ */
+export function writeAudit(entry: AuditEntry, client: Prisma.TransactionClient = db) {
+  return client.auditLog.create({
     data: {
       actorId: entry.actorId,
       action: entry.action,

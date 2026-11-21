@@ -11,7 +11,8 @@
     "build": "npm run build -w @er/web",
     "db:migrate": "npm run db:migrate -w @er/server",
     "seed": "npm run seed -w @er/server",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present"
   },
   "devDependencies": {
     "concurrently": "^9.2.1",

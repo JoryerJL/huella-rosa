@@ -3,6 +3,7 @@ import type { SearchQuery } from "@er/shared";
 import { es } from "../i18n/es";
 import { isoFromParts } from "../lib/format";
 import { Alert, Button, Card, Check, TextField, inputClass } from "./ui";
+import { DateFields } from "./DateFields";
 
 export type ExtraKind = "phone" | "formId" | "birthState";
 const EXTRA_KINDS: ExtraKind[] = ["phone", "formId", "birthState"];
@@ -37,7 +38,6 @@ export function PatientSearchForm({
   const [draft, setDraft] = useState<SearchDraft>(initial);
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<SearchDraft>) => setDraft((d) => ({ ...d, ...patch }));
-  const digits = (v: string, max: number) => v.replace(/\D/g, "").slice(0, max);
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -59,29 +59,11 @@ export function PatientSearchForm({
           autoComplete="off"
         />
 
-        <div className="grid grid-cols-[1fr_1fr_1.8fr] gap-4">
-          <TextField
-            label={es.search.day}
-            inputMode="numeric"
-            placeholder="DD"
-            value={draft.day}
-            onChange={(e) => set({ day: digits(e.target.value, 2) })}
-          />
-          <TextField
-            label={es.search.month}
-            inputMode="numeric"
-            placeholder="MM"
-            value={draft.month}
-            onChange={(e) => set({ month: digits(e.target.value, 2) })}
-          />
-          <TextField
-            label={es.search.year}
-            inputMode="numeric"
-            placeholder="AAAA"
-            value={draft.year}
-            onChange={(e) => set({ year: digits(e.target.value, 4) })}
-          />
-        </div>
+        <DateFields
+          value={{ day: draft.day, month: draft.month, year: draft.year }}
+          onChange={(d) => set(d)}
+          labels={{ day: es.search.day, month: es.search.month, year: es.search.year }}
+        />
 
         <fieldset>
           <legend className="text-base font-semibold">{es.search.extraLegend}</legend>

@@ -56,7 +56,11 @@ export function AdminAudit() {
                     <span className="text-lg">
                       {auditSentence(e)} · <strong>{when(e.at)}</strong>
                     </span>
-                    {e.deviceShort && <span className="text-base text-muted">{t.device(e.deviceShort)}</span>}
+                    {(e.deviceName || e.devicePrefix) && (
+                      <span className="text-base text-muted">
+                        {e.deviceName ? t.device(e.deviceName) : t.deviceByPrefix(e.devicePrefix!)}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ol>

@@ -41,6 +41,18 @@ Usuarios de demostración: se listan en la pantalla `/login` (captura, consulta 
 
 Para probar el trabajo sin conexión: entra como captura, descarga el paquete de la jornada en `/campaigns` y pon el navegador sin red (modo avión o "Offline" en las herramientas de desarrollo).
 
+### Cómo hacer la demo sin señal
+
+En desarrollo (`npm run dev`) el service worker no se comporta igual que en producción. Para la demo usa la versión construida:
+
+1. Con Valkey arriba y la base lista (`docker compose up -d`, `npm run db:migrate`, `npm run seed`), corre `npm run demo`. Construye la app, revisa que el service worker guarde `index.html` y el paquete de la app, y levanta el servidor y la app construida.
+2. Abre http://localhost:4173 en Chrome. Las llamadas a `/api` pasan al servidor (puerto 3001).
+3. Instala la app (ícono de instalar en la barra de direcciones).
+4. Entra como captura y descarga el paquete de la jornada en "Paquete de jornada".
+5. Corta la red (modo avión o "Offline" en las herramientas de desarrollo) y recarga: la app abre, busca pacientes y guarda visitas. Al volver la señal, los cambios se envían solos.
+
+Puertos: `PORT` (servidor), `PREVIEW_PORT` (app construida) y `API_PROXY` (a dónde manda `/api` la app) se pueden cambiar con variables de entorno.
+
 ### Credenciales y servicios
 
 | Servicio | Para qué | ¿Obligatorio? |
@@ -99,13 +111,18 @@ Servidor Hono sobre Node (rutas API con validación de rol y bitácora)
 | Sincronización que no duplica, conflictos por campo y aviso en vivo (Valkey: ids de operación, candado por paciente, pub/sub) | **Implementado** |
 | Detección de posibles duplicados creados sin señal | **Implementado** (se abren para revisión; nunca se fusiona) |
 | Especialistas (nutriólogo, médico, patólogo), pasos de la visita y "Pacientes esperándome" | **Implementado** (cada quien llena solo sus campos; validado en servidor) |
-| Folio corto que une las estaciones sin internet | **Implementado** |
-| Pantallas de administración: ¿Es la misma persona? y Dos personas cambiaron el mismo dato | En construcción (bloque 4) |
+| Folio corto que une las estaciones sin internet (el primero de cada tableta es `-001`) | **Implementado** |
+| Pantallas de administración: tablero de la jornada, ¿Es la misma persona?, Dos personas cambiaron el mismo dato e historial de cambios por paciente | **Implementado** |
+| Personal (altas con rol y PIN, desactivar y reactivar) y jornadas (crear y editar con sus localidades) desde administración | **Implementado** |
+| Elegir qué jornada descargar cuando hay varias en curso o próximas (la tableta recuerda la elección) | **Implementado** |
+| Nombre de cada tableta en el historial de cambios ("Tableta de captura 1", o "Tableta A8" si no tiene nombre) | **Implementado** |
+| Foto del formato con lectura de campos y confirmación humana | **Implementado** con lectura simulada (`OCR_MODE=mock`) |
+| Plantilla de Excel e importación de Excel/CSV con revisión humana | **Implementado** |
+| Imagen compartida con EIRA (logo de EIRA junto a Huella Rosa) | **Implementado** |
+| App instalable que abre sin señal (`npm run demo`) | **Implementado** |
 | Roles validados en el servidor y bitácora | **Implementado** en todas las acciones construidas |
-| Plantilla de Excel e importación de Excel/CSV con revisión humana | Por construir |
-| Servidor MCP para que agentes de IA (Devin, Claude) propongan lotes de altas | Por construir (si no da el tiempo, queda documentado) |
-| Tablero por jornada | Por construir |
-| Digitalización de formatos con AWS Textract | Por construir (si no da el tiempo, queda en modo `mock`, declarado) |
+| Servidor MCP para que agentes de IA (Devin, Claude) propongan lotes de altas | En construcción |
+| Digitalización de formatos con AWS Textract real | En construcción (hoy en modo `mock`, declarado) |
 | Usuarios del personal | **Simulado** (usuarios de demostración) |
 | Lectura de formatos | **Simulado** (`OCR_MODE=mock`) |
 | App para que la paciente revise sus propios datos | **Solo documentado** |

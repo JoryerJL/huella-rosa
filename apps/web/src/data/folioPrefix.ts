@@ -21,7 +21,7 @@ export async function ensureFolioPrefix(): Promise<DeviceMeta | null> {
       // Another tab may have registered meanwhile: keep its counter.
       const again = await getDeviceMeta();
       if (again) return again;
-      const meta: DeviceMeta = { folioPrefix: res.folioPrefix, nextSeq: 1 };
+      const meta: DeviceMeta = { folioPrefix: res.folioPrefix, nextSeq: 1, name: res.name ?? null };
       await db.meta.put({ key: "device", value: meta });
       return meta;
     });
@@ -30,7 +30,31 @@ export async function ensureFolioPrefix(): Promise<DeviceMeta | null> {
   }
 }
 
-/** Reserves the next folio of this tablet. Gaps are fine; a number is never handed out twice. */
+/** Gives this tablet a friendly name (needs signal); the audit timeline shows it instead of an id. */
+export async function nameTablet(name: string): Promise<void> {
+  const res = await request<DeviceRegistration>("/api/devices/name", {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+  });
+  await db.transaction("rw", db.meta, async () => {
+    const meta = await getDeviceMeta();
+    if (meta) await db.meta.put({ key: "device", value: { ...meta, name: res.name ?? name.trim() } });
+  });
+}
+
+/**
+ * The folio the next saved visit will get, without consuming it. The visit form shows this on
+ * render (React may render it twice), and the number is only taken when the visit is saved.
+ */
+export async function peekFolio(): Promise<string | null> {
+  const meta = await getDeviceMeta();
+  return meta ? formatFolio(meta.folioPrefix, meta.nextSeq) : null;
+}
+
+/**
+ * Takes the next folio of this tablet. Called inside the transaction that saves the visit, so a
+ * failed save rolls the counter back: numbers are never skipped nor handed out twice.
+ */
 export async function reserveFolio(): Promise<string | null> {
   return db.transaction("rw", db.meta, async () => {
     const meta = await getDeviceMeta();

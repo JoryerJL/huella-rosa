@@ -77,6 +77,8 @@ export interface DeviceMeta {
   folioPrefix: string;
   /** Next sequence number to use; never reused on this device. */
   nextSeq: number;
+  /** Friendly name given on this tablet (stored on the server too); null/absent until named. */
+  name?: string | null;
 }
 
 /** Block 3a: a compressed form photo waiting for signal (SPEC 6.4 item 3, 6.8 item 4). */
@@ -91,9 +93,15 @@ export interface QueuedScan {
   createdAt: string;
 }
 
+/** The campaign this tablet chose on the package page, and its localities (to pick a default later). */
+export interface CampaignChoice {
+  campaignId: string;
+  localityIds: string[];
+}
+
 export interface MetaRow {
-  key: "package" | "sync" | "device";
-  value: PackageMeta | SyncMeta | DeviceMeta;
+  key: "package" | "sync" | "device" | "campaignChoice";
+  value: PackageMeta | SyncMeta | DeviceMeta | CampaignChoice;
 }
 
 export const db = new Dexie("huella-rosa") as Dexie & {

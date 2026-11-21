@@ -202,7 +202,18 @@ export interface DeviceRegistration {
   deviceId: string;
   /** Letter + digit, e.g. "B3". Stable for this deviceId. */
   folioPrefix: string;
+  /** Friendly name given on the tablet; null until someone names it. Additive. */
+  name?: string | null;
 }
+
+/** PUT /api/devices/name: the tablet's friendly name shown in the audit timeline. */
+export const deviceNameSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(2, "Escribe un nombre de al menos 2 letras para la tableta.")
+    .max(40, "El nombre de la tableta puede tener hasta 40 letras."),
+});
 
 export interface VisitStepView {
   role: ClinicalRole;
@@ -530,7 +541,10 @@ export interface PatientAuditEntry {
   role: string | null;
   fields: string[];
   choice: "server" | "device" | null;
-  deviceShort: string | null;
+  /** The tablet's friendly name, when someone gave it one. */
+  deviceName: string | null;
+  /** The tablet's folio prefix (e.g. "A8"), shown as "Tableta A8" when it has no name. */
+  devicePrefix: string | null;
 }
 
 /** GET /api/dashboard?campaignId= (admin and CLINICAL_ROLES). */

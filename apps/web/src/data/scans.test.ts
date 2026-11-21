@@ -77,7 +77,7 @@ describe("scan queue sync", () => {
 
 describe("identify with photo", () => {
   it("turns confirmed identification fields into the search form", () => {
-    expect(draftFromScan({ fullName: "Lucía Ramírez Torres", birthDate: "05/01/1990", mobile: "55-0000-0003", formId: "DEMO0000003" })).toEqual({
+    expect(draftFromScan({ fullName: "Lucía Ramírez Torres", birthDate: "05/01/1990", mobile: "55-0000-0003", formId: "RATL900105" })).toEqual({
       fullName: "Lucía Ramírez Torres",
       day: "05",
       month: "01",
@@ -85,6 +85,6 @@ describe("identify with photo", () => {
       extraKind: "phone",
       extra: "55-0000-0003",
     });
-    expect(draftFromScan({ fullName: "Ana", birthDate: "", formId: "DEMO0000021" }).extraKind).toBe("formId");
+    expect(draftFromScan({ fullName: "Ana", birthDate: "", formId: "ORRC880614" }).extraKind).toBe("formId");
   });
 });

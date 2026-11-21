@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
-import type { PatientFields } from "@er/shared";
+import { buildEiraId, joinNameParts, patientSlug, splitFullName, type PatientFields } from "@er/shared";
 import { es } from "../i18n/es";
 import { createPatient, opMeta } from "../data/patients";
 import { isoFromParts } from "../lib/format";
@@ -19,7 +19,7 @@ export function RegisterPatientForm({
 }) {
   const navigate = useNavigate();
   const [form, setForm] = useState({
-    fullName: draft.fullName,
+    ...splitFullName(draft.fullName),
     day: draft.day,
     month: draft.month,
     year: draft.year,
@@ -30,24 +30,37 @@ export function RegisterPatientForm({
     residence: "",
     affiliation: "",
   });
+  // The EIRA ID follows the name and date until the person types their own (SPEC 6.1.1).
+  const [formIdEdited, setFormIdEdited] = useState(draft.extraKind === "formId" && draft.extra.trim() !== "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   // Stable for this form: a retry after a lost response is idempotent instead of creating a second patient.
   const [ids] = useState(() => ({ patientId: crypto.randomUUID(), meta: opMeta() }));
-  const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }));
+  const set = (patch: Partial<typeof form>) =>
+    setForm((f) => {
+      const next = { ...f, ...patch };
+      if (formIdEdited) return next;
+      const birthDate = isoFromParts(next.day, next.month, next.year) ?? "";
+      return { ...next, formId: buildEiraId({ ...next, birthDate }) };
+    });
   const digits = (v: string, max: number) => v.replace(/\D/g, "").slice(0, max);
   const orNull = (v: string) => (v.trim() ? v.trim() : null);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (form.fullName.trim().length < 2) return setError(es.search.errorName);
+    const fullName = joinNameParts(form);
+    if (fullName.length < 2 || !form.givenNames.trim()) return setError(es.register.errorGivenNames);
+    if (!form.paternalSurname.trim()) return setError(es.register.errorPaternal);
     const birthDate = isoFromParts(form.day, form.month, form.year);
     if (!birthDate) return setError(es.search.errorDate);
 
     const fields: PatientFields = {
-      fullName: form.fullName.trim(),
+      fullName,
+      givenNames: orNull(form.givenNames),
+      paternalSurname: orNull(form.paternalSurname),
+      maternalSurname: orNull(form.maternalSurname),
       birthDate,
-      formId: orNull(form.formId),
+      formId: orNull(form.formId.toUpperCase()),
       birthState: orNull(form.birthState),
       phone: orNull(form.phone),
       mobile: orNull(form.mobile),
@@ -70,7 +83,7 @@ export function RegisterPatientForm({
       // Saved on this device and queued; the sync engine sends it when there is signal.
       await createPatient(op);
       // "new=1": she was just registered here, so the visit shows her data as a summary, not field by field.
-      navigate(`/patients/${patientId}/visit?new=1`);
+      navigate(`/patients/${patientSlug({ id: patientId, formId: fields.formId })}/visit?new=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : es.errors.generic);
     } finally {
@@ -82,14 +95,31 @@ export function RegisterPatientForm({
     <Card>
       <p className="text-lg text-muted">{es.register.subtitle}</p>
       <form onSubmit={onSubmit} className="mt-6 space-y-5" noValidate>
-        <TextField label={es.fields.fullName} value={form.fullName} onChange={(e) => set({ fullName: e.target.value })} />
+        <TextField label={es.fields.givenNames} value={form.givenNames} onChange={(e) => set({ givenNames: e.target.value })} />
+        <div className="grid gap-5 sm:grid-cols-2">
+          <TextField label={es.fields.paternalSurname} value={form.paternalSurname} onChange={(e) => set({ paternalSurname: e.target.value })} />
+          <TextField label={es.fields.maternalSurname} value={form.maternalSurname} onChange={(e) => set({ maternalSurname: e.target.value })} />
+        </div>
         <div className="grid grid-cols-[1fr_1fr_1.8fr] gap-4">
           <TextField label={es.search.day} inputMode="numeric" value={form.day} onChange={(e) => set({ day: digits(e.target.value, 2) })} />
           <TextField label={es.search.month} inputMode="numeric" value={form.month} onChange={(e) => set({ month: digits(e.target.value, 2) })} />
           <TextField label={es.search.year} inputMode="numeric" value={form.year} onChange={(e) => set({ year: digits(e.target.value, 4) })} />
         </div>
+        <label className="block rounded-lg border-2 border-[#f3ebe8] bg-[#fdf8f6] p-4">
+          <span className="text-base font-semibold">{es.fields.formId}</span>
+          <input
+            className={`${inputClass} font-mono text-2xl tracking-widest uppercase`}
+            value={form.formId}
+            maxLength={11}
+            autoCapitalize="characters"
+            onChange={(e) => {
+              setFormIdEdited(true);
+              setForm((f) => ({ ...f, formId: e.target.value.toUpperCase() }));
+            }}
+          />
+          <span className="mt-2 block text-base text-muted">{es.register.eiraIdHint}</span>
+        </label>
         <div className="grid gap-5 sm:grid-cols-2">
-          <TextField label={es.fields.formId} value={form.formId} onChange={(e) => set({ formId: e.target.value })} />
           <TextField label={es.fields.birthState} value={form.birthState} onChange={(e) => set({ birthState: e.target.value })} />
           <TextField label={es.fields.phone} inputMode="tel" value={form.phone} onChange={(e) => set({ phone: e.target.value })} />
           <TextField label={es.fields.mobile} inputMode="tel" value={form.mobile} onChange={(e) => set({ mobile: e.target.value })} />

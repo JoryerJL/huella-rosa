@@ -17,6 +17,8 @@ export interface QueueEntry {
   folio: string;
   patientId: string;
   fullName: string;
+  /** EIRA ID when known on this device (SPEC 6.1.1). */
+  formId: string | null;
   registeredAt: string;
   steps: VisitStepView[];
 }
@@ -39,6 +41,7 @@ export function filterQueue(
   names: Map<string, string>,
   role: ClinicalRole,
   completed: Set<string>,
+  formIds: Map<string, string | null> = new Map(),
 ): QueueEntry[] {
   const entries: QueueEntry[] = [];
   for (const v of visits) {
@@ -50,6 +53,7 @@ export function filterQueue(
       folio: v.folio,
       patientId: v.patientId,
       fullName: names.get(v.patientId) ?? v.patientName ?? "",
+      formId: formIds.get(v.patientId) ?? v.patientFormId ?? null,
       registeredAt: v.registeredAt ?? `${v.date}T00:00:00.000Z`,
       steps: v.steps,
     });
@@ -61,9 +65,11 @@ export async function loadQueue(role: ClinicalRole): Promise<QueueEntry[]> {
   const visits = await db.visits.toArray();
   const ids = [...new Set(visits.map((v) => v.patientId))];
   const patients = await db.patients.bulkGet(ids);
-  const names = new Map(patients.filter((p) => p !== undefined).map((p) => [p.id, p.fullName]));
+  const known = patients.filter((p) => p !== undefined);
+  const names = new Map(known.map((p) => [p.id, p.fullName]));
+  const formIds = new Map(known.map((p) => [p.id, p.formId]));
   const open = await db.outbox.where("status").anyOf("pending", "failed").toArray();
-  return filterQueue(visits, names, role, completedStepKeys(open));
+  return filterQueue(visits, names, role, completedStepKeys(open), formIds);
 }
 
 /** With signal: stores today's queue from the server so it keeps working when the signal drops. */
@@ -87,6 +93,7 @@ export async function refreshQueueFromServer(): Promise<void> {
         registeredAt: item.registeredAt,
         patientName: item.fullName,
         patientBirthDate: item.birthDate,
+        patientFormId: item.formId ?? existing?.patientFormId ?? null,
       };
       await db.visits.put(mergeVisit(incoming, existing));
     }
@@ -95,6 +102,12 @@ export async function refreshQueueFromServer(): Promise<void> {
 
 export async function findVisitByFolio(folio: string): Promise<LocalVisit | null> {
   return (await db.visits.where("folio").equals(normalizeFolio(folio)).first()) ?? null;
+}
+
+/** EIRA ID of the visit's patient known on this device, if any (SPEC 6.1.1). */
+export async function knownPatientFormId(visit: LocalVisit | null): Promise<string | null> {
+  if (!visit) return null;
+  return (await db.patients.get(visit.patientId))?.formId ?? visit.patientFormId ?? null;
 }
 
 /** Name of the visit's patient known on this device, if any. */

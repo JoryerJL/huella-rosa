@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import type { MatchCandidate, SearchQuery } from "@er/shared";
+import { patientSlug, type MatchCandidate, type SearchQuery } from "@er/shared";
 import { Page } from "../components/Page";
 import { MatchCard } from "../components/MatchCard";
 import { PatientSearchForm, emptyDraft } from "../components/PatientSearchForm";
@@ -44,7 +44,7 @@ export function Patients() {
               key={c.patient.id}
               candidate={c}
               action={
-                <Link to={`/patients/${c.patient.id}`} className={buttonClass("primary", "w-full sm:w-auto")}>
+                <Link to={`/patients/${patientSlug(c.patient)}`} className={buttonClass("primary", "w-full sm:w-auto")}>
                   {es.matches.viewRecord}
                 </Link>
               }

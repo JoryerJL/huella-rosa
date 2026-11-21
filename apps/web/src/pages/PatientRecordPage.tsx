@@ -1,7 +1,7 @@
 import { Link, useNavigate, useParams } from "react-router";
-import type { PatientRecord, ServiceView } from "@er/shared";
+import { patientSlug, type PatientRecord, type ServiceView } from "@er/shared";
 import { Page } from "../components/Page";
-import { Alert, BackArrow, Button, Card, Lock, Plus, buttonClass } from "../components/ui";
+import { Alert, BackArrow, Button, Card, EiraIdBadge, Lock, Plus, buttonClass } from "../components/ui";
 import { usePatientRecord } from "../data/usePatientRecord";
 import type { VisitWithSteps } from "../data/patients";
 import { StepChips } from "../components/StepChips";
@@ -23,7 +23,6 @@ export function BackButton() {
 export function recordSubtitle(record: PatientRecord): string {
   const age = ageFrom(record.birthDate);
   return [
-    record.formId ? es.record.idLine(record.formId) : es.record.noFormId,
     age !== null ? es.common.yearsOld(age) : null,
     es.common.visitsCount(record.visits.length),
   ]
@@ -62,11 +61,12 @@ export function PatientRecordPage() {
   return (
     <Page
       title={record.fullName}
+      badge={<EiraIdBadge formId={record.formId} />}
       subtitle={recordSubtitle(record)}
       leading={<BackButton />}
       actions={
         isIntake && (
-          <Link to={`/patients/${record.id}/visit`} className={buttonClass("primary")}>
+          <Link to={`/patients/${patientSlug(record)}/visit`} className={buttonClass("primary")}>
             <Plus />
             {es.record.newVisit}
           </Link>

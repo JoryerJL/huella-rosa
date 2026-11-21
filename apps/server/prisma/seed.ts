@@ -2,6 +2,7 @@
 import { writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { PrismaClient } from "@prisma/client";
+import { DEFAULT_STEPS_BY_SERVICE, formatFolio, type ClinicalRole, type ServiceType } from "@er/shared";
 import { hashPin } from "../src/pin";
 
 const db = new PrismaClient();
@@ -28,7 +29,9 @@ const campaigns = [
 
 const users = [
   { id: "usr-intake", username: "lperez", name: "Laura Pérez Ortiz", role: "intake" },
-  { id: "usr-clinician", username: "cruiz", name: "Dra. Carmen Ruiz Delgado", role: "clinician" },
+  { id: "usr-nutritionist", username: "jtorres", name: "Jorge Torres Navarro", role: "nutritionist" },
+  { id: "usr-doctor", username: "cruiz", name: "Dra. Carmen Ruiz Delgado", role: "doctor" },
+  { id: "usr-pathologist", username: "mvega", name: "Dra. Mariana Vega Salinas", role: "pathologist" },
   { id: "usr-admin", username: "smendez", name: "Sofía Méndez Aguilar", role: "admin" },
 ];
 
@@ -47,7 +50,7 @@ const patients = [
 ];
 
 // Previous-campaign visits to demonstrate "second visit with history".
-const priorVisits = [
+const priorVisits: { n: number; services: { type: ServiceType; data: Record<string, string> }[] }[] = [
   { n: 1, services: [{ type: "BREAST_REVIEW", data: { birads: "1", nextStep: "1" } }] },
   { n: 2, services: [{ type: "BREAST_REVIEW", data: { birads: "2", nextStep: "1" } }, { type: "ULTRASOUND", data: {} }] },
   { n: 3, services: [{ type: "PAP", data: {} }] },
@@ -57,7 +60,9 @@ const priorVisits = [
 async function main() {
   // Children first.
   await db.service.deleteMany();
+  await db.visitStep.deleteMany();
   await db.visit.deleteMany();
+  await db.device.deleteMany();
   await db.matchReview.deleteMany();
   await db.syncConflict.deleteMany();
   await db.formScan.deleteMany();
@@ -79,14 +84,17 @@ async function main() {
     });
   }
 
+  // Prior folios come from a seed tablet with prefix "S1" (folios are unique per campaign).
+  const completedAt = new Date("2026-05-16T18:00:00Z");
   for (const v of priorVisits) {
+    const roles = [...new Set(v.services.flatMap((s) => DEFAULT_STEPS_BY_SERVICE[s.type]))] as ClinicalRole[];
     await db.visit.create({
       data: {
         id: `visit-prior-${v.n}`,
         patientId: pid(v.n),
         campaignId: "camp-2026-05",
         date: "2026-05-16",
-        folio: `F-0526-${String(v.n).padStart(3, "0")}`,
+        folio: formatFolio("S1", v.n),
         createdBy: "usr-intake",
         deviceId: DEVICE,
         services: {
@@ -96,9 +104,12 @@ async function main() {
             templateId: s.type === "PAP" ? "citologia-cervical-eira" : "revision-mamaria-eira",
             data: JSON.stringify(s.data),
             status: "CONFIRMED",
-            confirmedBy: "usr-clinician",
-            confirmedAt: new Date("2026-05-16T18:00:00Z"),
+            confirmedBy: s.type === "PAP" ? "usr-pathologist" : "usr-doctor",
+            confirmedAt: completedAt,
           })),
+        },
+        steps: {
+          create: roles.map((role) => ({ role, status: "DONE", completedBy: `usr-${role}`, completedAt })),
         },
       },
     });

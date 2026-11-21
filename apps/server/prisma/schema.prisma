@@ -35,7 +35,7 @@ model User {
   id       String @id
   username String @unique // login name, lowercase; staff are never listed on screen
   name     String
-  role     String // intake | clinician | admin
+  role     String // intake | nutritionist | doctor | pathologist | admin
   pinHash  String // scrypt hash, demo only
 }
 
@@ -69,35 +69,63 @@ model Patient {
 }
 
 model Visit {
-  id         String    @id
+  id         String      @id
   patientId  String
-  patient    Patient   @relation(fields: [patientId], references: [id])
+  patient    Patient     @relation(fields: [patientId], references: [id])
   campaignId String
-  campaign   Campaign  @relation(fields: [campaignId], references: [id])
+  campaign   Campaign    @relation(fields: [campaignId], references: [id])
   date       String // YYYY-MM-DD
-  folio      String? // "Folio Eira"
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt // change tracking for GET /api/sync/pull
+  folio      String? // short folio "<prefix>-<seq>-<check>" (SPEC 6.3.1), unique per campaign
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt // change tracking for GET /api/sync/pull
   createdBy  String
   deviceId   String
-  version    Int       @default(1)
+  version    Int         @default(1)
   services   Service[]
+  steps      VisitStep[]
 
+  @@unique([campaignId, folio])
   @@index([updatedAt])
 }
 
+// One station a visit passes through (SPEC 6.3.1): nutritionist, doctor or pathologist.
+model VisitStep {
+  id          String    @id @default(uuid())
+  visitId     String
+  visit       Visit     @relation(fields: [visitId], references: [id])
+  role        String // nutritionist | doctor | pathologist
+  status      String    @default("PENDING") // PENDING | DONE | SKIPPED
+  completedBy String?
+  completedAt DateTime?
+  reason      String? // why it was SKIPPED
+  version     Int       @default(1)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([visitId, role])
+  @@index([updatedAt])
+}
+
+// A tablet with its unique folio prefix, assigned the first time it is online (SPEC 6.3.1).
+model Device {
+  id          String   @id // deviceId sent by the app (x-device-id)
+  folioPrefix String   @unique // letter + digit, e.g. "B3"
+  createdAt   DateTime @default(now())
+}
+
 model Service {
-  id           String    @id
-  visitId      String
-  visit        Visit     @relation(fields: [visitId], references: [id])
-  type         String // BREAST_REVIEW | ULTRASOUND | PAP | MAMMOGRAPHY
-  templateId   String
-  data         String    @default("{}") // JSON with template fields
-  formImageRef String?
-  status       String    @default("DRAFT") // DRAFT | CONFIRMED
-  confirmedBy  String?
-  confirmedAt  DateTime?
-  version      Int       @default(1)
+  id            String    @id
+  visitId       String
+  visit         Visit     @relation(fields: [visitId], references: [id])
+  type          String // BREAST_REVIEW | ULTRASOUND | PAP | MAMMOGRAPHY
+  templateId    String
+  data          String    @default("{}") // JSON with template fields
+  fieldVersions String    @default("{}") // JSON: field -> version (UPDATE_SERVICE_FIELDS)
+  formImageRef  String?
+  status        String    @default("DRAFT") // DRAFT | CONFIRMED
+  confirmedBy   String?
+  confirmedAt   DateTime?
+  version       Int       @default(1)
 }
 
 model MatchReview {

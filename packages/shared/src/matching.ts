@@ -11,6 +11,8 @@ export interface MatchSubject {
   phone?: string | null;
   mobile?: string | null;
   birthState?: string | null;
+  /** hashPhone() of each phone, used offline where the package never carries plain numbers. */
+  phoneHashes?: string[];
 }
 
 export interface MatchScore {
@@ -47,6 +49,20 @@ export function nameTokens(value: string): string[] {
 export function normalizePhone(value: string | null | undefined): string {
   if (!value) return "";
   return value.replace(/\D+/g, "").slice(-10);
+}
+
+/** Fewer digits than this cannot identify anyone; such phones never match. */
+const MIN_PHONE_DIGITS = 7;
+
+/**
+ * SHA-256 hex of normalizePhone(value), with Web Crypto (Node 24 and browsers).
+ * Returns "" when the phone has fewer than 7 digits, so short or empty numbers never match.
+ */
+export async function hashPhone(value: string | null | undefined): Promise<string> {
+  const digits = normalizePhone(value);
+  if (digits.length < MIN_PHONE_DIGITS) return "";
+  const buffer = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(digits));
+  return Array.from(new Uint8Array(buffer), (b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function normalizeFormId(value: string | null | undefined): string {
@@ -121,8 +137,15 @@ const WEAK_CEILING = 60;
  * - similar name alone -> WEAK, never STRONG
  * - no signal (name, date, phone or formId) -> score 0, not a candidate.
  * Birth state only supports another signal; it never makes a candidate by itself.
+ *
+ * `queryPhoneHash` (hashPhone of query.phone) lets the device match candidates that only
+ * carry phoneHashes (campaign package) without ever holding their phone numbers.
  */
-export function scoreCandidate(query: SearchQuery, candidate: MatchSubject): MatchScore {
+export function scoreCandidate(
+  query: SearchQuery,
+  candidate: MatchSubject,
+  queryPhoneHash?: string,
+): MatchScore {
   const reasons: MatchReason[] = [];
   let raw = 0;
 
@@ -147,9 +170,12 @@ export function scoreCandidate(query: SearchQuery, candidate: MatchSubject): Mat
   }
 
   const qPhone = normalizePhone(query.phone);
-  const samePhone =
-    qPhone.length >= 7 &&
+  const samePlainPhone =
+    qPhone.length >= MIN_PHONE_DIGITS &&
     (qPhone === normalizePhone(candidate.phone) || qPhone === normalizePhone(candidate.mobile));
+  const sameHashedPhone =
+    !!queryPhoneHash && (candidate.phoneHashes ?? []).includes(queryPhoneHash);
+  const samePhone = samePlainPhone || sameHashedPhone;
   if (samePhone) {
     reasons.push("SAME_PHONE");
     raw += WEIGHTS.phone;

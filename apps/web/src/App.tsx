@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 import { ROLE_HOME } from "@er/shared";
 import { SessionProvider, useSession } from "./lib/session";
@@ -8,15 +9,26 @@ import { Patients } from "./pages/Patients";
 import { PatientRecordPage } from "./pages/PatientRecordPage";
 import { NewVisitPage } from "./pages/NewVisitPage";
 import { AdminAudit } from "./pages/AdminAudit";
+import { CampaignsPage } from "./pages/CampaignsPage";
+import { startSyncEngine } from "./data/sync";
 
 function Home() {
   const { profile } = useSession();
   return <Navigate to={profile ? ROLE_HOME[profile.role] : "/login"} replace />;
 }
 
+/** Runs the outbox/pull engine while someone is signed in. */
+function SyncEngine() {
+  const { profile } = useSession();
+  const signedIn = profile !== null;
+  useEffect(() => (signedIn ? startSyncEngine() : undefined), [signedIn]);
+  return null;
+}
+
 export function App() {
   return (
     <SessionProvider>
+      <SyncEngine />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -50,6 +62,14 @@ export function App() {
             element={
               <RequireRole roles={["intake"]}>
                 <NewVisitPage />
+              </RequireRole>
+            }
+          />
+          <Route
+            path="/campaigns"
+            element={
+              <RequireRole roles={["intake", "admin"]}>
+                <CampaignsPage />
               </RequireRole>
             }
           />

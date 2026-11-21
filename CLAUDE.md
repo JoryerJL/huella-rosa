@@ -52,7 +52,9 @@ Regla general: **el código y la estructura del proyecto van en inglés; lo que 
 | Posible duplicado, Conflicto de sincronización, Formato digitalizado, Bitácora | `MatchReview`, `SyncConflict`, `FormScan`, `AuditLog` |
 | Paquete de jornada, Bandeja de salida, Operación | `campaign package`, `outbox`, `op` (`SyncOp`) |
 | Vincular, Descartar, "Es ella", "Es otra persona" | `link`, `dismiss`, `confirmMatch`, `rejectMatch` |
-| Roles: captura, consulta clínica, administración | `intake`, `clinician`, `admin` |
+| Roles: captura, administración | `intake`, `admin` |
+| Consulta clínica = nutriólogo, médico, patólogo | `nutritionist`, `doctor`, `pathologist` (grupo `CLINICAL_ROLES`; reemplazan a `clinician`) |
+| Paso de la visita, Pacientes esperándome, con quién pasará | `VisitStep`, `queue`, `plannedSteps` |
 | Servicios: revisión mamaria, ultrasonido, papanicolaou, mastografía | `BREAST_REVIEW`, `ULTRASOUND`, `PAP`, `MAMMOGRAPHY` |
 | Nombre, fecha de nacimiento, entidad de nacimiento, "4. ID", "Folio Eira", residencia, afiliación | `fullName`, `birthDate`, `birthState`, `formId`, `folio`, `residence`, `affiliation` |
 | Con señal / Sin señal | `online` / `offline` |

@@ -46,7 +46,7 @@ Principio de diseño: **la tecnología hace el trabajo repetitivo; las personas 
 | Rol | Puede | No puede |
 |---|---|---|
 | Captura | Buscar pacientes, dar de alta, registrar visitas y servicios, digitalizar formatos, trabajar sin conexión | Ver resultados clínicos de visitas anteriores; vincular expedientes; resolver conflictos |
-| Consulta clínica | Ver el historial completo de una paciente, registrar la evaluación del servicio, confirmar los campos clínicos leídos de un formato, resolver conflictos en campos clínicos | Vincular expedientes; administrar usuarios |
+| Consulta clínica: **nutriólogo, médico, patólogo** | Ver el historial clínico completo; llenar y confirmar **solo los campos de su especialidad** (ver 6.3.1), incluidos los leídos de un formato; resolver conflictos en esos campos; ver su lista de "pacientes esperándome" | Llenar campos de otra especialidad; vincular expedientes; administrar usuarios |
 | Administración | Revisar posibles duplicados y vincular, resolver conflictos en campos no clínicos, consultar la bitácora, crear jornadas | Ver o editar datos clínicos |
 
 En el prototipo el personal entra con usuarios de demostración sembrados. En un piloto: Amazon Cognito con MFA.
@@ -70,6 +70,8 @@ Campaign       id, name, municipality, state, date, localityIds        ("jornada
 Locality       id, name, municipality, hasSignal
 User           id, name, role [intake | clinician | admin]
 
+VisitStep      id, visitId, role [nutritionist | doctor | pathologist],
+               status [PENDING | DONE | SKIPPED], completedBy?, completedAt?, version
 MatchReview    id, patientAId, patientBId, score, reasons, status [OPEN | LINKED | DISMISSED],
                decidedBy?, decidedAt?                                   ("posible duplicado")
 SyncConflict   id, entity, entityId, field, serverValue, deviceValue, deviceId, userId,
@@ -114,6 +116,23 @@ Regla de la pantalla de captura: **no existe un botón de "alta nueva" antes de 
 1. Al elegir "Es ella", se muestra el historial: visitas anteriores con fecha, jornada y servicios.
 2. Captura actualiza solo lo que cambió (por ejemplo, teléfono). Cada cambio guarda versión y bitácora.
 3. Consulta clínica ve además los resultados registrados en cada servicio.
+
+### 6.3.1 Pasos de la visita por especialidad
+
+En la jornada, la paciente pasa por estaciones. Una visita puede pasar **hasta por los 3 especialistas**, en cualquier orden:
+
+| Paso | Rol | Campos de `plantillas/mamaria.json` (y citología) |
+|---|---|---|
+| Somatometría | `nutritionist` | Talla, Peso, PA, GLC, BT, AT |
+| Consulta | `doctor` | Motivo de consulta, factores de riesgo (11-17), exploración clínica (18), termografía (19), ultrasonido (20), BIRADS (22), conducta a seguir (23), motivo de referencia (24), notas |
+| Patología | `pathologist` | Resultado de citología (diagnóstico, otros hallazgos, muestra, repetir estudio) y "Revisada por patólogo(a)"; suele llegar días después, del laboratorio |
+
+1. Al registrar la visita, captura marca **con quién pasará**. El sistema lo propone según los servicios del día (revisión mamaria, ultrasonido o mastografía → nutriólogo y médico; papanicolaou → patólogo) y captura puede ajustarlo. Cada marca crea un `VisitStep` en `PENDING`.
+2. Cada especialista ve **"Pacientes esperándome"**: las visitas de la jornada con su paso pendiente, con nombre, hora de registro y pasos ya hechos. Funciona sin conexión con los datos del dispositivo.
+3. Al abrir una visita, el especialista ve el historial clínico y llena **solo los campos de su paso** (cada campo de la plantilla declara `filledBy`). El servidor rechaza escrituras de campos de otra especialidad.
+4. Al guardar, su paso queda `DONE` (o `SKIPPED` con motivo si la paciente se fue). La visita está completa cuando no quedan pasos pendientes.
+5. El expediente y el tablero muestran en qué paso va cada visita y cuánto tardó cada estación.
+6. Todo cambio de paso queda en bitácora.
 
 ### 6.4 Digitalizar un formato
 
@@ -195,7 +214,9 @@ Una jornada puede pasar **hasta 3 días sin internet**. Por eso:
 | `/intake/import` | captura | Descargar plantilla de Excel, subir Excel o CSV, revisar lotes (incluidos los propuestos por agentes) |
 | `/patients` | captura, clínica | Buscar expediente (pantalla de inicio de consulta clínica) |
 | `/patients/[id]` | captura, clínica | Expediente: datos, historial de visitas y servicios (lo clínico solo para clínica) |
-| `/patients/[id]/visit` | captura | Nueva visita y servicios |
+| `/patients/[id]/visit` | captura | Nueva visita, servicios y con quién pasará |
+| `/queue` | nutriólogo, médico, patólogo | Pacientes esperándome (pantalla de inicio de cada especialista) |
+| `/visits/[id]/step` | nutriólogo, médico, patólogo | Llenar los campos de mi paso, con el historial a la vista |
 | `/admin/matches` | administración | Posibles duplicados |
 | `/admin/conflicts` | administración | Conflictos de sincronización |
 | `/admin/audit` | administración | Bitácora y tablero |
@@ -206,7 +227,9 @@ Una jornada puede pasar **hasta 3 días sin internet**. Por eso:
 ```
 POST /api/auth/login                 público     usuario + PIN -> sesión (límite de intentos en Valkey)
 GET  /api/sync/events                personal    aviso "hay cambios" (SSE alimentado por pub/sub de Valkey)
-GET  /api/campaigns/[id]/package     captura     paquete de jornada (índice mínimo)
+GET  /api/campaigns/[id]/package     captura, especialistas  paquete de jornada (índice mínimo; los especialistas reciben además las visitas de la jornada con sus pasos)
+GET  /api/queue                      especialistas  visitas con mi paso pendiente
+(los pasos se escriben con operaciones UPDATE_SERVICE_FIELDS y COMPLETE_STEP por /api/sync/push)
 GET  /api/patients/search            personal    coincidencias con puntaje y motivos
 GET  /api/patients/[id]              personal    expediente (campos según rol)
 POST /api/sync/push                  personal    operaciones de la bandeja de salida

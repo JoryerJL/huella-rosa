@@ -14,6 +14,30 @@ Prototipo de código abierto para [EIRA Movimiento Rosa A.C.](https://www.eiraac
 
 > **Prototipo con datos ficticios.** No está autorizado para usarse con pacientes reales. Cualquier función clínica o uso con datos personales requiere revisión de EIRA.
 
+## Un agente de IA trabaja por ti (MCP)
+
+Huella Rosa se conecta con agentes de IA como **Devin** o **Claude**. Le pasas al agente la **foto de un formato** o un **Excel** que ya tienes, el agente lo analiza con las reglas de Huella Rosa, **te dice qué va a importar** y **lo hace por ti cuando tú confirmas**.
+
+<img src="docs/media/devin-mcp-conectado.png" alt="Devin Desktop con el MCP huella-rosa conectado a https://huella-rosa.jjjl.dev/mcp" width="720" />
+
+1. **Entras con tu cuenta de Huella Rosa.** Al conectar el agente se abre la página "Conectar un agente de IA a tu cuenta"; escribes tu usuario y PIN y apruebas. El agente trabaja **como tú y con tu rol**, nunca con una llave compartida.
+2. **Le pides algo como:** "Analiza este Excel y dime qué importarías" o "Identifica a esta paciente con la foto".
+3. **Te muestra el plan:** pacientes nuevas, posibles coincidencias con sus motivos ("misma fecha de nacimiento", "nombre parecido") y filas con errores explicados en lenguaje sencillo. **No guarda nada todavía.**
+4. **Tú decides:** "Sí, registra las 3 nuevas y Juana es la misma". Solo entonces lo aplica.
+5. **Queda en la bitácora:** "Importación confirmada por Laura Pérez Ortiz vía agente (Devin)".
+
+**Herramientas que ofrece:** `get_import_template` (columnas y reglas), `analyze_spreadsheet` (analiza un Excel o CSV sin guardar), `analyze_form_photo` (lee la identificación de la foto y busca coincidencias) y `apply_import` (aplica solo las decisiones que la persona confirmó, una sola vez).
+
+**Lo que el agente nunca puede hacer:** unir expedientes sin que la persona elija, leer o escribir datos clínicos, ni actuar con una cuenta que no sea de captura. Cada persona ve y revoca sus agentes conectados en "Agentes conectados".
+
+**Conectarlo en Devin Desktop:** Personalizar → MCPs → **+** → URL `https://huella-rosa.jjjl.dev/mcp` → al conectar, entra con `lperez` / `1234` (cuenta ficticia de captura). Detalles técnicos y otros clientes en [`apps/mcp/README.md`](apps/mcp/README.md).
+
+<details><summary>Panel de MCPs de Devin Desktop</summary>
+
+<img src="docs/media/devin-mcp-panel.png" alt="Panel Personalizar → MCPs de Devin Desktop con huella-rosa conectado" width="900" />
+
+</details>
+
 ## Cómo se ve
 
 Dos tabletas sin señal: la de captura registra la visita y la estación de nutrición abre la misma visita con el folio del formato. Cuando vuelve la señal, todo se une solo.

@@ -70,7 +70,7 @@ La app sigue funcionando sin internet porque guarda la jornada en el dispositivo
 ## Qué está simulado o pendiente
 
 - Usuarios de demostración con PIN fijo (en un piloto: Amazon Cognito con MFA).
-- El servidor MCP para agentes de IA (Devin, Claude) está en construcción.
+- El agente de IA (MCP) está en línea en https://huella-rosa.jjjl.dev/mcp: conéctalo desde Devin Desktop (Personalizar → MCPs → +) y entra con `lperez` / `1234`.
 - Los diagnósticos de citología se muestran como "Código N" hasta tener los textos del formato de EIRA.
 - Preguntas abiertas para EIRA: qué va en la casilla 11 del ID, quién resuelve duplicados en campo, retención de datos.
 

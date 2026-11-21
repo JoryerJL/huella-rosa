@@ -84,7 +84,7 @@ export interface MetaRow {
   value: PackageMeta | SyncMeta | DeviceMeta;
 }
 
-export const db = new Dexie("expediente-rosa") as Dexie & {
+export const db = new Dexie("huella-rosa") as Dexie & {
   patients: EntityTable<LocalPatient, "id">;
   visits: EntityTable<LocalVisit, "id">;
   outbox: EntityTable<OutboxEntry, "seq">;

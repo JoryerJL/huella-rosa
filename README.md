@@ -1,4 +1,4 @@
-# Expediente Rosa
+# Huella Rosa
 
 **Una paciente, un expediente**, aunque se registre en jornadas distintas y **aunque no haya señal**.
 

@@ -1,4 +1,4 @@
-# Especificación del producto: Expediente Rosa
+# Especificación del producto: Huella Rosa
 
 Reto 1 del Nerdearla Vibeathon México 2026 (EIRA Movimiento Rosa A.C.):
 **expediente digital único y registro de pacientes, aun con conectividad intermitente.**

@@ -103,6 +103,14 @@ export const es = {
     sessionExpired: "Tu sesión terminó. Sal y vuelve a entrar con tu PIN.",
     generic: "Algo no salió bien. Intenta de nuevo en un momento.",
   },
+  nameTablet: {
+    title: "Ponle nombre a esta tableta",
+    body: "Así administración sabe desde qué tableta se capturó cada dato.",
+    label: "Nombre de la tableta",
+    placeholder: "Tableta de captura 1",
+    save: "Guardar nombre",
+    later: "Ahora no",
+  },
   dateFields: {
     day: "Día",
     month: "Mes",
@@ -619,7 +627,8 @@ export const es = {
       empty: "Todavía no hay movimientos para esta paciente.",
       back: "Buscar otra paciente",
       someone: "Alguien",
-      device: (short: string) => `tableta ${short}`,
+      device: (name: string) => name,
+      deviceByPrefix: (prefix: string) => `Tableta ${prefix}`,
     },
   },
   // Block 4a: online search (SPEC 6.9) and the toast when signal returns.

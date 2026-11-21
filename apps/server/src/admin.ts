@@ -394,6 +394,10 @@ export async function patientAudit(patientId: string): Promise<PatientAuditEntry
     take: 500,
   });
   const names = await userNames(entries.map((e) => e.actorId));
+  const deviceIds = [...new Set(entries.map((e) => e.deviceId).filter((id): id is string => !!id))];
+  const devices = new Map(
+    (await db.device.findMany({ where: { id: { in: deviceIds } }, select: { id: true, name: true, folioPrefix: true } })).map((d) => [d.id, d]),
+  );
 
   return entries.map((e) => {
     const detail = e.detail ?? "";
@@ -420,7 +424,9 @@ export async function patientAudit(patientId: string): Promise<PatientAuditEntry
       role: step?.role ?? (/role=([a-z]+)/.exec(detail)?.[1] ?? null),
       fields,
       choice: (/choice=(server|device)/.exec(detail)?.[1] as "server" | "device" | undefined) ?? null,
-      deviceShort: e.deviceId ? e.deviceId.slice(0, 6) : null,
+      // Never the raw device id: its friendly name, else its folio prefix.
+      deviceName: (e.deviceId && devices.get(e.deviceId)?.name) || null,
+      devicePrefix: (e.deviceId && devices.get(e.deviceId)?.folioPrefix) || null,
     };
   });
 }

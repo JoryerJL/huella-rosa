@@ -21,13 +21,25 @@ export async function ensureFolioPrefix(): Promise<DeviceMeta | null> {
       // Another tab may have registered meanwhile: keep its counter.
       const again = await getDeviceMeta();
       if (again) return again;
-      const meta: DeviceMeta = { folioPrefix: res.folioPrefix, nextSeq: 1 };
+      const meta: DeviceMeta = { folioPrefix: res.folioPrefix, nextSeq: 1, name: res.name ?? null };
       await db.meta.put({ key: "device", value: meta });
       return meta;
     });
   } catch {
     return null; // No signal or endpoint not available yet: the visit form explains it.
   }
+}
+
+/** Gives this tablet a friendly name (needs signal); the audit timeline shows it instead of an id. */
+export async function nameTablet(name: string): Promise<void> {
+  const res = await request<DeviceRegistration>("/api/devices/name", {
+    method: "PUT",
+    body: JSON.stringify({ name }),
+  });
+  await db.transaction("rw", db.meta, async () => {
+    const meta = await getDeviceMeta();
+    if (meta) await db.meta.put({ key: "device", value: { ...meta, name: res.name ?? name.trim() } });
+  });
 }
 
 /**

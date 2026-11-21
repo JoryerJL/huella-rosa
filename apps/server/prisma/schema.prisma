@@ -115,6 +115,7 @@ model VisitStep {
 model Device {
   id          String   @id // deviceId sent by the app (x-device-id)
   folioPrefix String   @unique // letter + digit, e.g. "B3"
+  name        String? // friendly name given on the tablet, e.g. "Tableta de captura 1"
   createdAt   DateTime @default(now())
 }
 

@@ -77,6 +77,8 @@ export interface DeviceMeta {
   folioPrefix: string;
   /** Next sequence number to use; never reused on this device. */
   nextSeq: number;
+  /** Friendly name given on this tablet (stored on the server too); null/absent until named. */
+  name?: string | null;
 }
 
 /** Block 3a: a compressed form photo waiting for signal (SPEC 6.4 item 3, 6.8 item 4). */

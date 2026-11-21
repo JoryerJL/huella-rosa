@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { Prisma } from "@prisma/client";
-import { ROLES, type DeviceRegistration } from "@er/shared";
+import { ROLES, deviceNameSchema, type DeviceRegistration } from "@er/shared";
 import { db } from "../db";
 import { writeAudit } from "../audit";
 import { valkey } from "../valkey";
@@ -36,16 +36,37 @@ function isUniqueViolation(error: unknown, field: string): boolean {
   return Array.isArray(target) ? target.includes(field) : String(target ?? "").includes(field);
 }
 
-export const deviceRoutes = new Hono<SessionEnv>().post("/register", requireRole(...ROLES), async (c) => {
+const MISSING_DEVICE = "Falta el identificador de la tableta. Recarga la aplicación.";
+
+function deviceIdOf(header: string | undefined): string | null {
+  const id = header?.trim();
+  return id && id.length <= 128 ? id : null;
+}
+
+export const deviceRoutes = new Hono<SessionEnv>()
+  // Names the tablet the request comes from, e.g. "Tableta de captura 1" (any role, own tablet only).
+  .put("/name", requireRole(...ROLES), async (c) => {
+    const staff = c.get("staff");
+    const deviceId = deviceIdOf(c.req.header("x-device-id"));
+    if (!deviceId) return c.json({ error: MISSING_DEVICE }, 400);
+    const parsed = deviceNameSchema.safeParse(await c.req.json().catch(() => null));
+    if (!parsed.success) {
+      return c.json({ error: parsed.error.issues[0]?.message ?? "Escribe un nombre para la tableta." }, 400);
+    }
+    const existing = await db.device.findUnique({ where: { id: deviceId } });
+    if (!existing) return c.json({ error: "Esta tableta todavía no está registrada. Entra con señal e intenta de nuevo." }, 404);
+    const device = await db.device.update({ where: { id: deviceId }, data: { name: parsed.data.name } });
+    await writeAudit({ actorId: staff.id, action: "DEVICE_NAMED", deviceId, entity: "Device", entityId: deviceId, detail: null });
+    return c.json({ deviceId, folioPrefix: device.folioPrefix, name: device.name } satisfies DeviceRegistration);
+  })
+  .post("/register", requireRole(...ROLES), async (c) => {
   const staff = c.get("staff");
-  const deviceId = c.req.header("x-device-id")?.trim();
-  if (!deviceId || deviceId.length > 128) {
-    return c.json({ error: "Falta el identificador de la tableta. Recarga la aplicación." }, 400);
-  }
+  const deviceId = deviceIdOf(c.req.header("x-device-id"));
+  if (!deviceId) return c.json({ error: MISSING_DEVICE }, 400);
 
   const existing = await db.device.findUnique({ where: { id: deviceId } });
   if (existing) {
-    const body: DeviceRegistration = { deviceId, folioPrefix: existing.folioPrefix };
+    const body: DeviceRegistration = { deviceId, folioPrefix: existing.folioPrefix, name: existing.name };
     return c.json(body);
   }
 
@@ -62,13 +83,13 @@ export const deviceRoutes = new Hono<SessionEnv>().post("/register", requireRole
         entityId: deviceId,
         detail: `prefix=${device.folioPrefix}`,
       });
-      const body: DeviceRegistration = { deviceId, folioPrefix: device.folioPrefix };
+      const body: DeviceRegistration = { deviceId, folioPrefix: device.folioPrefix, name: device.name };
       return c.json(body);
     } catch (error) {
       // Same tablet registered concurrently: answer with the prefix it already got.
       if (isUniqueViolation(error, "id")) {
         const winner = await db.device.findUnique({ where: { id: deviceId } });
-        if (winner) return c.json({ deviceId, folioPrefix: winner.folioPrefix } satisfies DeviceRegistration);
+        if (winner) return c.json({ deviceId, folioPrefix: winner.folioPrefix, name: winner.name } satisfies DeviceRegistration);
       }
       // Prefix taken (e.g. the Valkey counter was reset): try the next one.
       if (isUniqueViolation(error, "folioPrefix")) continue;

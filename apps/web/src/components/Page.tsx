@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { TopBar } from "./TopBar";
+import { NameTabletCard } from "./NameTabletCard";
 
 export function Page({
   title,
@@ -30,7 +31,10 @@ export function Page({
           </div>
           {actions}
         </div>
-        <div className="mt-8">{children}</div>
+        <div className="mt-8">
+          <NameTabletCard />
+          {children}
+        </div>
       </main>
     </div>
   );

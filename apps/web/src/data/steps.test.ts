@@ -61,11 +61,11 @@ describe("folio", () => {
   it("reserves consecutive folios from the stored prefix and never repeats one", async () => {
     expect(await reserveFolio()).toBeNull();
     vi.stubGlobal("fetch", vi.fn(async () => jsonResponse({ deviceId: "d", folioPrefix: "B3" })));
-    expect(await ensureFolioPrefix()).toEqual({ folioPrefix: "B3", nextSeq: 1 });
+    expect(await ensureFolioPrefix()).toEqual({ folioPrefix: "B3", nextSeq: 1, name: null });
     expect(await reserveFolio()).toBe("B3-001-B");
     expect(await reserveFolio()).toBe("B3-002-C");
     // Registering again keeps the counter.
-    expect(await ensureFolioPrefix()).toEqual({ folioPrefix: "B3", nextSeq: 3 });
+    expect(await ensureFolioPrefix()).toEqual({ folioPrefix: "B3", nextSeq: 3, name: null });
   });
 
   it("shows -001 on a new tablet even if the form renders twice, and only saving uses the number", async () => {

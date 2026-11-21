@@ -1,0 +1,110 @@
+{
+  "templateId": "revision-mamaria-eira",
+  "nota": "Lectura esperada de formato-03.svg (ficticio). Fecha de nacimiento escrita poco clara. Sin campos no_transcribir.",
+  "fields": {
+    "formFolio": {
+      "value": "F-000460",
+      "confidence": 0.95
+    },
+    "hasEiraCard": {
+      "value": "2",
+      "confidence": 0.9
+    },
+    "attendanceDate": {
+      "value": "2026-11-20",
+      "confidence": 0.94
+    },
+    "height": {
+      "value": "155",
+      "confidence": 0.92
+    },
+    "weight": {
+      "value": "58",
+      "confidence": 0.93
+    },
+    "bloodPressure": {
+      "value": "110/70",
+      "confidence": 0.88
+    },
+    "capillaryGlucose": {
+      "value": "89",
+      "confidence": 0.9
+    },
+    "bt": {
+      "value": "",
+      "confidence": 0.0
+    },
+    "at": {
+      "value": "",
+      "confidence": 0.0
+    },
+    "fullName": {
+      "value": "Patricia Luna Herrera",
+      "confidence": 0.94
+    },
+    "birthState": {
+      "value": "Colima",
+      "confidence": 0.93
+    },
+    "formId": {
+      "value": "DEMO0000022",
+      "confidence": 0.91
+    },
+    "birthDate": {
+      "value": "1975-02-09",
+      "confidence": 0.55
+    },
+    "ageYears": {
+      "value": "51",
+      "confidence": 0.9
+    },
+    "residence": {
+      "value": "San Ejemplo",
+      "confidence": 0.86
+    },
+    "phone": {
+      "value": "",
+      "confidence": 0.0
+    },
+    "mobile": {
+      "value": "55-0000-0022",
+      "confidence": 0.9
+    },
+    "affiliation": {
+      "value": "1",
+      "confidence": 0.89
+    },
+    "affiliationOther": {
+      "value": "",
+      "confidence": 0.0
+    },
+    "consultationReason": {
+      "value": "Revisión",
+      "confidence": 0.83
+    },
+    "menarcheAge": {
+      "value": "11",
+      "confidence": 0.88
+    },
+    "familyBreastCancer": {
+      "value": "7",
+      "confidence": 0.86
+    },
+    "priorMammography": {
+      "value": "2",
+      "confidence": 0.9
+    },
+    "thermography": {
+      "value": "1",
+      "confidence": 0.87
+    },
+    "birads": {
+      "value": "1",
+      "confidence": 0.9
+    },
+    "nextStep": {
+      "value": "1",
+      "confidence": 0.9
+    }
+  }
+}

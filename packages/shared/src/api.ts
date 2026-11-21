@@ -3,6 +3,8 @@ import {
   CLINICAL_ROLES,
   SERVICE_TYPES,
   type ClinicalRole,
+  type ConflictStatus,
+  type MatchReviewStatus,
   type ServiceStatus,
   type ServiceType,
   type StepStatus,
@@ -302,4 +304,92 @@ export interface CampaignView {
   date: string;
   /** Last day, YYYY-MM-DD (same as date for a one-day campaign). Additive: multi-day campaigns. */
   endDate: string;
+}
+
+// ---------- Block 4a: administration (SPEC 6.5, 6.6) ----------
+
+/** One side of "¿Es la misma persona?": identification data only, never clinical. */
+export interface AdminMatchPatient {
+  id: string;
+  fullName: string;
+  birthDate: string;
+  birthState: string | null;
+  formId: string | null;
+  phone: string | null;
+  mobile: string | null;
+  residence: string | null;
+  localityName: string | null;
+  affiliation: string | null;
+  visitCount: number;
+  registeredByName: string | null;
+  registeredAt: string;
+  linkedToId: string | null;
+}
+
+/** GET /api/matches?status=OPEN (admin). */
+export interface AdminMatch {
+  id: string;
+  status: MatchReviewStatus;
+  score: number;
+  reasons: MatchReason[];
+  createdAt: string;
+  a: AdminMatchPatient;
+  b: AdminMatchPatient;
+  /** Identification field keys whose values differ between both records. */
+  differing: string[];
+}
+
+export interface ConflictSide {
+  value: string | null;
+  byName: string | null;
+  at: string | null;
+}
+
+/** GET /api/conflicts?status=OPEN (admin: identification; each specialist: own clinical fields). */
+export interface AdminConflict {
+  id: string;
+  entity: string;
+  entityId: string;
+  field: string;
+  /** Spanish label from the templates or the identification field map. */
+  fieldLabel: string;
+  clinical: boolean;
+  patientName: string | null;
+  folio: string | null;
+  /** "Lo que ya estaba guardado". */
+  saved: ConflictSide;
+  /** "Lo que capturó … sin señal". */
+  incoming: ConflictSide;
+  status: ConflictStatus;
+}
+
+export const resolveConflictSchema = z.object({ choice: z.enum(["server", "device"]) });
+export const linkMatchSchema = z.object({ mainId: z.string().min(1) });
+
+/** GET /api/audit?patientId= (admin): one timeline entry, actor names and field labels, never values. */
+export interface PatientAuditEntry {
+  id: number;
+  at: string;
+  actorName: string | null;
+  action: string;
+  entity: string | null;
+  folio: string | null;
+  role: string | null;
+  fields: string[];
+  choice: "server" | "device" | null;
+  deviceShort: string | null;
+}
+
+/** GET /api/dashboard?campaignId= (admin and CLINICAL_ROLES). */
+export interface DashboardResponse {
+  campaignId: string;
+  campaignName: string;
+  patients: number;
+  visits: number;
+  recurringRecognized: number;
+  matchesOpen: number;
+  matchesLinked: number;
+  conflictsOpen: number;
+  steps: { role: ClinicalRole; pending: number; done: number; skipped: number; avgMinutes: number | null }[];
+  pendingByLocality: { locality: string; count: number }[];
 }

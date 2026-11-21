@@ -15,7 +15,7 @@ import { db } from "./db";
 import { writeAudit } from "./audit";
 import { valkey } from "./valkey";
 import { scoreMainCandidates } from "./matchCandidates";
-import { fieldsFor, templateIdForService } from "./templates";
+import { fieldsFor, templateFieldLabel, templateIdForService } from "./templates";
 
 // Single write path (SPEC 8): every create/update of patients and visits goes through here,
 // online or offline. Each op is applied once (Valkey fast path + AppliedOp table) under a
@@ -46,7 +46,7 @@ const WAITING_MESSAGE =
   "Esta visita aún no llega al servidor. Tu registro se guarda en la tableta y se unirá al sincronizar.";
 
 /** Spanish labels for conflict messages (shown to the person syncing). */
-const FIELD_LABELS: Record<PatientField, string> = {
+export const FIELD_LABELS: Record<PatientField, string> = {
   formId: "ID del formato",
   fullName: "nombre",
   birthDate: "fecha de nacimiento",
@@ -125,7 +125,11 @@ function authorizeOp(op: SyncOp, staff: StaffProfile): string | null {
       const allowed = new Set(fieldsFor(templateIdForService(op.serviceType), staff.role));
       const foreign = keys.filter((key) => !allowed.has(key));
       // Field keys are template codes, never patient data.
-      if (foreign.length > 0) return `Estos campos no son de tu especialidad: ${foreign.join(", ")}.`;
+      if (foreign.length > 0) {
+        const templateId = templateIdForService(op.serviceType);
+        const labels = foreign.map((key) => templateFieldLabel(key, templateId));
+        return `Estos campos no son de tu especialidad: ${labels.join(", ")}.`;
+      }
       return null;
     }
     case "COMPLETE_STEP":
@@ -437,7 +441,7 @@ async function updatePatient(tx: Tx, op: OpOf<"UPDATE_PATIENT">, staff: StaffPro
     return {
       opId: op.opId,
       status: "CONFLICT",
-      message: `Alguien más cambió ${labels} antes que tú. Se conservó el valor del servidor y quedó un conflicto para revisión.`,
+      message: `Alguien más cambió ${labels} antes que tú. Se conservó lo que ya estaba guardado y administración lo revisará.`,
     };
   }
   return { opId: op.opId, status: "APPLIED" };
@@ -693,7 +697,7 @@ async function updateServiceFields(
     return {
       opId: op.opId,
       status: "CONFLICT",
-      message: `Otro dispositivo ya había llenado ${conflicts.join(", ")} con otro valor. Se conservó el valor del servidor y quedó un conflicto para revisión.`,
+      message: `Otro dispositivo ya había llenado ${conflicts.map((key) => templateFieldLabel(key, templateId)).join(", ")} con otro valor. Se conservó lo que ya estaba guardado y administración lo revisará.`,
     };
   }
   return { opId: op.opId, status: "APPLIED" };

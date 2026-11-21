@@ -73,7 +73,7 @@ async function withinSearchLimit(userId: string): Promise<boolean> {
 }
 
 export const patientRoutes = new Hono<SessionEnv>()
-  .get("/search", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
+  .get("/search", requireRole("intake", ...CLINICAL_ROLES, "admin"), async (c) => {
     const staff = c.get("staff");
     const parsed = searchQuerySchema.safeParse(c.req.query());
     if (!parsed.success) {
@@ -115,7 +115,10 @@ export const patientRoutes = new Hono<SessionEnv>()
   })
   .get("/:id", requireRole("intake", ...CLINICAL_ROLES), async (c) => {
     const staff = c.get("staff");
-    const id = c.req.param("id");
+    const requested = c.req.param("id");
+    // A linked record opens its main record, which shows the merged history.
+    const link = await db.patient.findUnique({ where: { id: requested }, select: { linkedToId: true } });
+    const id = link?.linkedToId ?? requested;
     const patient = await db.patient.findUnique({
       where: { id },
       include: {

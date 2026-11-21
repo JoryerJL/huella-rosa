@@ -7,6 +7,7 @@ import type { Role, ServiceType } from "@er/shared";
 
 interface TemplateField {
   clave: string;
+  etiqueta?: string;
   filledBy?: string;
 }
 
@@ -51,4 +52,17 @@ export function fieldsFor(templateId: string, role: Role): string[] {
   const template = loadTemplates().get(templateId);
   if (!template) return [];
   return template.campos.filter((f) => f.filledBy === role).map((f) => f.clave);
+}
+
+/** Spanish label of a template field ("Peso" for "weight"); falls back to the key when unknown. */
+export function templateFieldLabel(key: string, templateId?: string): string {
+  const templates = loadTemplates();
+  const ordered = templateId && templates.has(templateId)
+    ? [templates.get(templateId)!, ...templates.values()]
+    : [...templates.values()];
+  for (const template of ordered) {
+    const field = template.campos.find((f) => f.clave === key);
+    if (field?.etiqueta) return field.etiqueta;
+  }
+  return key;
 }
